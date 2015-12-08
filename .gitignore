@@ -4,3 +4,5 @@
 /target
 /bin/
 /.scalastyle
+/.cache-main
+/.cache-tests
