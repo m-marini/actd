@@ -1,0 +1,195 @@
+\documentclass[a4paper,11pt]{article}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+
+\title{Neural network notes}
+\author{Marco Marini}
+
+\begin{document}
+
+\maketitle
+\tableofcontents
+
+\begin{abstract}
+This document contains notes about neural network regarding the Temporal Differential reinforcement alghorithms.
+\end{abstract}
+
+\section{Generale}
+
+Siano data una rete neurale formata da $ N $ strati di neuroni.
+Ogni strato $ i = 1 \dots N $ è composto da $ s_i $ neuroni.
+
+Il primo strato
+\[ H_{1i} = x_i \]
+rappresenta i valori d'ingresso della rete.
+Per utilità indicheremo i segnali fissi di polarizzazione con
+\[ H_{i0} = 1 \]
+
+
+Ogni neurone elabora segnali afferenti dal proprio livello e produrrà un segnale uscita verso i livelli sucessivi.
+Prendiamo in esame una rete NLR (Non Linear regression)
+
+La funzione di trasferimento di ogni neurone nascosto $ i < N $ è
+
+\begin{equation}
+\label{hidden}
+  \begin{array}l
+    H_{(i+1)j} = \frac{1}{1 + e^{-Z_{ij}}}
+    \\
+    Z_{ij} = \sum_{k=0}^{s_i} w_{ijk} H_{ik}
+  \end{array}
+\end{equation}
+
+la funzione di trasferimento dello strato di uscita $ N $ è 
+
+\begin{equation}
+\label{nlr}
+    H_{Nj} = \sum_{k=0}^{s_{N-1}} w_{(N-1)jk} H_{(N-1)k}
+\end{equation}
+
+\section{Funzione di costo}
+
+Sia $ y_j $ l'uscita attesa per il neurone $ j $, definiamo l'errore del neurone con
+\begin{equation}
+\label{delta}
+  \delta_{(N-1)j} = y_j - H_{Nj}
+\end{equation}
+
+La funzione costo della rete è definita come
+\[
+  J=\left|
+    \begin{array}l
+      \frac{1 - \alpha}{2} \sum_{i=1}^{s_N} \delta_{(N-1)i}^2 + \frac{\alpha}{2}\sum_{i,j,k} w_{ijk}^2, \; k \ge 1
+      \\
+      \frac{1 - \alpha}{2} \sum_{i=1}^{s_N} \delta_{(N-1)i}^2,\; k=0
+    \end{array}
+  \right.
+\]
+dove $ \alpha $ è il fattore di regolarizzazione della rete.
+
+Calcoliamo $ \nabla J $
+\[
+	\frac{\partial}{\partial w_{ijk}} J = \left|
+    \begin{array}l
+		(1 - \alpha) \sum_{r=1}^{s_N} \delta_{(N-1)r} \frac{\partial}{\partial w_{ijk}}  \delta_{(N-1)r} + \alpha w_{ijk}, \; k \ge 1
+	      \\
+		(1 - \alpha)\sum_{r=1}^{s_N} \delta_{(N-1)r} \frac{\partial }{\partial w_{ijk}}\delta_{(N-1)r}, \; k =0
+    \end{array}
+  \right.
+\]
+
+Per la (\ref{delta}) abbiamo
+\[
+	\frac{\partial}{\partial w_{ijk}} \delta_{(N-1)r} = 
+	-\frac{\partial}{\partial w_{ijk}} H_{Nr}
+\]
+quindi
+\[
+	\frac{\partial}{\partial w_{ijk}} J =\left|
+    \begin{array}l
+		-(1 - \alpha) \sum_{r=1}^{s_N} \delta_{(N-1)r} \frac{\partial}{\partial w_{ijk}} H_{Nr} + \alpha w_{ijk}, \; k \ge 1
+	      \\
+		-(1 - \alpha)\sum_{r=1}^{s_N} \delta_{(N-1)r} \frac{\partial}{\partial w_{ijk}} H_{Nr}, \; k =0
+    \end{array}
+  \right.
+\]
+
+Per ora trascuriamo gli effetti di regolarizzazione della rete
+
+Per la (\ref{nlr}) abbiamo
+\[
+	\frac{\partial}{\partial w_{(N-1)jk}}  H_{Nj} = H_{(N-1)k}
+\]
+\[
+	\frac{\partial}{\partial w_{(N-1)jk}}  H_{Nr} = 0, \; r \ne j
+\]
+quindi
+\[
+	\frac{\partial}{\partial w_{(N-1)jk}} J =
+		- \delta_{(N-1)j} H_{(N-1)k}
+\]
+
+Per la (\ref{nlr}) e $ i \le N - 2  $ abbiamo
+\[
+	\frac{\partial J}{\partial w_{ijk}} =
+	 - \sum_r \delta_{(N-1)r} \frac{\partial}{\partial w_{ijk}} \left[ \sum_s w_{(N-1)rs} H_{(N-1)s} \right] =
+\]
+\[
+	= - \sum_{r,s} \delta_{(N-1)r} w_{(N-1)rs} \frac{\partial}{\partial w_{ijk}} H_{(N-1)s}
+\]
+
+Dalla (\ref{hidden}) abbiamo
+\[
+	\frac{\partial}{\partial w_{ijk}} H_{(i+1)j} =
+	\frac{\partial}{\partial Z_{ij}} H_{(i+1)j} 
+	\frac{\partial}{\partial w_{ijk}} Z_{ij} =
+	H_{(i+1)j} (1 - H_{(i+1)j}) Hik
+\]
+
+Quindi
+\[
+	\frac{\partial}{\partial w_{(N-2)jk}} J =
+	- \sum_r \delta_{(N-1)r} w_{(N-1)rj}
+	H_{(N-1)j} (1 - H_{(N-1)j}) H_{(N-2)k}
+\]
+
+\section{Back-propagation}
+
+Definiamo ora
+\[
+	\delta_{(N-2)j} =
+	\sum_r \delta_{(N-1)r} w_{(N-1)rj} H_{(N-1)j} (1 - H_{(N-1)j})
+\]
+
+Avremo allora
+\[
+	\frac{\partial}{\partial w_{(N-2)jk}} J =
+	- \delta_{(N-2)j}  H_{(N-2)k}
+\]
+
+Induttivamente ricaviamo per $ i \le N - 2 $ 
+\[
+	\delta_{ij} =
+	\sum_k \delta_{(i+1)k} w_{(i+1)kj} H_{(i+1)j} (1 - H_{(i+1)j})
+\]
+mentre in generale
+\[
+	\frac{\partial}{\partial w_{ijk}} J =
+	- \delta_{ij} H_{ik}
+\]
+
+Definiamo ora il tensore di back-propagation come 
+\[
+  B_{ijk} =  w_{(i+1)kj} H_{(i+1)j} (1 - H_{(i+1)j}), \; i \le N-2
+\]
+
+L'errore sui livelli intermedi è dato da
+\[
+  \delta_{ij} = \sum_{k=1}^{s_i} \delta_{(i+1)k} B_{ijk},\; i = 1 \dots N-2
+\]
+
+Reintroducendo la regolarizzazione otteniamo
+\[
+	\frac{\partial}{\partial w_{ijk}} J =\left|
+    \begin{array}l
+		-(1 - \alpha) \delta_{ij} H_{ik} + \alpha \, w_{ijk}, \; k \ge 1
+	      \\
+		-(1 - \alpha) \delta_{ij} H_{ik}, \; k =0
+    \end{array}
+  \right.
+\]
+
+La correzione dei pesi della rete per ridurre l'errore (gradient descent) sarà quindi
+\[
+  \Delta w_{ijk}  = -\eta \frac{\partial}{\partial w_{ijk}} J = \left|
+  \begin{array}l
+    \eta \left[ (1 - \alpha) \delta_{ij} H_{ik} - \alpha w_{ijk} \right], \; k \ge 1
+    \\
+    \eta (1 - \alpha) \delta_{ij} H_{ik}, \; k = 0
+  \end{array}
+  \right.
+\]
+con $ \eta $ fattore di apprendimento.
+
+\end{document}
