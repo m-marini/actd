@@ -19,5 +19,5 @@ trait Status {
   def apply(action: Action): Feedback
 
   /** Returns true if this is a final status */
-  def endEpisode: Boolean
+  def endEpisode: Boolean = false
 }

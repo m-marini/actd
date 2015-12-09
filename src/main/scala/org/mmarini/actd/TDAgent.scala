@@ -34,10 +34,11 @@ class TDAgent(
     val preValue = critic(s0Vect).output(0)
     val s1Vect = feedback.s1.toDenseVector
 
-    val endEpisode = feedback.s1.endEpisode
+    val end0 = feedback.s0.endEpisode
+    val end1 = feedback.s1.endEpisode
 
     // The status value of post state is 0 if final episode else bootstraps from critic
-    val postValue = if (endEpisode) 0.0 else critic(s1Vect).output(0)
+    val postValue = if (end1 || end0) 0.0 else critic(s1Vect).output(0)
 
     // Computes the expected state value by booting the previous status value */
     val expectedValue = postValue * parms.gamma + feedback.reward
@@ -57,7 +58,7 @@ class TDAgent(
     // Teaches the actor by evidence
     val na = actor.learn(s0Vect, expectedPref)
 
-    val nag = if (endEpisode) {
+    val nag = if (end0) {
       new TDAgent(parms, nc.clearTraces, na.clearTraces)
     } else {
       new TDAgent(parms, nc, na)
@@ -72,33 +73,16 @@ object TDAgent {
 
   /**
    * Creates a TDAgent with TD parameter,
-   *  critic layer network configuration,
-   *  actor layer network configuration and
+   *  hidden layers networks and
    *  weights within a range.
    */
   def apply(
     parms: TDParms,
-    criticLayers: Seq[Int],
-    actorLayers: Seq[Int],
-    wEpsilon: Double): TDAgent =
-    new TDAgent(parms,
-      TDNeuralNet(criticLayers, parms, wEpsilon),
-      TDNeuralNet(actorLayers, parms, wEpsilon))
-
-  /**
-   * Creates a TDAgent with TD parameter,
-   *  single hidden layer networks and
-   *  weights within a range.
-   */
-  def apply(
-    parms: TDParms,
+    sigma: Double,
     statusSize: Int,
     actionCount: Int,
-    hiddenLayerSize: Int,
-    wEpsilon: Double): TDAgent =
-
-    apply(parms,
-      Seq(statusSize, hiddenLayerSize, 1),
-      Seq(statusSize, hiddenLayerSize, actionCount),
-      wEpsilon)
+    hiddenLayers: Int*): TDAgent =
+    new TDAgent(parms,
+      TDNeuralNet(statusSize +: hiddenLayers :+ 1, parms, sigma),
+      TDNeuralNet(statusSize +: hiddenLayers :+ actionCount, parms, sigma))
 }
