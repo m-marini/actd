@@ -6,3 +6,7 @@
 /.scalastyle
 /.cache-main
 /.cache-tests
+/*.csv
+/*.*~
+/data
+

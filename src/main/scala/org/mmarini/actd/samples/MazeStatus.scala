@@ -105,7 +105,7 @@ case class MazeStatus(rows: Int, cols: Int, me: Int, target: Int, walls: Set[Int
     val v = for {
       s <- CellStatus.values.toSeq.sorted
       i <- 0 until rows * cols
-    } yield if (status(i) == s) 1.0 else 0.0
+    } yield if (status(i).contains(s)) 1.0 else 0.0
     DenseVector(v.toArray)
   }
 

@@ -40,15 +40,20 @@ class MazeStatusTest extends PropSpec with PropertyChecks with Matchers with Giv
 
             val status: DenseVector[Double] = maze.toDenseVector
 
-            val expSeq = for {
-              k <- CellStatus.values.toSeq.sorted
-              i <- 0 until WorldSize
-            } yield if (status(i) == k) 1.0 else 0.0
-
-            val exp = DenseVector(expSeq.toArray)
-
             status should have length (WorldSize * (CellStatus.values.size))
-            status should be(exp)
+            status(me) should be(1.0)
+            status(target + WorldSize) should be(1.0)
+            status(wall + 2 * WorldSize) should be(1.0)
+            for {
+              i <- 0 until WorldSize
+            } {
+              if (i != me)
+                status(i) should be(0.0)
+              if (i != target)
+                status(i + WorldSize) should be(0.0)
+              if (i != wall)
+                status(i + 2 * WorldSize) should be(0.0)
+            }
           }
       }
   }
