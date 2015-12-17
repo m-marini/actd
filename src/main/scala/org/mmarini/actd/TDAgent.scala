@@ -34,8 +34,8 @@ class TDAgent(
     val preValue = critic(s0Vect).output(0)
     val s1Vect = feedback.s1.toDenseVector
 
-    val end0 = feedback.s0.endEpisode
-    val end1 = feedback.s1.endEpisode
+    val end0 = feedback.s0.finalStatus
+    val end1 = feedback.s1.finalStatus
 
     // The status value of post state is 0 if final episode else bootstraps from critic
     val postValue = if (end1 || end0) 0.0 else critic(s1Vect).output(0)

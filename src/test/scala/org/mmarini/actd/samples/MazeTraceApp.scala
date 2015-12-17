@@ -4,18 +4,19 @@
 package org.mmarini.actd.samples
 
 import java.io.File
-import scala.collection.immutable.Stream.consWrapper
+
 import org.apache.commons.math3.random.MersenneTwister
-import com.typesafe.scalalogging.LazyLogging
-import breeze.linalg.DenseMatrix
-import breeze.linalg.csvwrite
-import breeze.stats.distributions.RandBasis
-import breeze.linalg.DenseVector
-import breeze.linalg.operators.DenseVector_GenericOps
-import org.mmarini.actd.TDParms
-import org.mmarini.actd.TDAgent
 import org.mmarini.actd.Environment
 import org.mmarini.actd.Feedback
+import org.mmarini.actd.TDAgent
+import org.mmarini.actd.TDParms
+
+import com.typesafe.scalalogging.LazyLogging
+
+import breeze.linalg.DenseMatrix
+import breeze.linalg.DenseVector
+import breeze.linalg.csvwrite
+import breeze.stats.distributions.RandBasis
 
 /**
  * Tests the maze environment
@@ -37,7 +38,7 @@ object MazeTraceApp extends App with LazyLogging {
 
   val OutputCount = 4
 
-  val initStatus = MazeStatus.init
+  val initStatus = GraphStatus.flatFieldMaze(5, 5)
 
   val inputCount = initStatus.toDenseVector.length
 

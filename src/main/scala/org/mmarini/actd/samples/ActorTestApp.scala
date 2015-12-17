@@ -82,7 +82,7 @@ object ActorTestApp extends App with LazyLogging {
     def generateEpisode(list: List[TDAgent], status: Status): List[TDAgent] = {
       val (next, feedback) = learnStep(list.head, status)
       val list1 = next :: list
-      if (feedback.s1.endEpisode) {
+      if (feedback.s1.finalStatus) {
         list1
       } else {
         generateEpisode(list1, feedback.s1)

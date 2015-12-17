@@ -72,17 +72,17 @@ class EnvironmentTest extends FunSpec with PropertyChecks with Matchers with Giv
 
         // Mocking status 0 behavior
         (s0.toDenseVector _).expects.anyNumberOfTimes.returns(statusVect)
-        (s0.endEpisode _).expects.anyNumberOfTimes.returns(false)
+        (s0.finalStatus _).expects.anyNumberOfTimes.returns(false)
         (s0.apply _).expects(*).returns(f0)
 
         // Mocking status 1 behavior
         (s1.toDenseVector _).expects.anyNumberOfTimes.returns(statusVect)
-        (s1.endEpisode _).expects.anyNumberOfTimes.returns(false)
+        (s1.finalStatus _).expects.anyNumberOfTimes.returns(false)
         (s1.apply _).expects(*).returns(f1)
 
         // Mocking status 1 behavior
         (s2.toDenseVector _).expects.anyNumberOfTimes.returns(statusVect)
-        (s2.endEpisode _).expects.anyNumberOfTimes.returns(true)
+        (s2.finalStatus _).expects.anyNumberOfTimes.returns(true)
 
         // Mocking agent 0 behavior
         (a0.action _).expects(*).returns(1)

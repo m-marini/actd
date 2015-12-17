@@ -38,7 +38,7 @@ class TDAgentTest extends PropSpec with PropertyChecks with Matchers with GivenW
 
   private val s2: Status = new Status() {
     val toDenseVector = DenseVector(0.0, 1.0)
-    override val endEpisode = true
+    override val finalStatus = true
     def apply(a: Action) = Feedback(this, a, 0.0, s0)
   }
 

@@ -46,7 +46,7 @@ object MDP3Status {
   val S2: Status = new Status {
     val toDenseVector: DenseVector[Double] = DenseVector(0.0, 0.0)
 
-    override val endEpisode = true
+    override def finalStatus = true
 
     def apply(a: Action): Feedback = Feedback(this, a, 0.0, S0)
   }

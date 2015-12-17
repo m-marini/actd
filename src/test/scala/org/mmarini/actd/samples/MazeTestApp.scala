@@ -4,17 +4,20 @@
 package org.mmarini.actd.samples
 
 import java.io.File
+
 import scala.collection.immutable.Stream.consWrapper
+
 import org.apache.commons.math3.random.MersenneTwister
+import org.mmarini.actd.Environment
+import org.mmarini.actd.Feedback
+import org.mmarini.actd.TDAgent
+import org.mmarini.actd.TDParms
+
 import com.typesafe.scalalogging.LazyLogging
+
 import breeze.linalg.DenseMatrix
 import breeze.linalg.csvwrite
 import breeze.stats.distributions.RandBasis
-import org.mmarini.actd.TDParms
-import org.mmarini.actd.TDAgent
-import org.mmarini.actd.Environment
-import com.sun.corba.se.pept.transport.OutboundConnectionCache
-import org.mmarini.actd.Feedback
 
 /**
  * Tests the maze environment
@@ -36,7 +39,7 @@ object MazeTestApp extends App with LazyLogging {
 
   val OutputCount = 4
 
-  val initStatus = MazeStatus.init
+  val initStatus = GraphStatus.flatFieldMaze(5, 5)
 
   val inputCount = initStatus.toDenseVector.length
 
@@ -57,7 +60,7 @@ object MazeTestApp extends App with LazyLogging {
   private def extractEpisodeRewards: Stream[Stream[(Environment, Environment, Feedback)]] = {
     def createStream(s: Stream[(Environment, Environment, Feedback)]): Stream[Stream[(Environment, Environment, Feedback)]] = {
       val endIdx = s.indexWhere {
-        case (e0, _,_) => e0.status.endEpisode
+        case (e0, _,_) => e0.status.finalStatus
       }
       val (episode, tail) = s.splitAt(endIdx + 1)
       episode #:: createStream(tail)
