@@ -18,7 +18,7 @@ You have to implement three method of the trait:
 The returned vector contains the values for each feature describing the status.
 
 
-	def endEpisode: Boolean
+	def finalStatus: Boolean
 
 In case of episodic task the function should return true if this is a final state. 
   
@@ -59,7 +59,7 @@ If the current status is the end episode then the next status should be the init
 		val S2 = new Status() {
 			val toDenseVector = DenseVector(0.0, 0.0)
 
-			val endEpisode = true
+			val finalStatus = true
 
 			def apply(action: Action) = Feedback(this, action, 0.0, S0)
 		}
@@ -125,6 +125,6 @@ and use the stream functions.
     val next10 = stream.take(10)
     
     // Gets next episode
-    val episode = stream.takeWhile{ case (_, env1, _) => !env1.status.endEpisode}
+    val episode = stream.takeWhile{ case (_, env1, _) => !env1.status.finalStatus}
 
     
