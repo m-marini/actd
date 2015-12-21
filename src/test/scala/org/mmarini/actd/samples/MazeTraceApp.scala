@@ -30,8 +30,8 @@ object MazeTraceApp extends App with LazyLogging {
   val Beta = 0.3
   val Gamma = 1
   val Epsilon = 0.1
-  val Lambda = 30e-3
-  val Eta = 1e-1
+  val Lambda = 3e-3
+  val Eta = 3e-1
   val Sigma = 1.0
   val Seed = 1234L
   val EpisodeCount = 10000
