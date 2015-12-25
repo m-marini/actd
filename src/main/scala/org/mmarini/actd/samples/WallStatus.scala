@@ -17,9 +17,9 @@ case class WallStatus(ball: (Int, Int), speed: (Int, Int), pad: Int) extends Sta
 
   /** */
   val toDenseVector: DenseVector[Double] = {
-    val ballDim = Width * Height
+    val ballDim = Width * (Height + 1)
     val speedDim = 2
-    val padDim = Width - PadSize
+    val padDim = Width - PadSize + 1
 
     val v = DenseVector.zeros[Double](ballDim + speedDim + padDim)
 
@@ -58,7 +58,7 @@ case class WallStatus(ball: (Int, Int), speed: (Int, Int), pad: Int) extends Sta
   /** */
   private def movePad(action: Action) = PadAction.apply(action) match {
     case Left if pad > 0 => pad - 1
-    case Right if pad < Height - 1 => pad + 1
+    case Right if pad < Width - PadSize => pad + 1
     case _ => pad
   }
 
@@ -73,15 +73,15 @@ case class WallStatus(ball: (Int, Int), speed: (Int, Int), pad: Int) extends Sta
       Feedback(this, action, 1.0, WallStatus(nb, ns, movePad(action)))
     } else if (ball._2 == pad) {
       // left bounce ball
-      val (nb, ns) = hBounce((ball, (-1, -1)))
+      val (nb, ns) = hBounce(vBounce((ball, (-1, -1))))
       Feedback(this, action, 1.0, WallStatus(nb, ns, movePad(action)))
     } else if (ball._2 == pad + 1) {
       // center bounce ball
-      val (nb, ns) = hBounce((ball, (-1, speed._2)))
+      val (nb, ns) = hBounce(vBounce((ball, (-1, speed._2))))
       Feedback(this, action, 1.0, WallStatus(nb, ns, movePad(action)))
     } else if (ball._2 == pad + 2) {
       // right bounce ball
-      val (nb, ns) = hBounce((ball, (-1, 1)))
+      val (nb, ns) = hBounce(vBounce((ball, (-1, 1))))
       Feedback(this, action, 1.0, WallStatus(nb, ns, movePad(action)))
     } else {
       val (nb, ns) = hBounce(vBounce(ball, speed))
