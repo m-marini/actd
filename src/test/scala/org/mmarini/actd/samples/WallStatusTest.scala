@@ -257,7 +257,7 @@ class WallStatusTest extends PropSpec with PropertyChecks with Matchers with Giv
           {
             val Feedback(_, _, r, s1) = s0.apply(a)
 
-            r should be(1.0)
+            r should be(0.0)
             s1 should have('ball((s0.ball._1 + s0.speed._1, s0.ball._2 + s0.speed._2)))
             s1 should have('speed(s0.speed))
           }
@@ -281,7 +281,7 @@ class WallStatusTest extends PropSpec with PropertyChecks with Matchers with Giv
           {
             val Feedback(_, _, r, s1) = s0.apply(a)
 
-            r should be(1.0)
+            r should be(0.0)
             s1 should have('ball((s0.ball._1 + s0.speed._1, 1)))
             s1 should have('speed((s0.speed._1, 1)))
           }
@@ -305,7 +305,7 @@ class WallStatusTest extends PropSpec with PropertyChecks with Matchers with Giv
           {
             val Feedback(_, _, r, s1) = s0.apply(a)
 
-            r should be(1.0)
+            r should be(0.0)
             s1 should have('ball((s0.ball._1 + s0.speed._1, Width - 2)))
             s1 should have('speed((s0.speed._1, -1)))
           }
@@ -329,7 +329,7 @@ class WallStatusTest extends PropSpec with PropertyChecks with Matchers with Giv
           {
             val Feedback(_, _, r, s1) = s0.apply(a)
 
-            r should be(1.0)
+            r should be(0.0)
             s1 should have('ball((1, s0.ball._2 + s0.speed._2)))
             s1 should have('speed((1, s0.speed._2)))
           }
@@ -353,7 +353,7 @@ class WallStatusTest extends PropSpec with PropertyChecks with Matchers with Giv
           {
             val Feedback(_, _, r, s1) = s0.apply(a)
 
-            r should be(1.0)
+            r should be(0.0)
             s1 should have('ball((1, 1)))
             s1 should have('speed((1, 1)))
           }
@@ -377,7 +377,7 @@ class WallStatusTest extends PropSpec with PropertyChecks with Matchers with Giv
           {
             val Feedback(_, _, r, s1) = s0.apply(a)
 
-            r should be(1.0)
+            r should be(0.0)
             s1 should have('ball((1, Width - 2)))
             s1 should have('speed((1, -1)))
           }

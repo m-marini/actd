@@ -70,7 +70,7 @@ case class WallStatus(ball: (Int, Int), speed: (Int, Int), pad: Int) extends Sta
     } else if (ball._1 < Height - 1 || speed._1 < 0) {
       // Ball in the field
       val (nb, ns) = hBounce(vBounce(ball, speed))
-      Feedback(this, action, 1.0, WallStatus(nb, ns, movePad(action)))
+      Feedback(this, action, 0.0, WallStatus(nb, ns, movePad(action)))
     } else if (ball._2 == pad) {
       // left bounce ball
       val (nb, ns) = hBounce(vBounce((ball, (-1, -1))))

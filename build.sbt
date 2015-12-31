@@ -18,6 +18,12 @@ libraryDependencies += "org.scalanlp" %% "breeze" % "0.11.2"
 
 libraryDependencies += "com.github.nscala-time" % "nscala-time_2.11" % "1.8.0"
 
+libraryDependencies += "io.reactivex" %% "rxscala" % "0.23.0"
+
+libraryDependencies += "io.reactivex" % "rxswing" % "0.25.0"
+
+libraryDependencies += "org.scala-lang" % "scala-swing" % "2.11.0-M7"
+
 libraryDependencies += "org.scalatest" %% "scalatest" % "2.2.4" % Test
 
 libraryDependencies += "org.scalamock" %% "scalamock-scalatest-support" % "3.2" % "test"
