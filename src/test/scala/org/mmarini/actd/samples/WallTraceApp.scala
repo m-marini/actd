@@ -10,13 +10,12 @@ import org.mmarini.actd.Environment
 import org.mmarini.actd.Feedback
 import org.mmarini.actd.TDAgent
 import org.mmarini.actd.TDParms
-
 import com.typesafe.scalalogging.LazyLogging
-
 import breeze.linalg.DenseMatrix
 import breeze.linalg.DenseVector
 import breeze.linalg.csvwrite
 import breeze.stats.distributions.RandBasis
+import scala.math.pow
 
 /**
  * Tests the maze environment
@@ -28,7 +27,7 @@ object WallTraceApp extends App with LazyLogging {
 
   val Alpha = 3e-3
   val Beta = 0.3
-  val Gamma = 0.99
+  val Gamma = 0.962
   val Epsilon = 0.1
   val Lambda = 3e-3
   val Eta = 3e-1

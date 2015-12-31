@@ -2,6 +2,7 @@
 /.classpath
 /project
 /target
+/.worksheet
 /bin/
 /.scalastyle
 /.cache-main

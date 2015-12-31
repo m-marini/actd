@@ -41,7 +41,7 @@
  <check class="org.scalastyle.scalariform.EqualsHashCodeChecker" level="warning" enabled="true"></check>
  <check class="org.scalastyle.scalariform.IllegalImportsChecker" level="warning" enabled="true">
   <parameters>
-   <parameter name="illegalImports"><![CDATA[sun._,java.awt._]]></parameter>
+   <parameter name="illegalImports"><![CDATA[sun._]]></parameter>
   </parameters>
  </check>
  <check class="org.scalastyle.scalariform.ParameterNumberChecker" level="warning" enabled="true">

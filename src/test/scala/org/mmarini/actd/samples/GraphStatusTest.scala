@@ -118,7 +118,7 @@ class GraphStatusTest extends PropSpec with PropertyChecks with Matchers with Gi
       }
   }
 
-  def end(h: Int, w: Int) = {
+  def end(h: Int, w: Int): GraphStatus = {
     val maze = GraphStatus.flatFieldMaze(h, w)
 
     val allRight = (1 to w - 1).foldLeft(maze) {

@@ -39,7 +39,8 @@ object MazeTestApp extends App with LazyLogging {
 
   val OutputCount = 4
 
-  val initStatus = GraphStatus.flatFieldMaze(5, 5)
+  val FieldSize = 5
+  val initStatus = GraphStatus.flatFieldMaze(FieldSize, FieldSize)
 
   val inputCount = initStatus.toDenseVector.length
 

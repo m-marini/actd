@@ -1,3 +1,6 @@
+/**
+ *
+ */
 package org.mmarini.actd.samples
 
 import org.mmarini.actd.Action
@@ -19,14 +22,14 @@ case class GraphStatus(s: Int, size: () => Int, next: (Int, Action) => (Int, Dou
   }
 
   /** */
-  def apply(action: Action) = {
+  def apply(action: Action) : Feedback = {
     val (s1, reward) = next(s, action)
     val f = Feedback(this, action, reward, GraphStatus(s1, size, next, isFinalStatus))
     f
   }
 
   /** */
-  override def finalStatus = isFinalStatus(s)
+  override def finalStatus :Boolean = isFinalStatus(s)
 }
 
 object GraphStatus {

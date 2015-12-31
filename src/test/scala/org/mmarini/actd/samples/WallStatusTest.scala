@@ -39,6 +39,8 @@ class WallStatusTest extends PropSpec with PropertyChecks with Matchers with Giv
 
     forAll((allGen, "s0")) {
       (s0) =>
+        val IndexesSize4 = 4
+
         val status: DenseVector[Double] = s0.toDenseVector
 
         status should have('size(Width * (Height + 1) + Width - PadSize + 3))
@@ -50,14 +52,16 @@ class WallStatusTest extends PropSpec with PropertyChecks with Matchers with Giv
 
         i1 should contain(si)
         i1 should contain(s0.pad + Width * (Height + 1))
-        if (s0.speed._1 > 0)
+        if (s0.speed._1 > 0) {
           i1 should contain(Width * (Height + 1) + Width - PadSize + 1)
-        if (s0.speed._2 > 0)
+        }
+        if (s0.speed._2 > 0) {
           i1 should contain(Width * (Height + 1) + Width - PadSize + 2)
+        }
 
         if (s0.speed._1 > 0) {
           if (s0.speed._2 > 0) {
-            i1 should have('size(4))
+            i1 should have('size(IndexesSize4))
           } else {
             i1 should have('size(3))
           }
@@ -94,8 +98,16 @@ class WallStatusTest extends PropSpec with PropertyChecks with Matchers with Giv
 
             r should be(0.0)
             s1.asInstanceOf[WallStatus].ball._1 should be(Height - 1)
-            s1.asInstanceOf[WallStatus].pad should be(PadInitLocation)
             s1.asInstanceOf[WallStatus].speed._1 should be(-1)
+
+            val col = s1.asInstanceOf[WallStatus].ball._2
+            val expPad = col match {
+              case 0 => 0
+              case c if (c - 1 >= Width - PadSize) => Width - PadSize
+              case c => c - 1
+            }
+            s1.asInstanceOf[WallStatus].pad should be(expPad)
+
           }
       }
   }
@@ -231,7 +243,7 @@ class WallStatusTest extends PropSpec with PropertyChecks with Matchers with Giv
           {
             val Feedback(_, _, r, s1) = s0.apply(WallStatus.PadAction.Rest.id)
 
-            r should be(-1.0)
+            r should be(NegativeReward)
             s1 should have('finalStatus(true))
           }
         }
