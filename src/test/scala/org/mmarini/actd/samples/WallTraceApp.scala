@@ -24,36 +24,9 @@ import scala.math.pow
 object WallTraceApp extends App with LazyLogging {
 
   val file = "data/wall.csv"
+  val EpisodeCount = 100000
 
-  val Alpha = 3e-3
-  val Beta = 0.3
-  val Gamma = 0.962
-  val Epsilon = 0.1
-  val Lambda = 3e-3
-  val Eta = 3e-1
-  val Sigma = 1.0
-  val Seed = 1234L
-  val EpisodeCount = 10000
-
-  val OutputCount = 3
-
-  val initStatus = WallStatus.initial
-
-  val inputCount = initStatus.toDenseVector.length
-
-  val initAgent = TDAgent(
-    TDParms(
-      Alpha,
-      Beta,
-      Gamma,
-      Lambda,
-      Eta,
-      new RandBasis(new MersenneTwister(Seed))),
-    Sigma,
-    inputCount,
-    OutputCount)
-
-  val initEnv = Environment(initStatus, initAgent)
+  val initEnv = WallStatus.environment
 
   private def extractSample: Stream[DenseVector[Double]] =
     initEnv.toStream.map {

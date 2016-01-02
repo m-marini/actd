@@ -31,7 +31,6 @@ class TDAgent(
 
     // Computes the state value pre and post step
     val s0Vect = feedback.s0.toDenseVector
-    val preValue = critic(s0Vect).output(0)
     val s1Vect = feedback.s1.toDenseVector
 
     val end0 = feedback.s0.finalStatus
@@ -44,6 +43,7 @@ class TDAgent(
     val expectedValue = postValue * parms.gamma + feedback.reward
 
     // Computes the error by critic
+    val preValue = critic(s0Vect).output(0)
     val delta = expectedValue - preValue
 
     // Teaches the critic by evidence
@@ -63,6 +63,9 @@ class TDAgent(
     } else {
       new TDAgent(parms, nc, na)
     }
+//    if (end0 || end1) {
+//      println("bho")
+//    }
     nag
   }
 

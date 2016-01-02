@@ -31,16 +31,6 @@ import scala.swing.AbstractButton
 /** */
 object WallApp extends SimpleSwingApplication with LazyLogging {
   val WaitTime = 200 millis
-  val Alpha = 3e-3
-  val Beta = 0.3
-  val Gamma = 0.962
-  val Epsilon = 0.1
-  val Lambda = 3e-3
-  val Eta = 3e-1
-  val Sigma = 1.0
-  val Seed = 1234L
-
-  val OutputCount = 3
 
   val slowBtnObs = Subject[AbstractButton]()
   val fastBtnObs = Subject[AbstractButton]()
@@ -131,21 +121,8 @@ object WallApp extends SimpleSwingApplication with LazyLogging {
 
   val inputCount = initStatus.toDenseVector.length
 
-  /** Creates the agent */
-  val initAgent = TDAgent(
-    TDParms(
-      Alpha,
-      Beta,
-      Gamma,
-      Lambda,
-      Eta,
-      new RandBasis(new MersenneTwister(Seed))),
-    Sigma,
-    inputCount,
-    OutputCount)
-
   /** Creates the initial environment */
-  val initEnv = Environment(initStatus, initAgent)
+  val initEnv = WallStatus.environment
 
   /** Creates the initial environment observable */
   val startObs = Observable.just(initEnv.status.asInstanceOf[WallStatus])

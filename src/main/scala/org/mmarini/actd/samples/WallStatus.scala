@@ -17,6 +17,9 @@ import WallStatus.NegativeReward
 import breeze.linalg.DenseVector
 import breeze.stats.distributions.RandBasis
 import org.mmarini.actd.Action
+import org.mmarini.actd.TDAgent
+import org.mmarini.actd.TDParms
+import org.mmarini.actd.Environment
 
 /** */
 case class WallStatus(ball: (Int, Int), speed: (Int, Int), pad: Int) extends Status {
@@ -102,16 +105,24 @@ case class WallStatus(ball: (Int, Int), speed: (Int, Int), pad: Int) extends Sta
 }
 
 object WallStatus extends LazyLogging {
-  val Seed = 123L
 
   val Height = 10
   val Width = 13
-
   val PadSize = 3
-
   val PositiveReward = 1.0
-
   val NegativeReward = -PositiveReward - PositiveReward
+
+  val Alpha = 100e-6
+  val Beta = 0.3
+  val Gamma = 0.962
+  val Epsilon = 0.1
+  val Lambda = 0e-3
+  val Eta = 100e-3
+  val Sigma = 1.0
+  val Seed = 1234L
+
+  val OutputCount = 3
+  val HiddenCount = 20
 
   val random = new RandBasis(new MersenneTwister(Seed))
 
@@ -133,5 +144,27 @@ object WallStatus extends LazyLogging {
       case c => c - 1
     }
     WallStatus(b, s, pad)
+  }
+
+  /** Creates the initial environment */
+  def environment: Environment = {
+
+    val initStatus = WallStatus.initial
+
+    val inputCount = initStatus.toDenseVector.length
+
+    val initAgent = TDAgent(
+      TDParms(
+        Alpha,
+        Beta,
+        Gamma,
+        Lambda,
+        Eta,
+        new RandBasis(new MersenneTwister(Seed))),
+      Sigma,
+      inputCount,
+      OutputCount)
+
+    Environment(initStatus, initAgent)
   }
 }
