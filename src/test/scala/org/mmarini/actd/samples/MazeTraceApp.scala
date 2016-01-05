@@ -49,6 +49,7 @@ object MazeTraceApp extends App with LazyLogging {
       Alpha,
       Beta,
       Gamma,
+      0.0,
       Lambda,
       Eta,
       new RandBasis(new MersenneTwister(Seed))),

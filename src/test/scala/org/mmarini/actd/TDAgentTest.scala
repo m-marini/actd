@@ -50,7 +50,7 @@ class TDAgentTest extends PropSpec with PropertyChecks with Matchers with GivenW
     eta <- Gen.const(1e-1)
     hidden <- Gen.choose(MinHidden, MaxHidden)
   } yield TDAgent(
-    TDParms(alpha, beta, gamma, lambda, eta, new RandBasis(new MersenneTwister(Seed))),
+    TDParms(alpha, beta, gamma, 0.0, lambda, eta, new RandBasis(new MersenneTwister(Seed))),
     1.0,
     2, 2)
 

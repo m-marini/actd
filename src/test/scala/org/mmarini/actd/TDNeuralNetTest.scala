@@ -27,7 +27,7 @@ class TDNeuralNetTest extends PropSpec with PropertyChecks with Matchers with Gi
     gamma <- Gen.choose(0.5, 1.0)
     lambda <- Gen.choose(0.0, 1.0)
     eta <- Gen.choose(1e-6, 1e-3)
-  } yield TDParms(alpha, 0.0, gamma, lambda, eta, Rand)
+  } yield TDParms(alpha, 0.0, gamma, 0.0, lambda, eta, Rand)
 
   property("Learning rate") {
 

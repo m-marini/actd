@@ -23,8 +23,7 @@ class TDAgent(
 
   /** Returns the action to be taken in a state */
   def action(status: Status): Action =
-    //        parms.indexByGreedy(actor(status).output)
-    parms.indexBySoftmax(actor(status.toDenseVector).output)
+    parms.indexEGreedyBySoftmax(actor(status.toDenseVector).output)
 
   /** Returns a new agent that learns by reward */
   def learn(feedback: Feedback): TDAgent = {

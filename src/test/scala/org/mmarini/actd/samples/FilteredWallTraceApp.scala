@@ -23,8 +23,55 @@ import scala.math.pow
  */
 object FilteredWallTraceApp extends App with LazyLogging {
 
-  val file = "data/wall-8.csv"
+  val file = "data/debug-wall.csv"
   val EpisodeCount = 30
+  val RowIdx = 0
+  val ColIdx = 1
+  val RowSpeedIdx = 2
+  val ColSpeedIdx = 3
+  val PadIdx = 4
+  val ActionIdx = 5
+
+  /*
+     * Filter on the following status:
+     *
+     *   8 |     o .  |
+     *   9 |      O   |
+     *  10 |   ---    |
+     *      0123456789
+     */
+  private def filter1(x: DenseVector[Double]) =
+    x(RowIdx) == 9 &&
+      x(ColIdx) == 6 &&
+      x(RowSpeedIdx) == 1 &&
+      x(ColSpeedIdx) == -1 &&
+      x(PadIdx) == 3
+
+  /*
+     * Filter on the following status:
+     *
+     *   8 |       O  |
+     *   9 |      o   |
+     *  10 |  ---o    |
+     *      0123456789
+     */
+  private def filter(x: DenseVector[Double]) =
+    x(RowIdx) == 8 &&
+      x(ColIdx) == 7 &&
+      x(RowSpeedIdx) == 1 &&
+      x(ColSpeedIdx) == -1 &&
+      x(PadIdx) == 2
+
+  /*
+     * Filter on the following status
+     *
+     *   8  O
+     *   9   o
+     *  10    o---
+     *      234567
+     */
+  private def filter2(x: DenseVector[Double]) =
+    x(RowIdx) == 8 && x(ColIdx) == 2 && x(RowSpeedIdx) == 1 && x(ColSpeedIdx) == 1 && x(PadIdx) == 5
 
   val initEnv = WallStatus.environment
 
@@ -49,32 +96,15 @@ object FilteredWallTraceApp extends App with LazyLogging {
 
   /** Generates the report */
   private def generateReport: DenseMatrix[Double] = {
-    /*
-     * Filter on
-     *
-     *   8       O
-     *   9      o
-     *  10  XXX
-     *      234567
-     */
+    def trace(s: Stream[DenseVector[Double]], msg: String = "", step: Int = 1): Stream[DenseVector[Double]] =
+      s.zipWithIndex.map {
+        case (x, i) =>
+          if (i % step == 0) logger.info(f"$msg%s - $i%d")
+          x
+      }
+    val stream = trace(trace(extractSample, "Sample", 1000).filter(filter).take(EpisodeCount), "Filtered")
 
-    val f = extractSample.filter { x => x(0) == 7 && x(1) == 8 && x(2) == 1 && x(3) == -1 && x(4) == 2 }
-
-    /*
-     * Filter on
-     *
-     *   8  O
-     *   9   o 
-     *  10     XXX
-     *      234567
-     */
-    //    val f = extractSample.filter { x => x(0) == 8 && x(1) == 2 && x(2) == 1 && x(3) == 1 && x(4) == 5 }
-
-    val out = f.take(EpisodeCount).zipWithIndex.map {
-      case (x, i) =>
-        logger.info(s"Sample $i")
-        x
-    }.toArray
+    val out = stream.toArray
     DenseVector.horzcat(out: _*).t
   }
 

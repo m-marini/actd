@@ -42,7 +42,7 @@ object CriticTestApp extends App with LazyLogging {
 
   val testAgent = List(0.0, 0.01, 0.03, 0.1, 0.3).map(x =>
     TDAgent(
-      TDParms(Alpha, Beta, Gamma, x, Eta, new RandBasis(new MersenneTwister(Seed))),
+      TDParms(Alpha, Beta, Gamma, 0.0, x, Eta, new RandBasis(new MersenneTwister(Seed))),
       1.0, 2, 2))
 
   /** Computes the error of an agent */

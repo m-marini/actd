@@ -49,6 +49,7 @@ object MazeTestApp extends App with LazyLogging {
       Alpha,
       Beta,
       Gamma,
+      0.0,
       Lambda,
       Eta,
       new RandBasis(new MersenneTwister(Seed))),
@@ -61,7 +62,7 @@ object MazeTestApp extends App with LazyLogging {
   private def extractEpisodeRewards: Stream[Stream[(Environment, Environment, Feedback)]] = {
     def createStream(s: Stream[(Environment, Environment, Feedback)]): Stream[Stream[(Environment, Environment, Feedback)]] = {
       val endIdx = s.indexWhere {
-        case (e0, _,_) => e0.status.finalStatus
+        case (e0, _, _) => e0.status.finalStatus
       }
       val (episode, tail) = s.splitAt(endIdx + 1)
       episode #:: createStream(tail)

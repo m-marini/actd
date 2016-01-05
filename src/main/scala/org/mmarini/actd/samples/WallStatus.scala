@@ -110,6 +110,8 @@ object WallStatus extends LazyLogging {
   val Beta = 0.3
   val Gamma = 0.962
   val Epsilon = 0.1
+//  val EpsilonGreedy = 0.9
+  val EpsilonGreedy = 5e-2
   val Lambda = 0e-3
   val Eta = 100e-3
   val Sigma = 1.0
@@ -152,6 +154,7 @@ object WallStatus extends LazyLogging {
         Alpha,
         Beta,
         Gamma,
+        EpsilonGreedy,
         Lambda,
         Eta,
         new RandBasis(new MersenneTwister(Seed))),

@@ -10,6 +10,7 @@ import breeze.numerics.exp
 import breeze.linalg.argmax
 import breeze.linalg.sum
 import breeze.stats.distributions.RandBasis
+import breeze.stats.distributions.Bernoulli
 
 /**
  * A set of TD parameter
@@ -25,18 +26,30 @@ case class TDParms(
     alpha: Double,
     beta: Double,
     gamma: Double,
+    epsilon: Double,
     lambda: Double,
     eta: Double,
     random: RandBasis) {
+
+  private val egreedyRand = new Bernoulli(epsilon, random)
 
   /** Returns a [[TDParms]] with changed eta value */
   def setEta(value: Double): TDParms =
     TDParms(alpha = alpha,
       beta = beta,
       gamma = gamma,
+      epsilon = epsilon,
       lambda = lambda,
       eta = value,
       random = random)
+
+  /** Returns a index with uniform distribution with epsilon probability otherwise by softmax algorithm */
+  def indexEGreedyBySoftmax(pref: DenseVector[Double]): Int =
+    if (egreedyRand.sample) {
+      random.randInt(pref.length).sample
+    } else {
+      indexByWeights(exp(pref))
+    }
 
   /** Returns a random index with by softmax algorithm */
   def indexBySoftmax(pref: DenseVector[Double]): Int =
