@@ -43,33 +43,12 @@ class WallStatusTest extends PropSpec with PropertyChecks with Matchers with Giv
 
         val status: DenseVector[Double] = s0.toDenseVector
 
-        status should have('size(Width * (Height + 1) + Width - PadSize + 3))
+        status should have('size(Width * (Height + 1) * (Width - PadSize + 1) * 4))
 
         val i0 = status.findAll(_ == 0.0)
         val i1 = status.findAll(_ == 1.0)
 
-        val si = s0.ball._1 * Width + s0.ball._2
-
-        i1 should contain(si)
-        i1 should contain(s0.pad + Width * (Height + 1))
-        if (s0.speed._1 > 0) {
-          i1 should contain(Width * (Height + 1) + Width - PadSize + 1)
-        }
-        if (s0.speed._2 > 0) {
-          i1 should contain(Width * (Height + 1) + Width - PadSize + 2)
-        }
-
-        if (s0.speed._1 > 0) {
-          if (s0.speed._2 > 0) {
-            i1 should have('size(IndexesSize4))
-          } else {
-            i1 should have('size(3))
-          }
-        } else if (s0.speed._2 > 0) {
-          i1 should have('size(3))
-        } else {
-          i1 should have('size(2))
-        }
+        i1 should have('size(1))
     }
   }
 
@@ -85,7 +64,7 @@ class WallStatusTest extends PropSpec with PropertyChecks with Matchers with Giv
   }
 
   property("restart status") {
-    Given("status with ball in Hieght row")
+    Given("status with ball out of field")
     And("an action")
     When("apply action")
     Then("result status should be inital status")
@@ -112,62 +91,22 @@ class WallStatusTest extends PropSpec with PropertyChecks with Matchers with Giv
       }
   }
 
-  property("left bounce") {
-    Given("status with ball in Hieght-1 row and col not beside limits")
-    And("ball at left pad side")
+  /**
+   * |      |    |  o  o|
+   * | o  o | -> |      |
+   * |  --- |    |  --- |
+   */
+  property("bounce from left") {
+    Given("status with ball in last row")
+    And("ball coming from left")
+    And("pad on the path of ball")
     When("apply action rest")
     Then("result status should be as expected")
 
     val s0Gen = for {
-      c <- Gen.choose(1, Width - 3)
-      sc <- Gen.oneOf(-1, 1)
-    } yield WallStatus((Height - 1, c), (1, sc), c)
-
-    forAll((s0Gen, "s0")) {
-      (s0) =>
-        {
-          val Feedback(_, _, r, s1) = s0.apply(WallStatus.PadAction.Rest.id)
-
-          r should be(1.0)
-          s1 should have('ball((Height - 2, s0.ball._2 - 1)))
-          s1 should have('speed((-1, -1)))
-        }
-    }
-  }
-
-  property("center bounce") {
-    Given("status with ball in Hieght-1 row and col not beside limits")
-    And("ball at center pad side")
-    When("apply action rest")
-    Then("result status should be as expected")
-
-    val s0Gen = for {
-      c <- Gen.choose(1, Width - 2)
-      sc <- Gen.oneOf(-1, 1)
-    } yield WallStatus((Height - 1, c), (1, sc), c - 1)
-
-    forAll((s0Gen, "s0")) {
-      (s0) =>
-        {
-          val Feedback(_, _, r, s1) = s0.apply(WallStatus.PadAction.Rest.id)
-
-          r should be(1.0)
-          s1 should have('ball((Height - 2, s0.ball._2 + s0.speed._2)))
-          s1 should have('speed((-1, s0.speed._2)))
-        }
-    }
-  }
-
-  property("right bounce") {
-    Given("status with ball in Hieght-1 row and col not beside limits")
-    And("ball at right pad side")
-    When("apply action rest")
-    Then("result status should be as expected")
-
-    val s0Gen = for {
-      c <- Gen.choose(2, Width - 2)
-      sc <- Gen.oneOf(-1, 1)
-    } yield WallStatus((Height - 1, c), (1, sc), c - 2)
+      pad <- Gen.choose(2, Width - 4)
+      c <- Gen.choose(pad - 1, pad + 2)
+    } yield WallStatus((Height - 1, c), (1, 1), pad)
 
     forAll((s0Gen, "s0")) {
       (s0) =>
@@ -181,15 +120,47 @@ class WallStatusTest extends PropSpec with PropertyChecks with Matchers with Giv
     }
   }
 
-  property("all left bounce") {
-    Given("status with ball in Hieght-1 row and col not beside limits")
-    And("ball at 0 column")
+  /**
+   * |      |    |o  o  |
+   * | o  o | -> |      |
+   * | ---  |    | ---  |
+   */
+  property("bounce from right") {
+    Given("status with ball in last row")
+    And("ball coming from right")
+    And("pad on the path of ball")
     When("apply action rest")
     Then("result status should be as expected")
 
     val s0Gen = for {
-      sc <- Gen.oneOf(-1, 1)
-    } yield WallStatus((Height - 1, 0), (1, sc), 0)
+      pad <- Gen.choose(1, Width - 5)
+      c <- Gen.choose(pad, pad + 3)
+    } yield WallStatus((Height - 1, c), (1, -1), pad)
+
+    forAll((s0Gen, "s0")) {
+      (s0) =>
+        {
+          val Feedback(_, _, r, s1) = s0.apply(WallStatus.PadAction.Rest.id)
+
+          r should be(1.0)
+          s1 should have('ball((Height - 2, s0.ball._2 - 1)))
+          s1 should have('speed((-1, -1)))
+        }
+    }
+  }
+
+  /**
+   * |          | o
+   * |o      -> |
+   * |---       |---
+   */
+  property("left bounce") {
+    Given("status with ball in last row and first column")
+    And("ball from right")
+    When("apply action rest")
+    Then("result status should be as expected")
+
+    val s0Gen = Gen.const(WallStatus((Height - 1, 0), (1, -1), 0))
 
     forAll((s0Gen, "s0")) {
       (s0) =>
@@ -203,15 +174,18 @@ class WallStatusTest extends PropSpec with PropertyChecks with Matchers with Giv
     }
   }
 
+  /**
+   *     |       o |
+   *    o| ->      |
+   *  ---|      ---|
+   */
   property("all right bounce") {
-    Given("status with ball in Hieght-1 row and col not beside limits")
-    And("ball at 39 column")
+    Given("status with ball in last row and in last col")
+    And("ball from left")
     When("apply action rest")
     Then("result status should be as expected")
 
-    val s0Gen = for {
-      sc <- Gen.oneOf(-1, 1)
-    } yield WallStatus((Height - 1, Width - 1), (1, sc), Width - PadSize)
+    val s0Gen = Gen.const(WallStatus((Height - 1, Width - 1), (1, 1), Width - PadSize))
 
     forAll((s0Gen, "s0")) {
       (s0) =>
@@ -233,20 +207,22 @@ class WallStatusTest extends PropSpec with PropertyChecks with Matchers with Giv
 
     val s0Gen = for {
       c <- Gen.choose(1, Width - 2)
-      pad <- Gen.choose(1, Width - PadSize)
       sc <- Gen.oneOf(-1, 1)
+      pad <- Gen.choose(1, Width - PadSize)
     } yield WallStatus((Height - 1, c), (1, sc), pad)
 
     forAll((s0Gen, "s0")) {
       (s0) =>
-        whenever(s0.ball._2 < s0.pad || s0.ball._2 > s0.pad + 2) {
-          {
-            val Feedback(_, _, r, s1) = s0.apply(WallStatus.PadAction.Rest.id)
+        whenever(
+          s0.speed._2 < 0 && (s0.ball._2 < s0.pad || s0.ball._2 > s0.pad + 3) ||
+            s0.speed._2 > 0 && (s0.ball._2 < s0.pad - 1 || s0.ball._2 > s0.pad + 2)) {
+            {
+              val Feedback(_, _, r, s1) = s0.apply(WallStatus.PadAction.Rest.id)
 
-            r should be(NegativeReward)
-            s1 should have('finalStatus(true))
+              r should be(NegativeReward)
+              s1 should have('finalStatus(true))
+            }
           }
-        }
     }
   }
 

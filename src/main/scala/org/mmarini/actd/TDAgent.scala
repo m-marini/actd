@@ -63,9 +63,6 @@ class TDAgent(
     } else {
       new TDAgent(parms, nc, na)
     }
-//    if (end0 || end1) {
-//      println("bho")
-//    }
     nag
   }
 

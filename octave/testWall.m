@@ -24,7 +24,7 @@ left1 = 19;
 rest1 = 20;
 right1 = 21;
 
-if 0
+if 1
   Y = X(find(X(:, reward) != 0), reward);
   n = size(Y, 1);
   h = plot(lp(Y, 5 / n));
@@ -98,7 +98,7 @@ if 0
   waitfor(h);
 endif
 
-if 0
+if 1
   # Filters ball on left of pad
   L = all(X(:, [row0 speedy0 speedx0]) == [8 1 1], 2) & (X(:, pad0) - X(:, col0)) == 2;
   R = all(X(:, [row0 speedy0 speedx0]) == [8 1 -1], 2) & (X(:, pad0) - X(:, col0)) == 0;
@@ -110,7 +110,7 @@ if 0
   waitfor(h);
 endif
 
-if 0
+if 1
   # Filters ball on right of pad
   L = all(X(:, [row0 speedy0 speedx0]) == [8 1 1], 2) & (X(:, pad0) - X(:, col0)) == -2;
   R = all(X(:, [row0 speedy0 speedx0]) == [8 1 -1], 2) & (X(:, pad0) - X(:, col0)) == -4;

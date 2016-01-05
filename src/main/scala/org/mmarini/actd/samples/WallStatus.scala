@@ -29,35 +29,36 @@ case class WallStatus(ball: (Int, Int), speed: (Int, Int), pad: Int) extends Sta
   /** */
   val toDenseVector: DenseVector[Double] = {
     val ballDim = Width * (Height + 1)
-    val speedDim = 2
+    val speedDim = 4
     val padDim = Width - PadSize + 1
 
-    val v = DenseVector.zeros[Double](ballDim + speedDim + padDim)
+    val v = DenseVector.zeros[Double](ballDim * speedDim * padDim)
 
-    v.update(ball._1 * Width + ball._2, 1.0)
-
-    v.update(ballDim + pad, 1.0)
-
-    if (speed._1 > 0) {
-      v.update(ballDim + padDim, 1.0)
+    val ballIdx = ball._1 * Width + ball._2
+    val speedIdx = speed match {
+      case (-1, -1) => 0
+      case (-1, 1) => 1
+      case (1, -1) => 2
+      case (1, 1) => 3
     }
-    if (speed._2 > 0) {
-      v.update(ballDim + padDim + 1, 1.0)
-    }
+
+    val idx = ballIdx + speedIdx * ballDim + pad * (ballDim * speedDim)
+    v.update(idx, 1.0)
+
     v
   }
 
-  /** */
+  /** Computes the position and speed after a bounce in a vertical wall */
   private def hBounce(x: ((Int, Int), (Int, Int))) = {
     val ((r, c), (sr, sc)) = x
     (c + sc) match {
       case -1 => ((r, 1), (sr, 1))
       case Width => ((r, Width - 2), (sr, -1))
-      case c => ((r, c), (sr, sc))
+      case c1 => ((r, c1), (sr, sc))
     }
   }
 
-  /** */
+  /** Computes the position and speed after a bounce in a horizontal wall */
   private def vBounce(x: ((Int, Int), (Int, Int))) = {
     val ((r, c), (sr, sc)) = x
     (r + sr) match {
@@ -82,17 +83,10 @@ case class WallStatus(ball: (Int, Int), speed: (Int, Int), pad: Int) extends Sta
       // Ball in the field
       val (nb, ns) = hBounce(vBounce(ball, speed))
       Feedback(this, action, 0.0, WallStatus(nb, ns, movePad(action)))
-    } else if (ball._2 == pad) {
-      // left bounce ball
-      val (nb, ns) = hBounce(vBounce((ball, (-1, -1))))
-      Feedback(this, action, PositiveReward, WallStatus(nb, ns, movePad(action)))
-    } else if (ball._2 == pad + 1) {
-      // center bounce ball
+    } else if (ball._2 >= pad && ball._2 <= pad + 2 ||
+      ball._2 == pad - 1 && speed._2 == 1 ||
+      ball._2 == pad + 3 && speed._2 == -1) {
       val (nb, ns) = hBounce(vBounce((ball, (-1, speed._2))))
-      Feedback(this, action, PositiveReward, WallStatus(nb, ns, movePad(action)))
-    } else if (ball._2 == pad + 2) {
-      // right bounce ball
-      val (nb, ns) = hBounce(vBounce((ball, (-1, 1))))
       Feedback(this, action, PositiveReward, WallStatus(nb, ns, movePad(action)))
     } else {
       val (nb, ns) = hBounce(vBounce(ball, speed))
