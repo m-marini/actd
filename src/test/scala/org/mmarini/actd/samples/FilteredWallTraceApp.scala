@@ -24,7 +24,7 @@ import scala.math.pow
 object FilteredWallTraceApp extends App with LazyLogging {
 
   val file = "data/debug-wall.csv"
-  val EpisodeCount = 30
+  val EpisodeCount = 100
   val RowIdx = 0
   val ColIdx = 1
   val RowSpeedIdx = 2
@@ -40,12 +40,27 @@ object FilteredWallTraceApp extends App with LazyLogging {
      *  10 |   ---    |
      *      0123456789
      */
-  private def filter1(x: DenseVector[Double]) =
+  private def filter3(x: DenseVector[Double]) =
     x(RowIdx) == 9 &&
       x(ColIdx) == 6 &&
       x(RowSpeedIdx) == 1 &&
       x(ColSpeedIdx) == -1 &&
       x(PadIdx) == 3
+
+  /*
+     * Filter on the following status:
+     *
+     *   8 |       .  |
+     *   9 |      O   |
+     *  10 |  ---o    |
+     *      0123456789
+     */
+  private def filter1(x: DenseVector[Double]) =
+    x(RowIdx) == 9 &&
+      x(ColIdx) == 6 &&
+      x(RowSpeedIdx) == 1 &&
+      x(ColSpeedIdx) == -1 &&
+      x(PadIdx) == 2
 
   /*
      * Filter on the following status:

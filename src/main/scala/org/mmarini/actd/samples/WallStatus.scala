@@ -103,15 +103,15 @@ object WallStatus extends LazyLogging {
   val Height = 10
   val Width = 13
   val PadSize = 3
-  val PositiveReward = 1.0
-  val NegativeReward = -PositiveReward - PositiveReward
+  val PositiveReward = 5.0
+  val NegativeReward = -1.0
 
   val Alpha = 100e-6
   val Beta = 0.3
   val Gamma = 0.962
   val Epsilon = 0.1
 //  val EpsilonGreedy = 0.9
-  val EpsilonGreedy = 5e-2
+  val EpsilonGreedy = 0.1
   val Lambda = 0e-3
   val Eta = 100e-3
   val Sigma = 1.0

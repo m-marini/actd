@@ -192,4 +192,36 @@ La correzione dei pesi della rete per ridurre l'errore (gradient descent) sarà 
 \]
 con $ \eta $ fattore di apprendimento.
 
+\section{Ritorni}
+
+Prendiamo un processo dove la strategia migliore genera un episodio 
+di lunghezza infinita e con premio $ r_+ > 0 $ ogni $ n $ passi mentre una scelta diversa al passo $ n $ produce la fine dell'episodio con premio $ r_- < 0 $. 
+
+Al passo $ n $ il ritorno sarà quindi
+
+\[ 
+	R_+ = \frac{r_+}{1 - \lambda ^ {2 (n -1)}}
+ \]
+se si segue la strategia migliore o nel caso opposto
+\[ 
+R_- = r_-
+\]
+
+Poniamo poi che $ R_+ \gg -R_- $ avremo quindi che
+\[ 
+	\frac{r_+}{1 - \lambda ^ {2 (n -1)}} \gg -r_-
+\]
+\[ 
+	r_+ \gg -(1 - \lambda ^ {2 (n -1)}) r_-
+\]
+
+Ad esempio posto $ \lambda ^ {2 (n -1)} = \frac{1}{2}, r_- = -1 $ avremo
+\[ 
+r_+ \gg \frac{1}{2}
+\]
+come ad esempio $ r_+ = 5 $
+\]
+
+
+
 \end{document}

@@ -28,7 +28,7 @@ gamma = 0.962;
 
 if 1
   Y = X(:, [action]);
-  hist(Y);
+  hist(Y, 10, 1);
   title("Action distribution");
   grid on;
   waitfor(gcf);
