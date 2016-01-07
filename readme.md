@@ -113,18 +113,16 @@ It results the starting environment itself, the next environment with the next s
 
 The feedback consists of the initial status, the performed action, the given reward and the final status.
 
-Another way to run the interaction is to convert the initial environment to a stream of interactions
-and use the stream functions.
+Another way to run the interaction is to convert the initial environment to a iterator
+and use the iterator functions.
 
-    val stream = env.toStream
+    val iter = env.iterator
 
     // Gets next interaction
-    val next = stream.head
+    val next = iter.next
     
     // Gets next 10 steps
-    val next10 = stream.take(10)
+    val next10 = iter.take(10)
     
     // Gets next episode
-    val episode = stream.takeWhile{ case (_, env1, _) => !env1.status.finalStatus}
-
-    
+    val episode = iter.takeWhile{ case (_, env1, _) => !env1.status.finalStatus}
