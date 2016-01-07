@@ -59,23 +59,24 @@ object MazeTestApp extends App with LazyLogging {
 
   val initEnv = Environment(initStatus, initAgent)
 
-  private def extractEpisodeRewards: Stream[Stream[(Environment, Environment, Feedback)]] = {
-    def createStream(s: Stream[(Environment, Environment, Feedback)]): Stream[Stream[(Environment, Environment, Feedback)]] = {
-      val endIdx = s.indexWhere {
-        case (e0, _, _) => e0.status.finalStatus
-      }
-      val (episode, tail) = s.splitAt(endIdx + 1)
-      episode #:: createStream(tail)
+  private def extractEpisodeRewards: Iterator[Stream[(Environment, Environment, Feedback)]] = {
+    def createStream(s: Iterator[(Environment, Environment, Feedback)]): Iterator[Stream[(Environment, Environment, Feedback)]] = {
+      //      val endIdx = s.indexWhere {
+      //        case (e0, _, _) => e0.status.finalStatus
+      //      }
+      //      val (episode, tail) = s.splitAt(endIdx + 1)
+      //      episode #:: createStream(tail)
+      ???
     }
 
-    val y = createStream(initEnv.toStream)
+    val y = createStream(initEnv.iterator)
     y.zipWithIndex.map(x => {
       logger.info(s"episode ${x._2}")
       x._1
     })
   }
 
-  private def extractReturns: Stream[Double] =
+  private def extractReturns: Iterator[Double] =
     extractEpisodeRewards.map(_.map(_._3.reward).sum)
 
   /** Generates the report */

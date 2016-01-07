@@ -16,6 +16,10 @@ import scala.util.Try
 import com.typesafe.scalalogging.LazyLogging
 import scala.util.Random
 import org.slf4j.Marker
+import breeze.linalg.DenseVector
+import scalax.file.Path
+import breeze.io.CSVWriter
+import scalax.io.Resource
 
 /** */
 package object samples extends LazyLogging {
@@ -142,6 +146,99 @@ package object samples extends LazyLogging {
         }
       })
     }
+  }
+
+  implicit class IteratorFactory[T](iter: Iterator[T]) extends LazyLogging {
+
+    def trace(msg: String = "", step: Int = 1): Iterator[T] =
+      iter.zipWithIndex.map {
+        case (x, i) =>
+          if (i % step == 0) logger.info(f"$msg%s - $i%,d")
+          x
+      }
+
+  }
+
+  implicit class VectorIteratorFactory(iter: Iterator[DenseVector[Double]]) {
+
+    def toCsvRows(
+      separator: Char = ',',
+      quote: Char = '\u0000',
+      escape: Char = '\\'): Iterator[String] =
+      iter.map {
+        case (mat) =>
+          CSVWriter.mkString(
+            IndexedSeq.tabulate(1, mat.size)((_, c) => mat(c).toString),
+            separator, quote, escape)
+      }
+
+    def write(filename: String,
+      separator: Char = ',',
+      quote: Char = '\u0000',
+      escape: Char = '\\') {
+
+      Path.fromString(filename).deleteIfExists()
+      val output = Resource.fromFile(filename)
+      for {
+        processor <- output.outputProcessor
+        out = processor.asOutput
+      } {
+        for { row <- toCsvRows(separator, quote, escape) } {
+          out.write(row)
+          out.write("\n")
+        }
+      }
+    }
+
+  }
+
+  object Indexes {
+    val RowIdx = 0
+    val ColIdx = 1
+    val RowSpeedIdx = 2
+    val ColSpeedIdx = 3
+    val PadIdx = 4
+    val ActionIdx = 5
+  }
+
+  implicit class WallIteratorFactory(iter: Iterator[(Environment, Environment, Feedback)]) {
+    val RowIdx = 0
+    val ColIdx = 1
+    val RowSpeedIdx = 2
+    val ColSpeedIdx = 3
+    val PadIdx = 4
+    val ActionIdx = 5
+
+    def toSamples: Iterator[DenseVector[Double]] =
+      iter.map {
+        case (e0, e1, Feedback(_, action, reward, _)) =>
+          val WallStatus((r0, c0), (sr0, sc0), pad0) = e0.status.asInstanceOf[WallStatus]
+          val WallStatus((r1, c1), (sr1, sc1), pad1) = e1.status.asInstanceOf[WallStatus]
+          val s0 = e0.status.toDenseVector
+          val s1 = e1.status.toDenseVector
+          DenseVector.vertcat(DenseVector(r0, c0, sr0, sc0, pad0,
+            action.toDouble, reward,
+            r1, c1, sr1, sc1, pad1))
+      }
+
+    def toSamplesWithAC: Iterator[DenseVector[Double]] =
+      iter.map {
+        case (e0, e1, Feedback(_, action, reward, _)) =>
+          val WallStatus((r0, c0), (sr0, sc0), pad0) = e0.status.asInstanceOf[WallStatus]
+          val WallStatus((r1, c1), (sr1, sc1), pad1) = e1.status.asInstanceOf[WallStatus]
+          val s0 = e0.status.toDenseVector
+          val s1 = e1.status.toDenseVector
+          val s00v = e0.agent.asInstanceOf[TDAgent].critic(s0).output
+          val s01v = e0.agent.asInstanceOf[TDAgent].critic(s1).output
+          val p0 = e0.agent.asInstanceOf[TDAgent].actor(s0).output
+          val s10v = e1.agent.asInstanceOf[TDAgent].critic(s0).output
+          val p1 = e1.agent.asInstanceOf[TDAgent].actor(s0).output
+          DenseVector.vertcat(DenseVector(r0, c0, sr0, sc0, pad0,
+            action.toDouble, reward,
+            r1, c1, sr1, sc1, pad1),
+            s00v, s01v, p0,
+            s10v, p1)
+      }
   }
 
 }

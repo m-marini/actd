@@ -92,14 +92,14 @@ class EnvironmentTest extends FunSpec with PropertyChecks with Matchers with Giv
         (a1.action _).expects(*).returns(1)
         (a1.learn _).expects(*).returns(a2)
 
-        val stream = Environment(s0, a0).toStream
+        val iter = Environment(s0, a0).iterator
 
-        val (_, next, Feedback(_, _, reward, _)) = stream.head
+        val (_, next, Feedback(_, _, reward, _)) = iter.next
 
         next should have('status(s1))
         reward should be(r0)
 
-        val (_, next1, Feedback(_, _, reward1, _)) = stream.tail.head
+        val (_, next1, Feedback(_, _, reward1, _)) = iter.next
 
         next1 should have('status(s2))
         reward1 should be(r1)

@@ -3,6 +3,8 @@
  */
 package org.mmarini.actd
 
+import scala.collection.Iterator
+
 /**
  * An environment with a [[Status]] and an [[Agent]]
  *
@@ -28,9 +30,6 @@ case class Environment(status: Status, agent: Agent) {
   }
 
   /** Converts this Environment into a stream of environments, rewards and end episode flags */
-  def toStream: Stream[(Environment, Environment, Feedback)] = {
-    def create(head: (Environment, Environment, Feedback)): Stream[(Environment, Environment, Feedback)] =
-      head #:: create(head._2.stepOver)
-    create(stepOver)
-  }
+  def iterator: Iterator[(Environment, Environment, Feedback)] =
+    Iterator.iterate(stepOver)(_._2.stepOver)
 }
