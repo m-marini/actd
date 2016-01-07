@@ -24,7 +24,6 @@ left1 = 19;
 rest1 = 20;
 right1 = 21;
 
-if 1
   Y = X(find(X(:, reward) != 0), reward);
   n = size(Y, 1);
   h = plot(lp(Y, 5 / n));
@@ -32,9 +31,7 @@ if 1
   grid on;
   legend(["Returns"]);
   waitfor(h);
-endif
 
-if 0
   # Filters ball out of field
   M = all(X(:, [row0]) == [10], 2);
   Y = X(find(M), [sv00, sv10]);
@@ -49,9 +46,7 @@ if 0
   title("State value for ball out of field");
   legend("State value", "State value updated");
   waitfor(gcf);
-endif
 
-if 0
   # Filters ball before out of field
   M = all(X(:, [row1]) == [10], 2);
   Y = X(find(M), [sv00, sv10]);
@@ -66,9 +61,7 @@ if 0
   title("State value before ball out of field");
   legend("State value", "State value updated");
   waitfor(gcf);
-endif
 
-if 1
   # Filters ball before bounces
   M = all(X(:, [reward]) == 1, 2);
   Y = X(find(M), [sv00, sv10]);
@@ -83,9 +76,7 @@ if 1
   title("State value ball before bounces");
   legend("State value", "State value updated");
   waitfor(gcf);
-endif
 
-if 0
   # Filters ball on left of pad
 #  M = all(X(:, [row0 speedy0 speedx0]) == [9 1 1], 2) & (X(:, pad0) - X(:, col0)) == 0;
   M = all(X(:, [row0, col0]) == [10 0], 2);
@@ -96,9 +87,7 @@ if 0
   grid on;
   legend("Reward", "State value", "State value'", "State value updated");
   waitfor(h);
-endif
 
-if 1
   # Filters ball on left of pad
   L = all(X(:, [row0 speedy0 speedx0]) == [8 1 1], 2) & (X(:, pad0) - X(:, col0)) == 2;
   R = all(X(:, [row0 speedy0 speedx0]) == [8 1 -1], 2) & (X(:, pad0) - X(:, col0)) == 0;
@@ -108,9 +97,7 @@ if 1
   grid on;
   legend("Left", "Rest", "Right");
   waitfor(h);
-endif
 
-if 1
   # Filters ball on right of pad
   L = all(X(:, [row0 speedy0 speedx0]) == [8 1 1], 2) & (X(:, pad0) - X(:, col0)) == -2;
   R = all(X(:, [row0 speedy0 speedx0]) == [8 1 -1], 2) & (X(:, pad0) - X(:, col0)) == -4;
@@ -120,4 +107,3 @@ if 1
   grid on;
   legend("Left", "Rest", "Right");
   waitfor(h);
-endif

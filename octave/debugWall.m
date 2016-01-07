@@ -26,28 +26,22 @@ right1 = 21;
 
 gamma = 0.962;
 
-if 1
   Y = X(:, [action]);
+  subplot(2,2,1);
   hist(Y, 10, 1);
   title("Action distribution");
   grid on;
-  waitfor(gcf);
-endif
 
-if 1
   Y = [X(:, [sv00 sv01 sv10 reward]) X(:, sv01) * gamma + X(:, reward)];
+  subplot(2,2,2);
   h = plot(Y);
   title("State values");
   grid on;
   legend("S0", "S1", "S0'", "reward", "expected");
-  waitfor(gcf);
-endif
 
-if 1
   Y = X(:, [left0 rest0 right0]);
+  subplot(2,2,3);
   h = semilogy(softmax(Y));
   title("Action probabilities");
   grid on;
   legend("Left", "Rest", "Right");
-  waitfor(gcf);
-endif

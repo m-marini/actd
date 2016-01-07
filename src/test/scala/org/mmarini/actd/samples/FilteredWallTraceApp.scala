@@ -25,13 +25,10 @@ object FilteredWallTraceApp extends App with LazyLogging {
 
   val file = "data/debug-wall.csv"
   val EpisodeCount = 100
-  val RowIdx = 0
-  val ColIdx = 1
-  val RowSpeedIdx = 2
-  val ColSpeedIdx = 3
-  val PadIdx = 4
-  val ActionIdx = 5
+  val SampleTraceCount = 1000
 
+
+  import WallTestStreams._
   /*
      * Filter on the following status:
      *
@@ -88,36 +85,12 @@ object FilteredWallTraceApp extends App with LazyLogging {
   private def filter2(x: DenseVector[Double]) =
     x(RowIdx) == 8 && x(ColIdx) == 2 && x(RowSpeedIdx) == 1 && x(ColSpeedIdx) == 1 && x(PadIdx) == 5
 
-  val initEnv = WallStatus.environment
-
-  private def extractSample: Stream[DenseVector[Double]] =
-    initEnv.toStream.map {
-      case (e0, e1, Feedback(_, action, reward, _)) =>
-        val WallStatus((r0, c0), (sr0, sc0), pad0) = e0.status.asInstanceOf[WallStatus]
-        val WallStatus((r1, c1), (sr1, sc1), pad1) = e1.status.asInstanceOf[WallStatus]
-        val s0 = e0.status.toDenseVector
-        val s1 = e1.status.toDenseVector
-        val s00v = e0.agent.asInstanceOf[TDAgent].critic(s0).output
-        val s01v = e0.agent.asInstanceOf[TDAgent].critic(s1).output
-        val p0 = e0.agent.asInstanceOf[TDAgent].actor(s0).output
-        val s10v = e1.agent.asInstanceOf[TDAgent].critic(s0).output
-        val p1 = e1.agent.asInstanceOf[TDAgent].actor(s0).output
-        DenseVector.vertcat(DenseVector(r0, c0, sr0, sc0, pad0,
-          action.toDouble, reward,
-          r1, c1, sr1, sc1, pad1),
-          s00v, s01v, p0,
-          s10v, p1)
-    }
-
   /** Generates the report */
   private def generateReport: DenseMatrix[Double] = {
-    def trace(s: Stream[DenseVector[Double]], msg: String = "", step: Int = 1): Stream[DenseVector[Double]] =
-      s.zipWithIndex.map {
-        case (x, i) =>
-          if (i % step == 0) logger.info(f"$msg%s - $i%d")
-          x
-      }
-    val stream = trace(trace(extractSample, "Sample", 1000).filter(filter).take(EpisodeCount), "Filtered")
+    val s1 = WallTestStreams.toSamplesWithAC(WallStatus.environment.toStream)
+    val s2 = TestStreams.trace(s1, "Sample", SampleTraceCount)
+    val s3 = TestStreams.trace(s2.filter(filter), "Filtered");
+    val stream = s3.take(EpisodeCount)
 
     val out = stream.toArray
     DenseVector.horzcat(out: _*).t

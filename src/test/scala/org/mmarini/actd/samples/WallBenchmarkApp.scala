@@ -4,7 +4,6 @@
 package org.mmarini.actd.samples
 
 import java.io.File
-
 import org.apache.commons.math3.random.MersenneTwister
 import org.mmarini.actd.Environment
 import org.mmarini.actd.Feedback
@@ -21,17 +20,15 @@ import scala.math.pow
  * Tests the maze environment
  * and generates a report of episode returns as octave data file
  */
-object WallTraceApp extends App with LazyLogging {
+object WallBenchmarkApp extends App with LazyLogging {
 
-  val file = "data/wall.csv"
-  val StepCount = 1000000
-  val SampleTraceCount = 1000
-
-  val initEnv = WallStatus.environment
+  val file = "data/benchmark-wall.csv"
+  val StepCount = 300000
+  val SampleTraceCount = 10000
 
   /** Generates the report */
   private def report: Stream[DenseVector[Double]] = {
-    val s1 = WallTestStreams.toSamplesWithAC(WallStatus.environment.toStream)
+    val s1 = WallTestStreams.toSamples(WallStatus.dummyEnv.toStream)
     val s2 = TestStreams.trace(s1, "Sample", SampleTraceCount)
     s2.take(StepCount)
   }

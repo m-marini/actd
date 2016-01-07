@@ -20,6 +20,7 @@ import org.mmarini.actd.Action
 import org.mmarini.actd.TDAgent
 import org.mmarini.actd.TDParms
 import org.mmarini.actd.Environment
+import org.mmarini.actd.DummyAgent
 
 /** */
 case class WallStatus(ball: (Int, Int), speed: (Int, Int), pad: Int) extends Status {
@@ -110,7 +111,7 @@ object WallStatus extends LazyLogging {
   val Beta = 0.3
   val Gamma = 0.962
   val Epsilon = 0.1
-//  val EpsilonGreedy = 0.9
+  //  val EpsilonGreedy = 0.9
   val EpsilonGreedy = 0.1
   val Lambda = 0e-3
   val Eta = 100e-3
@@ -161,6 +162,18 @@ object WallStatus extends LazyLogging {
       Sigma,
       inputCount,
       OutputCount)
+
+    Environment(initStatus, initAgent)
+  }
+
+  /** Creates the initial environment */
+  def dummyEnv: Environment = {
+
+    val initStatus = WallStatus.initial
+
+    val inputCount = initStatus.toDenseVector.length
+
+    val initAgent = DummyAgent(OutputCount, new RandBasis(new MersenneTwister(Seed)))
 
     Environment(initStatus, initAgent)
   }
