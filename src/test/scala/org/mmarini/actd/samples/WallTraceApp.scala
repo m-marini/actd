@@ -12,7 +12,7 @@ import com.typesafe.scalalogging.LazyLogging
 object WallTraceApp extends App with LazyLogging {
 
   val file = "data/wall.csv"
-  val StepCount = 300000
+  val StepCount = 30000
   val SampleTraceCount = 1000
 
   WallStatus.environment.iterator.

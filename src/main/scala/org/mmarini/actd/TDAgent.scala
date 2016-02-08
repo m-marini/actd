@@ -26,7 +26,38 @@ class TDAgent(
     parms.indexEGreedyBySoftmax(actor(status.toDenseVector).output)
 
   /** Returns a new agent that learns by reward */
-  def learn(feedback: Feedback): TDAgent = {
+  def learnCritic(feedback: Feedback): (TDAgent, Double) = {
+
+    // Computes the state value pre and post step
+    val s0Vect = feedback.s0.toDenseVector
+    val s1Vect = feedback.s1.toDenseVector
+
+    val end0 = feedback.s0.finalStatus
+    val end1 = feedback.s1.finalStatus
+
+    // The status value of post state is 0 if final episode else bootstraps from critic
+    val postValue = if (end1 || end0) 0.0 else critic(s1Vect).output(0)
+
+    // Computes the expected state value by booting the previous status value */
+    val expectedValue = postValue * parms.gamma + feedback.reward
+
+    // Computes the error by critic
+    val preValue = critic(s0Vect).output(0)
+    val delta = expectedValue - preValue
+
+    // Teaches the critic by evidence
+    val nc = critic.learn(s0Vect, DenseVector(expectedValue))
+
+    val nag = if (end0) {
+      new TDAgent(parms, nc.clearTraces, actor.clearTraces)
+    } else {
+      new TDAgent(parms, nc, actor)
+    }
+    (nag, delta)
+  }
+
+  /** Returns a new agent that has learned by reward and the error */
+  def learn(feedback: Feedback): (TDAgent, Double) = {
 
     // Computes the state value pre and post step
     val s0Vect = feedback.s0.toDenseVector
@@ -62,7 +93,7 @@ class TDAgent(
     } else {
       new TDAgent(parms, nc, na)
     }
-    nag
+    (nag, delta)
   }
 
 }

@@ -22,14 +22,14 @@ case class Environment(status: Status, agent: Agent) {
    *
    *  @return the feedback
    */
-  def stepOver: (Environment, Environment, Feedback) = {
+  def stepOver: (Environment, Environment, Feedback, Double) = {
     val action = agent.action(status)
     val feedback = status(action)
-    val agent1 = agent.learn(feedback)
-    (this, Environment(feedback.s1, agent1), feedback)
+    val (agent1, delta) = agent.learn(feedback)
+    (this, Environment(feedback.s1, agent1), feedback, delta)
   }
 
   /** Converts this Environment into a stream of environments, rewards and end episode flags */
-  def iterator: Iterator[(Environment, Environment, Feedback)] =
+  def iterator: Iterator[(Environment, Environment, Feedback, Double)] =
     Iterator.iterate(stepOver)(_._2.stepOver)
 }

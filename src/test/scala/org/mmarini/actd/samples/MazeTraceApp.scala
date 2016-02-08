@@ -61,7 +61,7 @@ object MazeTraceApp extends App with LazyLogging {
 
   private def extractSample: Iterator[DenseVector[Double]] =
     initEnv.iterator.map {
-      case (e0, e1, Feedback(_, action, reward, _)) =>
+      case (e0, e1, Feedback(_, action, reward, _), _) =>
         val s0 = e0.status.toDenseVector
         val s1 = e1.status.toDenseVector
         val sv0 = e0.agent.asInstanceOf[TDAgent].critic(s0).output

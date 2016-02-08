@@ -39,13 +39,13 @@ class EnvironmentTest extends FunSpec with PropertyChecks with Matchers with Giv
 
         // Mocking agent behavior
         (agent.action _).expects(status).returns(expAction)
-        (agent.learn _).expects(feedback).returns(agent)
+        (agent.learn _).expects(feedback).returns((agent, 0.0))
 
         (expNext.toDenseVector _).expects.anyNumberOfTimes.returns(statusVect)
 
         val env = Environment(status, agent)
 
-        val (_, next, Feedback(_, _, reward, _)) = env.stepOver
+        val (_, next, Feedback(_, _, reward, _), _) = env.stepOver
 
         next should have('status(expNext))
         reward should be(expReward)
@@ -86,20 +86,20 @@ class EnvironmentTest extends FunSpec with PropertyChecks with Matchers with Giv
 
         // Mocking agent 0 behavior
         (a0.action _).expects(*).returns(1)
-        (a0.learn _).expects(*).returns(a1)
+        (a0.learn _).expects(*).returns((a1, 0.0))
 
         // Mocking agent 1 behavior
         (a1.action _).expects(*).returns(1)
-        (a1.learn _).expects(*).returns(a2)
+        (a1.learn _).expects(*).returns((a2, 0.0))
 
         val iter = Environment(s0, a0).iterator
 
-        val (_, next, Feedback(_, _, reward, _)) = iter.next
+        val (_, next, Feedback(_, _, reward, _), _) = iter.next
 
         next should have('status(s1))
         reward should be(r0)
 
-        val (_, next1, Feedback(_, _, reward1, _)) = iter.next
+        val (_, next1, Feedback(_, _, reward1, _), _) = iter.next
 
         next1 should have('status(s2))
         reward1 should be(r1)

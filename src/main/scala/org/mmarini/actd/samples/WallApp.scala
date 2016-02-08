@@ -136,7 +136,7 @@ object WallApp extends SimpleSwingApplication with LazyLogging {
   val timerObs = (slowTimerObs merge fastTimerObs).switch
 
   val txObs = for { _ <- timerObs } yield {
-    s: (Environment, Environment, Feedback) => s._2.stepOver
+    s: (Environment, Environment, Feedback, Double) => s._2.stepOver
   }
 
   val gameFlowObs = txObs.statusFlow(initEnv.stepOver)

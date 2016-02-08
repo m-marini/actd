@@ -102,7 +102,7 @@ object ActorTestApp extends App with LazyLogging {
   private def learnStep(agent: TDAgent, s0: Status): (TDAgent, Feedback) = {
     val a = agent.action(s0)
     val feedback = s0.apply(a)
-    val ag1 = agent.learn(feedback)
+    val (ag1, _) = agent.learn(feedback)
     (ag1, feedback)
   }
 

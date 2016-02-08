@@ -15,5 +15,5 @@ trait Agent {
   def action(status: Status): Int
 
   /** Returns a new agent that learns by the feedback */
-  def learn(feedback: Feedback): Agent
+  def learn(feedback: Feedback): (Agent, Double)
 }

@@ -75,7 +75,7 @@ object CriticTestApp extends App with LazyLogging {
    */
   private def learnEpisode(agent: TDAgent): (TDAgent, Double) = {
     val ag = episodes.foldLeft(agent)((agent, step) => {
-      val ag1 = agent.learn(step)
+      val (ag1, _) = agent.learn(step)
       ag1
     })
     (ag, error(ag))

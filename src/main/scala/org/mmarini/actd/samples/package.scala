@@ -201,7 +201,7 @@ package object samples extends LazyLogging {
     val ActionIdx = 5
   }
 
-  implicit class WallIteratorFactory(iter: Iterator[(Environment, Environment, Feedback)]) {
+  implicit class WallIteratorFactory(iter: Iterator[(Environment, Environment, Feedback, Double)]) {
     val RowIdx = 0
     val ColIdx = 1
     val RowSpeedIdx = 2
@@ -209,21 +209,64 @@ package object samples extends LazyLogging {
     val PadIdx = 4
     val ActionIdx = 5
 
+    /**
+     * Converts a wall iterator to a vector.
+     *
+     * The vector components are:
+     *
+     *  -  ball row of status 0
+     *  -  ball columns of status 0
+     *  -  ball speed row of status 0
+     *  -  ball speed columns of status 0
+     *  -  pad location  columns of status 0
+     *  -  action performed
+     *  -  reward
+     *  -  ball row of status 1
+     *  -  ball columns of status 1
+     *  -  ball speed row of status 1
+     *  -  ball speed columns of status 1
+     *  -  pad location  columns of status 1
+     *  -  error from critic
+     */
     def toSamples: Iterator[DenseVector[Double]] =
       iter.map {
-        case (e0, e1, Feedback(_, action, reward, _)) =>
+        case (e0, e1, Feedback(_, action, reward, _), err) =>
           val WallStatus((r0, c0), (sr0, sc0), pad0) = e0.status.asInstanceOf[WallStatus]
           val WallStatus((r1, c1), (sr1, sc1), pad1) = e1.status.asInstanceOf[WallStatus]
           val s0 = e0.status.toDenseVector
           val s1 = e1.status.toDenseVector
           DenseVector.vertcat(DenseVector(r0, c0, sr0, sc0, pad0,
             action.toDouble, reward,
-            r1, c1, sr1, sc1, pad1))
+            r1, c1, sr1, sc1, pad1, err))
       }
 
+    /**
+     * Converts a wall iterator to a vector.
+     *
+     * The vector components are:
+     *
+     *  -  ball row of status 0
+     *  -  ball columns of status 0
+     *  -  ball speed row of status 0
+     *  -  ball speed columns of status 0
+     *  -  pad location  columns of status 0
+     *  -  action performed
+     *  -  reward
+     *  -  ball row of status 1
+     *  -  ball columns of status 1
+     *  -  ball speed row of status 1
+     *  -  ball speed columns of status 1
+     *  -  pad location  columns of status 1
+     *  -  error from critic
+     *  -  status 0 value from critic
+     *  -  status 1 value from critic
+     *  -  preference values (left, rest, right) on status 0 from actor
+     *  -  status 0 value from critic after learning
+     *  -  preference values (left, rest, right) on status 0 from actor after learning
+     */
     def toSamplesWithAC: Iterator[DenseVector[Double]] =
       iter.map {
-        case (e0, e1, Feedback(_, action, reward, _)) =>
+        case (e0, e1, Feedback(_, action, reward, _), err) =>
           val WallStatus((r0, c0), (sr0, sc0), pad0) = e0.status.asInstanceOf[WallStatus]
           val WallStatus((r1, c1), (sr1, sc1), pad1) = e1.status.asInstanceOf[WallStatus]
           val s0 = e0.status.toDenseVector
@@ -235,7 +278,7 @@ package object samples extends LazyLogging {
           val p1 = e1.agent.asInstanceOf[TDAgent].actor(s0).output
           DenseVector.vertcat(DenseVector(r0, c0, sr0, sc0, pad0,
             action.toDouble, reward,
-            r1, c1, sr1, sc1, pad1),
+            r1, c1, sr1, sc1, pad1, err),
             s00v, s01v, p0,
             s10v, p1)
       }

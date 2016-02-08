@@ -59,8 +59,8 @@ object MazeTestApp extends App with LazyLogging {
 
   val initEnv = Environment(initStatus, initAgent)
 
-  private def extractEpisodeRewards: Iterator[Stream[(Environment, Environment, Feedback)]] = {
-    def createStream(s: Iterator[(Environment, Environment, Feedback)]): Iterator[Stream[(Environment, Environment, Feedback)]] = {
+  private def extractEpisodeRewards: Iterator[Stream[(Environment, Environment, Feedback, Double)]] = {
+    def createStream(s: Iterator[(Environment, Environment, Feedback, Double)]): Iterator[Stream[(Environment, Environment, Feedback, Double)]] = {
       //      val endIdx = s.indexWhere {
       //        case (e0, _, _) => e0.status.finalStatus
       //      }

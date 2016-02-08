@@ -82,7 +82,7 @@ class TDAgentTest extends PropSpec with PropertyChecks with Matchers with GivenW
 
               val ag1 = episode.foldLeft(ag) {
                 case (ag, feedback) =>
-                  ag.learn(feedback)
+                  ag.learn(feedback)._1
               }
               ag1
             }
@@ -149,7 +149,7 @@ class TDAgentTest extends PropSpec with PropertyChecks with Matchers with GivenW
       (Gen.choose(-1e3, 1e3), "reward")) {
         (agent, reward) =>
           {
-            val agent1 = agent.learn(Feedback(s0, 1, reward, s1))
+            val (agent1, _) = agent.learn(Feedback(s0, 1, reward, s1))
 
             val e0 = pow(reward - agent.critic(s0.toDenseVector).output(0), 2)
             val e1 = pow(reward - agent1.critic(s0.toDenseVector).output(0), 2)
@@ -173,7 +173,7 @@ class TDAgentTest extends PropSpec with PropertyChecks with Matchers with GivenW
       (Gen.choose(0, 1), "action")) {
         (agent, reward, action) =>
           {
-            val agent1 = agent.learn(Feedback(s0, action, reward, s1))
+            val (agent1, _) = agent.learn(Feedback(s0, action, reward, s1))
 
             val p00 = agent.actor(s0.toDenseVector).output(action)
             val p01 = agent1.actor(s0.toDenseVector).output(action)
