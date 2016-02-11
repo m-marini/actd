@@ -29,30 +29,83 @@
 
 package org.mmarini.actd
 
-import breeze.linalg.DenseVector
+import TDAgentActor.Reaction
+import TDAgentActor.Trained
+import akka.actor.Actor
+import akka.actor.ActorLogging
+import akka.actor.Props
+import akka.actor.actorRef2Scala
+
+/** Props and messages factory for [[TDAgentActor]] */
+object TDAgentActor {
+
+  /**
+   * Creates the props for a [[TDAgentActor]]
+   *
+   * @param parms parameters
+   * @param critic the initial critic network
+   * @param actor the initial actor network
+   */
+  def props(parms: TDParms,
+    critic: TDNeuralNet,
+    actor: TDNeuralNet): Props =
+    Props(classOf[TDAgentActor], parms, critic, actor)
+
+  /** Message sent to [[TDAgentActor]] to react with an action */
+  case class React(status: Status)
+
+  /** Message sent by [[TDAgentActor]] to reply a [[React]] */
+  case class Reaction(action: Action)
+
+  /** Message sent to [[TDAgentActor]] to add a feedback */
+  case class Feed(feedback: Feedback)
+
+  /** Message sent by [[TDAgentActor]] to reply a [[Feed]] */
+  case class Trained(delta: Double)
+}
 
 /**
- * A learning agent that replies to stimulus with actions and learns by receiving rewards
- * applying TD algorithm.
+ * An Actor that plays the agent role in the environment agent interaction
  *
- * @constructor create a learning agent with parameters, critic network and actor network
- * @parm parms the parameters
- * @parm critic the critic network
- * @parm actor the actor network
- *
- * @author us00852
+ * @constructor create the agent
+ * @param parms parameters
+ * @param critic the initial critic network
+ * @param actor the initial actor network
  */
-class TDAgent(
-    val parms: TDParms,
-    val critic: TDNeuralNet,
-    val actor: TDNeuralNet) extends Agent {
+class TDAgentActor(parms: TDParms,
+    critic: TDNeuralNet,
+    actor: TDNeuralNet) extends Actor with ActorLogging {
 
-  /** Returns the action to be taken in a state */
-  def action(status: Status): Action =
-    parms.indexEGreedyBySoftmax(actor(status.toDenseVector).output)
+  import TDAgentActor._
+
+  var currentCritic = critic
+  var currentActor = actor
+  var feedbacks: Seq[Feedback] = Seq()
+
+  val trainer = context.actorOf(TrainerActor.props)
+
+  def receive: Receive = {
+    case TrainerActor.Trained(net) =>
+      currentCritic = net
+      trainer ! TrainerActor.Train(net)
+
+    case React(status) =>
+      val action = parms.indexEGreedyBySoftmax(currentActor(status.toDenseVector).output)
+      sender ! Reaction(action)
+
+    case Feed(feedback) =>
+      val nf = (feedbacks :+ feedback).takeRight(parms.maxTrainingSamples)
+      trainer ! TrainerActor.TrainSet(nf)
+      if (feedbacks.isEmpty) trainer ! TrainerActor.Train(critic)
+      feedbacks = nf
+
+      val delta = train(feedback)
+
+      sender ! Trained(delta)
+  }
 
   /** Returns a new agent that has learned by reward and the error */
-  def train(feedback: Feedback): (TDAgent, Double) = {
+  private def train(feedback: Feedback): Double = {
 
     // Computes the state value pre and post step
     val s0Vect = feedback.s0.toDenseVector
@@ -69,11 +122,7 @@ class TDAgent(
 
     // Computes the error by critic
     val preValue = critic(s0Vect).output(0)
-
     val delta = expectedValue - preValue
-
-    // Teaches the critic by evidence
-    val nc = critic.learn(s0Vect, DenseVector(expectedValue))
 
     // Computes the expected action preferences applying the critic error to previous decision */
     val pref = actor(s0Vect).output
@@ -84,31 +133,8 @@ class TDAgent(
     // Teaches the actor by evidence
     val na = actor.learn(s0Vect, expectedPref)
 
-    val nag = if (end0) {
-      new TDAgent(parms, nc.clearTraces, na.clearTraces)
-    } else {
-      new TDAgent(parms, nc, na)
-    }
-    (nag, delta)
+    currentActor = if (end0) na.clearTraces else na
+    delta
   }
 
-}
-
-/** Factory for [[TDAgent]] instances */
-object TDAgent {
-
-  /**
-   * Creates a TDAgent with TD parameter,
-   *  hidden layers networks and
-   *  weights within a range.
-   */
-  def apply(
-    parms: TDParms,
-    sigma: Double,
-    statusSize: Int,
-    actionCount: Int,
-    hiddenLayers: Int*): TDAgent =
-    new TDAgent(parms,
-      TDNeuralNet(statusSize +: hiddenLayers :+ 1, parms, sigma),
-      TDNeuralNet(statusSize +: hiddenLayers :+ actionCount, parms, sigma))
 }

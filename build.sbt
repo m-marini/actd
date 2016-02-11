@@ -12,6 +12,8 @@ libraryDependencies += "com.github.scala-incubator.io" %% "scala-io-file" % "0.4
 
 libraryDependencies += "com.typesafe.scala-logging" %% "scala-logging" % "3.1.0"
 
+libraryDependencies += "com.typesafe.akka" %% "akka-actor" % "2.4.1"
+
 libraryDependencies += "ch.qos.logback" % "logback-classic" % "1.1.2"
 
 libraryDependencies += "org.scalanlp" %% "breeze" % "0.11.2"
@@ -26,9 +28,10 @@ libraryDependencies += "org.scala-lang" % "scala-swing" % "2.11.0-M7"
 
 libraryDependencies += "org.scalatest" %% "scalatest" % "2.2.4" % Test
 
-libraryDependencies += "org.scalamock" %% "scalamock-scalatest-support" % "3.2" % "test"
+libraryDependencies += "org.scalamock" %% "scalamock-scalatest-support" % "3.2" % Test
 
 libraryDependencies += "org.scalacheck" %% "scalacheck" % "1.11.6" % Test
 
-lazy val root = project in file(".")
+libraryDependencies += "com.typesafe.akka" %% "akka-testkit" % "2.4.1" % Test
 
+lazy val root = project in file(".")
