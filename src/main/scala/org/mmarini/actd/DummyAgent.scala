@@ -25,7 +25,7 @@ class DummyAgent(actionRand: Rand[Action]) extends Agent {
   def action(status: Status): Action = actionRand.sample
 
   /** Returns this agent (no learning algorithm is implemented for dummy agent) */
-  def learn(feedback: Feedback): (Agent, Double) = (this, 0.0)
+  def train(feedback: Feedback): (Agent, Double) = (this, 0.0)
 
 }
 

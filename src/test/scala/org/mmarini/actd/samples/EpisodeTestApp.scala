@@ -17,16 +17,14 @@ object EpisodeTestApp extends App with LazyLogging {
 
   val file = "data/episode-wall.csv"
   val SampleTraceCount = 1000
-  val LearningCount = 1000
+  val LearningCount = 300
 
   /** Generates the report */
   val (feedbacks, errs) = WallStatus.
     environment.
     iterator.
     trace("Sample", SampleTraceCount).
-    takeWhile {
-      case (_, _, Feedback(s0, _, _, _), _) => !s0.finalStatus
-    }.
+    take(100).
     map {
       case (_, _, f, err) => (f, err)
     }.toList.unzip
@@ -39,7 +37,7 @@ object EpisodeTestApp extends App with LazyLogging {
   private def learn(ag0: Agent) =
     feedbacks.foldLeft((ag0, 0.0)) {
       case ((agent, sum), feedback) =>
-        val (ag, er) = agent.learn(feedback)
+        val (ag, er) = agent.train(feedback)
         (ag, sum + er * er)
     }
 
@@ -52,6 +50,6 @@ object EpisodeTestApp extends App with LazyLogging {
   errors.
     reverse.
     iterator.
-    map(x => DenseVector.apply(x)).
+    map(x => DenseVector.apply(x / errors.length)).
     write(file)
 }

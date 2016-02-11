@@ -25,7 +25,14 @@ class TracedNetTest extends PropSpec with PropertyChecks with Matchers with Give
     gamma <- Gen.choose(0.0, 1.0)
     lambda <- Gen.choose(0.0, 1.0)
     eta <- Gen.choose(0.0, 1e-3)
-  } yield TDParms(alpha, 0.0, gamma, 0.0, lambda, eta, Rand)
+  } yield TDParms(
+    alpha = alpha,
+    beta = 0.0,
+    gamma = gamma,
+    epsilon = 0.0,
+    lambda = lambda,
+    eta = eta,
+    random = Rand)
 
   val epsilonGen = Gen.choose(10e-3, 100e-3)
 

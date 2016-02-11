@@ -39,7 +39,7 @@ class EnvironmentTest extends FunSpec with PropertyChecks with Matchers with Giv
 
         // Mocking agent behavior
         (agent.action _).expects(status).returns(expAction)
-        (agent.learn _).expects(feedback).returns((agent, 0.0))
+        (agent.train _).expects(feedback).returns((agent, 0.0))
 
         (expNext.toDenseVector _).expects.anyNumberOfTimes.returns(statusVect)
 
@@ -86,11 +86,11 @@ class EnvironmentTest extends FunSpec with PropertyChecks with Matchers with Giv
 
         // Mocking agent 0 behavior
         (a0.action _).expects(*).returns(1)
-        (a0.learn _).expects(*).returns((a1, 0.0))
+        (a0.train _).expects(*).returns((a1, 0.0))
 
         // Mocking agent 1 behavior
         (a1.action _).expects(*).returns(1)
-        (a1.learn _).expects(*).returns((a2, 0.0))
+        (a1.train _).expects(*).returns((a2, 0.0))
 
         val iter = Environment(s0, a0).iterator
 

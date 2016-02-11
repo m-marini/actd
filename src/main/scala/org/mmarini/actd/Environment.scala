@@ -25,7 +25,7 @@ case class Environment(status: Status, agent: Agent) {
   def stepOver: (Environment, Environment, Feedback, Double) = {
     val action = agent.action(status)
     val feedback = status(action)
-    val (agent1, delta) = agent.learn(feedback)
+    val (agent1, delta) = agent.train(feedback)
     (this, Environment(feedback.s1, agent1), feedback, delta)
   }
 

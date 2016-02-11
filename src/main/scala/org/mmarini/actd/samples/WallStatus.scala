@@ -152,13 +152,13 @@ object WallStatus extends LazyLogging {
 
     val initAgent = TDAgent(
       TDParms(
-        Alpha,
-        Beta,
-        Gamma,
-        EpsilonGreedy,
-        Lambda,
-        Eta,
-        new RandBasis(new MersenneTwister(Seed))),
+        alpha = Alpha,
+        beta = Beta,
+        gamma = Gamma,
+        epsilon = EpsilonGreedy,
+        lambda = Lambda,
+        eta = Eta,
+        random = new RandBasis(new MersenneTwister(Seed))),
       Sigma,
       inputCount,
       OutputCount)

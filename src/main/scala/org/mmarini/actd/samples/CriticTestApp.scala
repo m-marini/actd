@@ -42,7 +42,14 @@ object CriticTestApp extends App with LazyLogging {
 
   val testAgent = List(0.0, 0.01, 0.03, 0.1, 0.3).map(x =>
     TDAgent(
-      TDParms(Alpha, Beta, Gamma, 0.0, x, Eta, new RandBasis(new MersenneTwister(Seed))),
+      TDParms(
+        alpha = Alpha,
+        beta = Beta,
+        gamma = Gamma,
+        epsilon = 0.0,
+        lambda = x,
+        eta = Eta,
+        random = new RandBasis(new MersenneTwister(Seed))),
       1.0, 2, 2))
 
   /** Computes the error of an agent */
@@ -75,7 +82,7 @@ object CriticTestApp extends App with LazyLogging {
    */
   private def learnEpisode(agent: TDAgent): (TDAgent, Double) = {
     val ag = episodes.foldLeft(agent)((agent, step) => {
-      val (ag1, _) = agent.learn(step)
+      val (ag1, _) = agent.train(step)
       ag1
     })
     (ag, error(ag))

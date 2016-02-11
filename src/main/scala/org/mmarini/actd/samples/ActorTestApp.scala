@@ -52,7 +52,14 @@ object ActorTestApp extends App with LazyLogging {
 
   val testAgent =
     TDAgent(
-      TDParms(Alpha, Beta, Gamma, 0.0, Lambda, Eta, new RandBasis(new MersenneTwister(Seed))),
+      TDParms(
+        alpha = Alpha,
+        beta = Beta,
+        gamma = Gamma,
+        epsilon = 0.0,
+        lambda = Lambda,
+        eta = Eta,
+        random = new RandBasis(new MersenneTwister(Seed))),
       1.0, 2, 2)
 
   //  val testAgent = List(0.0, 0.1, 0.2, 0.3).map(p =>
@@ -102,7 +109,7 @@ object ActorTestApp extends App with LazyLogging {
   private def learnStep(agent: TDAgent, s0: Status): (TDAgent, Feedback) = {
     val a = agent.action(s0)
     val feedback = s0.apply(a)
-    val (ag1, _) = agent.learn(feedback)
+    val (ag1, _) = agent.train(feedback)
     (ag1, feedback)
   }
 

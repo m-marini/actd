@@ -46,13 +46,13 @@ object MazeTestApp extends App with LazyLogging {
 
   val initAgent = TDAgent(
     TDParms(
-      Alpha,
-      Beta,
-      Gamma,
-      0.0,
-      Lambda,
-      Eta,
-      new RandBasis(new MersenneTwister(Seed))),
+      alpha = Alpha,
+      beta = Beta,
+      gamma = Gamma,
+      epsilon = 0.0,
+      lambda = Lambda,
+      eta = Eta,
+      random = new RandBasis(new MersenneTwister(Seed))),
     Sigma,
     inputCount,
     OutputCount)
