@@ -35,6 +35,7 @@ import akka.actor.Actor
 import akka.actor.ActorLogging
 import akka.actor.Props
 import akka.actor.actorRef2Scala
+import breeze.linalg.DenseVector
 
 /** Props and messages factory for [[TDAgentActor]] */
 object TDAgentActor {
@@ -124,6 +125,9 @@ class TDAgentActor(parms: TDParms,
     val preValue = critic(s0Vect).output(0)
     val delta = expectedValue - preValue
 
+    // Teaches the critic by evidence
+    val nc = currentCritic.learn(s0Vect, DenseVector(expectedValue))
+
     // Computes the expected action preferences applying the critic error to previous decision */
     val pref = actor(s0Vect).output
     val expectedPref = pref.copy
@@ -133,6 +137,7 @@ class TDAgentActor(parms: TDParms,
     // Teaches the actor by evidence
     val na = actor.learn(s0Vect, expectedPref)
 
+    currentCritic = if (end0) nc.clearTraces else nc
     currentActor = if (end0) na.clearTraces else na
     delta
   }

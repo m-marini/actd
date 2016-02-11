@@ -35,6 +35,12 @@ import org.mmarini.actd.EnvironmentActor
 import akka.actor.Props
 import akka.actor.Actor
 import akka.actor.ActorLogging
+import akka.dispatch.sysmsg.Terminate
+import akka.actor.Terminated
+import org.mmarini.actd.Feedback
+import scala.concurrent.duration.Deadline
+import scala.concurrent.duration.Duration
+import scala.concurrent.duration._
 
 /**
  * Tests the maze environment
@@ -55,17 +61,31 @@ object WallTraceApp extends App with LazyLogging {
     val environment = context.actorOf(EnvironmentActor.props(initStatus, parms, critic, actor))
 
     var counter = StepCount
+    var list: Seq[(Feedback, Double)] = Seq()
+
+    context.watch(environment)
 
     environment ! EnvironmentActor.Interact
 
+    val tlog = new TimerLogger(log)
+
     def receive: Receive = {
       case EnvironmentActor.Step(feedback, delta) =>
-        counter = counter - 1
         if (counter > 0) {
+          tlog.info(s"$counter counter")
+          counter = counter - 1
+          list = list :+ (feedback, delta)
           environment ! EnvironmentActor.Interact
         } else {
-          context.stop(self)
+          context.stop(environment)
         }
+      case Terminated(_) =>
+        log.info(s"${list.length} size")
+        list.
+          iterator.
+          toSamples.
+          write(file)
+        context.system.shutdown
     }
   }
 

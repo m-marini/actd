@@ -38,9 +38,7 @@ import org.mmarini.actd.Status
 import org.mmarini.actd.TDAgent
 import org.mmarini.actd.TDNeuralNet
 import org.mmarini.actd.TDParms
-
 import com.typesafe.scalalogging.LazyLogging
-
 import WallStatus.Height
 import WallStatus.NegativeReward
 import WallStatus.PadAction
@@ -49,6 +47,7 @@ import WallStatus.PositiveReward
 import WallStatus.Width
 import breeze.linalg.DenseVector
 import breeze.stats.distributions.RandBasis
+import breeze.optimize.MaxIterations
 
 /** */
 case class WallStatus(ball: (Int, Int), speed: (Int, Int), pad: Int) extends Status {
@@ -145,6 +144,7 @@ object WallStatus extends LazyLogging {
   val Eta = 100e-3
   val Sigma = 1.0
   val Seed = 1234L
+  val MaxTrainingSamples = 100
 
   val OutputCount = 3
   val HiddenCount = 20
@@ -206,6 +206,7 @@ object WallStatus extends LazyLogging {
       epsilon = EpsilonGreedy,
       lambda = Lambda,
       eta = Eta,
+      maxTrainingSamples = MaxTrainingSamples,
       random = new RandBasis(new MersenneTwister(Seed)))
 
     val critic = TDNeuralNet(inputCount +: Seq() :+ 1, parms, Sigma)
