@@ -35,7 +35,6 @@ import akka.actor.ActorLogging
 import akka.actor.Props
 import akka.actor.actorRef2Scala
 import breeze.linalg.DenseVector
-import org.mmarini.actd.samples.TimerLogger
 
 /** Props and messages factory for TrainerActor */
 object TrainerActor {
@@ -54,7 +53,7 @@ object TrainerActor {
 }
 
 /**
- * An actor that trains a critic neural network with a sequence of feedback.
+ * An actor that trains a critic neural network with a sequence of feedbacks.
  *
  * It produces the critic after a complete cycle of training.
  */
@@ -63,8 +62,6 @@ class TrainerActor extends Actor with ActorLogging {
   import TrainerActor._
 
   var feedbacks: Seq[Feedback] = Seq()
-
-  val tlog = TimerLogger(log)
 
   /** Returns a new [[TDNeuralNet]] by a [[TDNeuralNet]] with the current feedbacks */
   private def train(net: TDNeuralNet): TDNeuralNet = {
@@ -100,7 +97,6 @@ class TrainerActor extends Actor with ActorLogging {
 
     case Train(net: TDNeuralNet) =>
       val nn = train(net)
-      tlog.info(s"Training ${feedbacks.length} samples ...")
       sender ! Trained(nn)
   }
 }

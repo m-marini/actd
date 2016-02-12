@@ -27,11 +27,9 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 // OTHER DEALINGS IN THE SOFTWARE.
 
-package org.mmarini.actd.samples
+package org.mmarini.actd
 
-import scala.concurrent.duration.Duration
 import scala.concurrent.duration.DurationInt
-import org.slf4j.Logger
 import scala.concurrent.duration.Deadline
 import scala.concurrent.duration.FiniteDuration
 import akka.event.LoggingAdapter

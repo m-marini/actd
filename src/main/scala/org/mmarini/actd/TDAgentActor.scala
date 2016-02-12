@@ -36,6 +36,8 @@ import akka.actor.ActorLogging
 import akka.actor.Props
 import akka.actor.actorRef2Scala
 import breeze.linalg.DenseVector
+import org.mmarini.actd.TrainerActor.Train
+import org.mmarini.actd.TrainerActor.TrainSet
 
 /** Props and messages factory for [[TDAgentActor]] */
 object TDAgentActor {
@@ -88,7 +90,7 @@ class TDAgentActor(parms: TDParms,
   def receive: Receive = {
     case TrainerActor.Trained(net) =>
       currentCritic = net
-      trainer ! TrainerActor.Train(net)
+      trainer ! Train(net)
 
     case React(status) =>
       val action = parms.indexEGreedyBySoftmax(currentActor(status.toDenseVector).output)
@@ -96,7 +98,7 @@ class TDAgentActor(parms: TDParms,
 
     case Feed(feedback) =>
       val nf = (feedbacks :+ feedback).takeRight(parms.maxTrainingSamples)
-      trainer ! TrainerActor.TrainSet(nf)
+      trainer ! TrainSet(nf)
       if (feedbacks.isEmpty) trainer ! TrainerActor.Train(critic)
       feedbacks = nf
 

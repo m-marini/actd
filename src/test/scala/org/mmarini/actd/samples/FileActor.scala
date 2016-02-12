@@ -29,37 +29,33 @@
 
 package org.mmarini.actd.samples
 
-import scala.concurrent.Await
-import scala.concurrent.duration.DurationInt
+import org.mmarini.actd.EnvironmentActor.Interact
+import org.mmarini.actd.Feedback
+import org.mmarini.actd.TimerLogger
+import akka.actor.Actor
+import akka.actor.ActorLogging
+import akka.actor.Props
+import akka.actor.actorRef2Scala
+import org.mmarini.actd.EnvironmentActor.Step
+import akka.actor.Terminated
+import akka.actor.ActorRef
 
-import org.mmarini.actd.EnvironmentActor
+object FileActor {
+  def props(file: String): Props =
+    Props(classOf[FileActor], file)
+}
 
-import com.typesafe.scalalogging.LazyLogging
+class FileActor(file: String) extends Actor with ActorLogging {
+  var list: Seq[(Feedback, Double)] = Seq()
 
-import akka.actor.ActorSystem
-import akka.pattern.gracefulStop
+  val tlog = new TimerLogger(log)
 
-/**
- * Tests the maze environment
- * and generates a report of episode returns as octave data file
- */
-object WallTraceApp extends App with LazyLogging {
-  val File = "data/wall.csv"
-  val StepCount = 1000
-  val system = ActorSystem("WallTraceApp")
-
-  val (initStatus, parms, critic, actor) = WallStatus.initEnvParms
-
-  val environment = system.actorOf(
-    EnvironmentActor.props(initStatus, parms, critic, actor))
-
-  val fileActor = system.actorOf(FileActor.props(File))
-
-  val takeActor = system.actorOf(TakeActor.props(fileActor, environment, StepCount));
-
-  Await.result(gracefulStop(fileActor, 100 seconds, "Start"), 100 seconds)
-  logger.info("Waiting for completion ...");
-
-  logger.info("Completed.");
-  system.shutdown
+  def receive: Receive = {
+    case list: Seq[Any] =>
+      list.asInstanceOf[Seq[(Feedback, Double)]].
+        iterator.
+        toSamples.
+        write(file)
+      context stop self
+  }
 }

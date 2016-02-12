@@ -30,10 +30,22 @@
 package org.mmarini.actd.samples
 
 import com.typesafe.scalalogging.LazyLogging
-
 import breeze.linalg.DenseVector
-
 import Indexes._
+import org.mmarini.actd.Feedback
+import akka.actor.Terminated
+import akka.actor.ActorLogging
+import org.mmarini.actd.TimerLogger
+import org.mmarini.actd.EnvironmentActor
+import akka.actor.Actor
+import org.mmarini.actd.EnvironmentActor.Step
+import org.mmarini.actd.EnvironmentActor.Interact
+import akka.actor.ActorRef
+import org.mmarini.actd.ProxyActor
+import akka.actor.ActorSystem
+import scala.concurrent.Await
+import akka.pattern.gracefulStop
+import scala.concurrent.duration.DurationInt
 
 /**
  * Tests the maze environment
@@ -41,9 +53,27 @@ import Indexes._
  */
 object FilteredWallTraceApp extends App with LazyLogging {
 
-  val file = "data/debug-wall.csv"
+  val File = "data/debug-wall.csv"
   val EpisodeCount = 100
   val SampleTraceCount = 1000
+  val system = ActorSystem()
+
+  val (initStatus, parms, critic, actor) = WallStatus.initEnvParms
+
+  val environment = system.actorOf(
+    EnvironmentActor.props(initStatus, parms, critic, actor))
+
+  val fileActor = system.actorOf(FileActor.props(File))
+
+//  lazy val filterActor: ActorRef = system.actorOf(ProxyActor.filterProps(environment, takeActor)())
+
+  lazy val takeActor: ActorRef = system.actorOf(TakeActor.props(fileActor, environment, EpisodeCount))
+
+  Await.result(gracefulStop(fileActor, 100 seconds, "Start"), 100 seconds)
+  logger.info("Waiting for completion ...");
+
+  logger.info("Completed.");
+  system.shutdown
 
   /*
      * Filter on the following status:
@@ -102,11 +132,11 @@ object FilteredWallTraceApp extends App with LazyLogging {
     x(RowIdx) == 8 && x(ColIdx) == 2 && x(RowSpeedIdx) == 1 && x(ColSpeedIdx) == 1 && x(PadIdx) == 5
 
   /** Generates the report */
-  WallStatus.environment.iterator.
-    toSamplesWithAC.
-    trace("Sample", SampleTraceCount).
-    filter(filter).
-    trace("Filtered").
-    take(EpisodeCount).
-    write(file)
+//  WallStatus.environment.iterator.
+//    toSamplesWithAC.
+//    trace("Sample", SampleTraceCount).
+//    filter(filter).
+//    trace("Filtered").
+//    take(EpisodeCount).
+//    write(file)
 }

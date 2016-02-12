@@ -35,6 +35,10 @@ import akka.actor.ActorLogging
 import akka.actor.ActorRef
 import akka.actor.Props
 import akka.actor.actorRef2Scala
+import org.mmarini.actd.TDAgentActor.React
+import org.mmarini.actd.TDAgentActor.Reaction
+import org.mmarini.actd.TDAgentActor.Feed
+import org.mmarini.actd.TDAgentActor.Trained
 
 /** Props and messages factory for [[EnvironmentActor]] */
 object EnvironmentActor {
@@ -88,17 +92,18 @@ class EnvironmentActor(initStatus: Status,
     case Interact =>
       requestor = sender;
       context.become(processing)
-      agent ! TDAgentActor.React(status)
+      agent ! React(status)
   }
 
   /** Processes the messages while is processing an Interact request */
   private def processing: Receive = {
-    case TDAgentActor.Reaction(action) =>
+    case Reaction(action) =>
       val feedback = status(action)
       this.feedback = Some(feedback)
-      agent ! TDAgentActor.Feed(feedback)
+      status = feedback.s1
+      agent ! Feed(feedback)
 
-    case TDAgentActor.Trained(delta) =>
+    case Trained(delta) =>
       for (f <- feedback) {
         requestor ! Step(f, delta)
       }
