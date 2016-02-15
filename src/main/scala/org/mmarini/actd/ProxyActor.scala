@@ -33,20 +33,17 @@ import akka.actor.Actor
 import akka.actor.ActorRef
 import akka.actor.Props
 import akka.actor.actorRef2Scala
-import akka.actor.Terminated
-import akka.actor.PoisonPill
-import org.mmarini.actd.EnvironmentActor.Interact
+import akka.actor.ActorLogging
 
 object ProxyActor {
   def filterProps(
     source: ActorRef,
-    target: ActorRef)(filter: Any => Boolean = _ => true): Props =
-    Props(classOf[FilterActor], source, target, filter)
+    nextMsg: Any)(filter: Any => Boolean = _ => true): Props =
+    Props(classOf[FilterActor], source, nextMsg, filter)
 
   def mapFProps(
-    source: ActorRef,
-    target: ActorRef)(map: Any => Any = x => x): Props =
-    Props(classOf[MapActor], source, target, map)
+    source: ActorRef)(map: Any => Any = x => x): Props =
+    Props(classOf[MapActor], source, map)
 }
 
 /**
@@ -54,21 +51,24 @@ object ProxyActor {
  */
 class FilterActor(
     source: ActorRef,
-    target: ActorRef,
-    filter: Any => Boolean) extends Actor {
+    nextMsg: Any,
+    filter: Any => Boolean) extends Actor with ActorLogging {
 
-  context watch source
-  context watch target
+  var target: Option[ActorRef] = None
+
+  val tlog = TimerLogger(log)
   def receive: Receive = {
-    case Terminated(`source`) =>
-      context stop target
-      context stop self
-    case Terminated(`target`) =>
-      context stop source
-      context stop self
     case msg if (sender == source) =>
-      if (filter(msg)) target ! msg else source ! Interact
-    case msg if (sender == target) => source ! msg
+      if (filter(msg)) {
+        log.info("Passed")
+        target.foreach(_ ! msg)
+      } else {
+        tlog.info("Filtered")
+        source ! nextMsg
+      }
+    case msg =>
+      target = Some(sender)
+      source ! msg
   }
 }
 
@@ -77,16 +77,14 @@ class FilterActor(
  */
 class MapActor(
     source: ActorRef,
-    target: ActorRef,
     map: Any => Any) extends Actor {
+
+  var target: Option[ActorRef] = None
+
   def receive: Receive = {
-    case Terminated(`source`) =>
-      context stop target
-      context stop self
-    case Terminated(`target`) =>
-      context stop source
-      context stop self
-    case msg if (sender == source) => target ! map(msg)
-    case msg if (sender == target) => source ! msg
+    case msg if (sender == source) => target.foreach(_ ! map(msg))
+    case msg =>
+      target = Some(sender)
+      source ! msg
   }
 }

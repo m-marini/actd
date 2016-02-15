@@ -31,13 +31,12 @@ package org.mmarini.actd.samples
 
 import scala.concurrent.Await
 import scala.concurrent.duration.DurationInt
-
 import org.mmarini.actd.EnvironmentActor
-
 import com.typesafe.scalalogging.LazyLogging
-
 import akka.actor.ActorSystem
-import akka.pattern.gracefulStop
+import akka.pattern.{ gracefulStop, ask }
+import org.mmarini.actd.Feedback
+import akka.util.Timeout
 
 /**
  * Tests the maze environment
@@ -53,13 +52,18 @@ object WallTraceApp extends App with LazyLogging {
   val environment = system.actorOf(
     EnvironmentActor.props(initStatus, parms, critic, actor))
 
-  val fileActor = system.actorOf(FileActor.props(File))
+  val takeActor = system.actorOf(TakeActor.props(environment, StepCount))
 
-  val takeActor = system.actorOf(TakeActor.props(fileActor, environment, StepCount));
+  implicit val timeout = Timeout(5 seconds)
 
-  Await.result(gracefulStop(fileActor, 100 seconds, "Start"), 100 seconds)
-  logger.info("Waiting for completion ...");
+  val f = (takeActor ask None).mapTo[Seq[(Feedback, Double)]]
 
-  logger.info("Completed.");
-  system.shutdown
+  Await.result(f, 100 seconds).
+    iterator.
+    toSamples.
+    write(File)
+
+  system stop environment
+
+  system.terminate
 }

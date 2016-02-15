@@ -29,23 +29,23 @@
 
 package org.mmarini.actd.samples
 
-import com.typesafe.scalalogging.LazyLogging
-import breeze.linalg.DenseVector
-import Indexes._
-import org.mmarini.actd.Feedback
-import akka.actor.Terminated
-import akka.actor.ActorLogging
-import org.mmarini.actd.TimerLogger
-import org.mmarini.actd.EnvironmentActor
-import akka.actor.Actor
-import org.mmarini.actd.EnvironmentActor.Step
-import org.mmarini.actd.EnvironmentActor.Interact
-import akka.actor.ActorRef
-import org.mmarini.actd.ProxyActor
-import akka.actor.ActorSystem
 import scala.concurrent.Await
-import akka.pattern.gracefulStop
 import scala.concurrent.duration.DurationInt
+import org.mmarini.actd.EnvironmentActor
+import org.mmarini.actd.Feedback
+import org.mmarini.actd.Feedback
+import org.mmarini.actd.Feedback
+import com.typesafe.scalalogging.LazyLogging
+import akka.actor.ActorLogging
+import akka.actor.ActorRef
+import akka.actor.ActorSystem
+import akka.pattern.ask
+import akka.util.Timeout
+import breeze.linalg.DenseVector
+import org.mmarini.actd.EnvironmentActor.Interact
+import org.mmarini.actd.ProxyActor
+import org.mmarini.actd.EnvironmentActor.Step
+import scala.util.Try
 
 /**
  * Tests the maze environment
@@ -55,7 +55,8 @@ object FilteredWallTraceApp extends App with LazyLogging {
 
   val File = "data/debug-wall.csv"
   val EpisodeCount = 100
-  val SampleTraceCount = 1000
+  val TimeLimit = 10 hours
+
   val system = ActorSystem()
 
   val (initStatus, parms, critic, actor) = WallStatus.initEnvParms
@@ -63,80 +64,94 @@ object FilteredWallTraceApp extends App with LazyLogging {
   val environment = system.actorOf(
     EnvironmentActor.props(initStatus, parms, critic, actor))
 
-  val fileActor = system.actorOf(FileActor.props(File))
+  val filter = system.actorOf(ProxyActor.filterProps(environment, Interact) {
+    case Step(Feedback(WallStatus((9, 6), (1, -1), 3), _, _, _), _) => true
+    case _ => false
+  })
 
-//  lazy val filterActor: ActorRef = system.actorOf(ProxyActor.filterProps(environment, takeActor)())
+  val takeActor = system.actorOf(TakeActor.props(filter, EpisodeCount))
 
-  lazy val takeActor: ActorRef = system.actorOf(TakeActor.props(fileActor, environment, EpisodeCount))
+  implicit val timeout = Timeout(TimeLimit)
 
-  Await.result(gracefulStop(fileActor, 100 seconds, "Start"), 100 seconds)
-  logger.info("Waiting for completion ...");
+  val f = (takeActor ask None).mapTo[Seq[(Feedback, Double)]]
 
-  logger.info("Completed.");
-  system.shutdown
+  try {
+    Await.result(f, TimeLimit).
+      iterator.
+      toSamples.
+      write(File)
+  } catch {
+    case x: Throwable => logger.error("Error", x)
+  }
 
-  /*
-     * Filter on the following status:
-     *
-     *   8 |     o .  |
-     *   9 |      O   |
-     *  10 |   ---    |
-     *      0123456789
-     */
-  private def filter3(x: DenseVector[Double]) =
-    x(RowIdx) == 9 &&
-      x(ColIdx) == 6 &&
-      x(RowSpeedIdx) == 1 &&
-      x(ColSpeedIdx) == -1 &&
-      x(PadIdx) == 3
+  system stop environment
 
-  /*
-     * Filter on the following status:
-     *
-     *   8 |       .  |
-     *   9 |      O   |
-     *  10 |  ---o    |
-     *      0123456789
-     */
-  private def filter1(x: DenseVector[Double]) =
-    x(RowIdx) == 9 &&
-      x(ColIdx) == 6 &&
-      x(RowSpeedIdx) == 1 &&
-      x(ColSpeedIdx) == -1 &&
-      x(PadIdx) == 2
-
-  /*
-     * Filter on the following status:
-     *
-     *   8 |       O  |
-     *   9 |      o   |
-     *  10 |  ---o    |
-     *      0123456789
-     */
-  private def filter(x: DenseVector[Double]) =
-    x(RowIdx) == 8 &&
-      x(ColIdx) == 7 &&
-      x(RowSpeedIdx) == 1 &&
-      x(ColSpeedIdx) == -1 &&
-      x(PadIdx) == 2
-
-  /*
-     * Filter on the following status
-     *
-     *   8  O
-     *   9   o
-     *  10    o---
-     *      234567
-     */
-  private def filter2(x: DenseVector[Double]) =
-    x(RowIdx) == 8 && x(ColIdx) == 2 && x(RowSpeedIdx) == 1 && x(ColSpeedIdx) == 1 && x(PadIdx) == 5
-
-  /** Generates the report */
-//  WallStatus.environment.iterator.
-//    toSamplesWithAC.
-//    trace("Sample", SampleTraceCount).
-//    filter(filter).
-//    trace("Filtered").
-//    take(EpisodeCount).
-//    write(file)
+  system.terminate
 }
+
+//
+//  /*
+//     * Filter on the following status:
+//     *
+//     *   8 |     o .  |
+//     *   9 |      O   |
+//     *  10 |   ---    |
+//     *      0123456789
+//     */
+//  private def filter3(x: DenseVector[Double]) =
+//    x(RowIdx) == 9 &&
+//      x(ColIdx) == 6 &&
+//      x(RowSpeedIdx) == 1 &&
+//      x(ColSpeedIdx) == -1 &&
+//      x(PadIdx) == 3
+//
+//  /*
+//     * Filter on the following status:
+//     *
+//     *   8 |       .  |
+//     *   9 |      O   |
+//     *  10 |  ---o    |
+//     *      0123456789
+//     */
+//  private def filter1(x: DenseVector[Double]) =
+//    x(RowIdx) == 9 &&
+//      x(ColIdx) == 6 &&
+//      x(RowSpeedIdx) == 1 &&
+//      x(ColSpeedIdx) == -1 &&
+//      x(PadIdx) == 2
+//
+//  /*
+//     * Filter on the following status:
+//     *
+//     *   8 |       O  |
+//     *   9 |      o   |
+//     *  10 |  ---o    |
+//     *      0123456789
+//     */
+//  private def filter(x: DenseVector[Double]) =
+//    x(RowIdx) == 8 &&
+//      x(ColIdx) == 7 &&
+//      x(RowSpeedIdx) == 1 &&
+//      x(ColSpeedIdx) == -1 &&
+//      x(PadIdx) == 2
+//
+//  /*
+//     * Filter on the following status
+//     *
+//     *   8  O
+//     *   9   o
+//     *  10    o---
+//     *      234567
+//     */
+//  private def filter2(x: DenseVector[Double]) =
+//    x(RowIdx) == 8 && x(ColIdx) == 2 && x(RowSpeedIdx) == 1 && x(ColSpeedIdx) == 1 && x(PadIdx) == 5
+//
+//  /** Generates the report */
+//  //  WallStatus.environment.iterator.
+//  //    toSamplesWithAC.
+//  //    trace("Sample", SampleTraceCount).
+//  //    filter(filter).
+//  //    trace("Filtered").
+//  //    take(EpisodeCount).
+//  //    write(file)
+//}
