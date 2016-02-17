@@ -61,10 +61,8 @@ class TrainerActor extends Actor with ActorLogging {
 
   import TrainerActor._
 
-  var feedbacks: Seq[Feedback] = Seq()
-
   /** Returns a new [[TDNeuralNet]] by a [[TDNeuralNet]] with the current feedbacks */
-  private def train(net: TDNeuralNet): TDNeuralNet = {
+  private def train(samples: Seq[Feedback], net: TDNeuralNet): TDNeuralNet = {
 
     /** Returns a new [[TDNeuralNet]] by a [[TDNeuralNet]] with the a single feedback */
     def trainSample(net: TDNeuralNet, feedback: Feedback): TDNeuralNet = {
@@ -89,14 +87,16 @@ class TrainerActor extends Actor with ActorLogging {
       net.learn(s0Vect, DenseVector(expectedValue))
     }
 
-    feedbacks.foldLeft(net)(trainSample)
+    samples.foldLeft(net)(trainSample)
   }
 
-  def receive: Receive = {
-    case TrainSet(feedbacks) => this.feedbacks = feedbacks
+  def processing(feedback: Seq[Feedback]): Receive = {
+    case TrainSet(f) => context become processing(f)
 
     case Train(net: TDNeuralNet) =>
-      val nn = train(net)
+      val nn = train(feedback, net)
       sender ! Trained(nn)
   }
+
+  def receive: Receive = processing(Seq())
 }

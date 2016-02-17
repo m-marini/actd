@@ -33,12 +33,13 @@ import org.mmarini.actd.EnvironmentActor.Interact
 import org.mmarini.actd.EnvironmentActor.Step
 import org.mmarini.actd.Feedback
 import org.mmarini.actd.TimerLogger
-
 import akka.actor.Actor
 import akka.actor.ActorLogging
 import akka.actor.ActorRef
 import akka.actor.Props
 import akka.actor.actorRef2Scala
+import org.mmarini.actd.TDNeuralNet
+import org.mmarini.actd.TDNeuralNetTest
 
 object TakeActor {
   def props(
@@ -50,25 +51,30 @@ object TakeActor {
 class TakeActor(
     source: ActorRef,
     count: Int) extends Actor with ActorLogging {
-  var counter = count
-  var list: Seq[(Feedback, Double)] = Seq()
-  var target: Option[ActorRef] = None
-  val tlog = new TimerLogger(log)
+
+  val tlog: TimerLogger = new TimerLogger(log)
 
   def receive: Receive = {
-    case Step(f, d) =>
-      list = list :+ (f.asInstanceOf[Feedback], d.asInstanceOf[Double])
-      tlog.info(s"counter = $counter")
-      counter = counter - 1
-      if (counter > 0) {
-        sender ! Interact
-      } else {
-        log.info(s"${list.length} size")
-        target.foreach(_ ! list)
-        context stop self
-      }
     case _ =>
-      target = Some(sender)
+      log.info("start")
       source ! Interact
+      context.become(waitingStep(sender, 0, Seq()))
+  }
+
+  private def waitingStep(replyTo: ActorRef,
+    counter: Int,
+    list: Seq[(Feedback, Double, TDNeuralNet, TDNeuralNet)]): Receive = {
+    case Step(f, d, c, a) =>
+      val ct = counter + 1
+      tlog.info(s"counter = $ct")
+      val l = list :+ (f, d, c, a)
+      if (ct >= count) {
+        replyTo ! l
+        context stop self
+      } else {
+        sender ! Interact
+        context become waitingStep(replyTo, ct, l)
+      }
   }
 }
+

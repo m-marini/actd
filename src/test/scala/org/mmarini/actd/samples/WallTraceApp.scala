@@ -37,6 +37,7 @@ import akka.actor.ActorSystem
 import akka.pattern.{ gracefulStop, ask }
 import org.mmarini.actd.Feedback
 import akka.util.Timeout
+import org.mmarini.actd.TDNeuralNet
 
 /**
  * Tests the maze environment
@@ -56,7 +57,7 @@ object WallTraceApp extends App with LazyLogging {
 
   implicit val timeout = Timeout(5 seconds)
 
-  val f = (takeActor ask None).mapTo[Seq[(Feedback, Double)]]
+  val f = (takeActor ask None).mapTo[Seq[(Feedback, Double, TDNeuralNet, TDNeuralNet)]]
 
   Await.result(f, 100 seconds).
     iterator.

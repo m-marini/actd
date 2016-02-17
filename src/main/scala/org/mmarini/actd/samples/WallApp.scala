@@ -41,7 +41,6 @@ import scala.swing.MainFrame
 import scala.swing.Orientation
 import scala.swing.SimpleSwingApplication
 import org.apache.commons.math3.random.MersenneTwister
-import org.mmarini.actd.Environment
 import org.mmarini.actd.Feedback
 import org.mmarini.actd.TDAgent
 import org.mmarini.actd.TDParms
@@ -53,6 +52,12 @@ import scala.swing.Button
 import rx.lang.scala.Subject
 import scala.swing.event.ButtonClicked
 import scala.swing.AbstractButton
+import akka.actor.ActorSystem
+import org.mmarini.actd.EnvironmentActor
+import akka.actor.Actor
+import akka.actor.Props
+import org.mmarini.actd.EnvironmentActor.Interact
+import org.mmarini.actd.EnvironmentActor.Step
 
 /** */
 object WallApp extends SimpleSwingApplication with LazyLogging {
@@ -142,35 +147,24 @@ object WallApp extends SimpleSwingApplication with LazyLogging {
     size = new Dimension(WindowWidth, WindowHeight)
   }
 
-  /** Initial game status */
-  val initStatus = WallStatus.initial
-
-  val inputCount = initStatus.toDenseVector.length
-
   /** Creates the initial environment */
-  val initEnv = WallStatus.environment
+  val (initStatus, parms, critic, actor) = WallStatus.initEnvParms
 
-  /** Creates the initial environment observable */
-  val startObs = Observable.just(initEnv.status.asInstanceOf[WallStatus])
+  val system = ActorSystem("WallApp")
 
-  /** Creates the fast timer observable */
-  val fastTimerObs = fastBtnObs.map(_ => Observable.interval(1 nanos))
+  class UIActor extends Actor {
+    val environment = context.actorOf(EnvironmentActor.props(initStatus, parms, critic, actor))
 
-  /** Creates the slow timer observable */
-  val slowTimerObs = slowBtnObs.map(_ => Observable.interval(WaitTime))
+    environment ! Interact
 
-  val timerObs = (slowTimerObs merge fastTimerObs).switch
-
-  val txObs = for { _ <- timerObs } yield {
-    s: (Environment, Environment, Feedback, Double) => s._2.stepOver
+    def receive: Receive = {
+      case Step(f, d, _, _) =>
+        gamePane.sOpt = Some(f.s1.asInstanceOf[WallStatus])
+        gamePane.repaint
+        environment ! Interact
+    }
   }
 
-  val gameFlowObs = txObs.statusFlow(initEnv.stepOver)
+  val uiActor = system.actorOf(Props(classOf[UIActor]))
 
-  val statusObs = gameFlowObs.map(_._3.s1.asInstanceOf[WallStatus])
-
-  statusObs.subscribe(s => {
-    gamePane.sOpt = Some(s)
-    gamePane.repaint
-  })
 }

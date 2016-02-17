@@ -32,7 +32,6 @@ package org.mmarini.actd.samples
 import org.apache.commons.math3.random.MersenneTwister
 import org.mmarini.actd.Action
 import org.mmarini.actd.DummyAgent
-import org.mmarini.actd.Environment
 import org.mmarini.actd.Feedback
 import org.mmarini.actd.Status
 import org.mmarini.actd.TDAgent
@@ -169,28 +168,6 @@ object WallStatus extends LazyLogging {
       case c => c - 1
     }
     WallStatus(b, s, pad)
-  }
-
-  /** Creates the initial environment */
-  def environment: Environment = {
-
-    val (initStatus, parms, critic, actor) = initEnvParms
-
-    val initAgent = new TDAgent(parms, critic, actor)
-
-    Environment(initStatus, initAgent)
-  }
-
-  /** Creates the initial environment */
-  def dummyEnv: Environment = {
-
-    val initStatus = WallStatus.initial
-
-    val inputCount = initStatus.toDenseVector.length
-
-    val initAgent = DummyAgent(OutputCount, new RandBasis(new MersenneTwister(Seed)))
-
-    Environment(initStatus, initAgent)
   }
 
   def initEnvParms: (WallStatus, TDParms, TDNeuralNet, TDNeuralNet) = {
