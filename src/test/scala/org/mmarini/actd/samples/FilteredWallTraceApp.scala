@@ -60,8 +60,7 @@ object FilteredWallTraceApp extends App with LazyLogging {
   val environment = system.actorOf(
     EnvironmentActor.props(initStatus, parms, critic, actor))
 
-  val filter = system.actorOf(ProxyActor.filterProps(environment, Interact) {
-    /*
+  /*
      * Filter on the following status:
      *
      *   8 |     o .  |
@@ -71,8 +70,8 @@ object FilteredWallTraceApp extends App with LazyLogging {
      *
      * Value =
      */
-    case Step(Feedback(WallStatus((9, 6), (1, -1), 3), _, _, _), _, _) => false
-    /*
+  val S0 = WallStatus((9, 6), (1, -1), 3)
+  /*
      * Filter on the following status:
      *
      *   8 |       .  |
@@ -80,9 +79,21 @@ object FilteredWallTraceApp extends App with LazyLogging {
      *  10 |  ---o    |
      *      0123456789
      */
-    case Step(Feedback(WallStatus((9, 6), (1, -1), 2), _, _, _), _, _) => true
-    case _ => false
-  })
+  val S1 = WallStatus((9, 6), (1, -1), 2)
+  /*
+     * Filter on the following status:
+     *
+     *   8 |       O  |
+     *   9 |      o   |
+     *  10 |  ---o    |
+     *      0123456789
+     */
+  val S2 = WallStatus((8, 7), (1, -1), 2)
+
+  val States = Set(S0, S1, S2)
+
+  val filter = system.actorOf(ProxyActor.filterProps(environment, Interact)(x =>
+    States.contains(x.asInstanceOf[Step].feedback.s0.asInstanceOf[WallStatus])))
 
   val takeActor = system.actorOf(TakeActor.props(filter, EpisodeCount))
 
@@ -103,29 +114,6 @@ object FilteredWallTraceApp extends App with LazyLogging {
 
   system.terminate
 }
-
-//  private def filter1(x: DenseVector[Double]) =
-//    x(RowIdx) == 9 &&
-//      x(ColIdx) == 6 &&
-//      x(RowSpeedIdx) == 1 &&
-//      x(ColSpeedIdx) == -1 &&
-//      x(PadIdx) == 2
-//
-//  /*
-//     * Filter on the following status:
-//     *
-//     *   8 |       O  |
-//     *   9 |      o   |
-//     *  10 |  ---o    |
-//     *      0123456789
-//     */
-//  private def filter(x: DenseVector[Double]) =
-//    x(RowIdx) == 8 &&
-//      x(ColIdx) == 7 &&
-//      x(RowSpeedIdx) == 1 &&
-//      x(ColSpeedIdx) == -1 &&
-//      x(PadIdx) == 2
-//
 //  /*
 //     * Filter on the following status
 //     *
