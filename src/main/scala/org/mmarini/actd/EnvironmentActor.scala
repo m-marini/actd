@@ -62,7 +62,7 @@ object EnvironmentActor {
   object Interact
 
   /** Message by [[EnvironmentActor]] to reply a [[Next]] */
-  case class Step(feedback: Feedback, delta: Double, critic: TDNeuralNet, actor: TDNeuralNet)
+  case class Step(feedback: Feedback, delta: Double, agent: TDAgent)
 }
 
 /**
@@ -108,8 +108,8 @@ class EnvironmentActor(initStatus: Status,
     replyTo: ActorRef,
     feedback: Feedback): Receive = {
 
-    case Trained(delta, critic, actor) =>
-      replyTo ! Step(feedback, delta, critic, actor)
+    case Trained(delta, agent) =>
+      replyTo ! Step(feedback, delta, agent)
       context become waiting(status)
   }
 }

@@ -34,13 +34,12 @@ import akka.actor.Actor
 import akka.actor.ActorLogging
 import akka.actor.Props
 import akka.actor.actorRef2Scala
-import breeze.linalg.DenseVector
 
 /** Props and messages factory for TrainerActor */
 object TrainerActor {
 
   /** Props for TrainerActor */
-  def props: Props = Props(classOf[TrainerActor])
+  def props(maxSamples: Int): Props = Props(classOf[TrainerActor], maxSamples)
 
   /** Message sent by [[TrainerActor]] when a [[TDNeuralNet]] has been trained */
   case class Trained(net: TDNeuralNet)
@@ -49,7 +48,7 @@ object TrainerActor {
   case class Train(net: TDNeuralNet)
 
   /** Message sent to [[TrainerActor]] to set the training set */
-  case class TrainSet(feedbacks: Seq[Feedback])
+  case class Feed(feedback: Feedback)
 }
 
 /**
@@ -57,46 +56,17 @@ object TrainerActor {
  *
  * It produces the critic after a complete cycle of training.
  */
-class TrainerActor extends Actor with ActorLogging {
+class TrainerActor(maxSamples: Int) extends Actor with ActorLogging {
 
   import TrainerActor._
 
-  /** Returns a new [[TDNeuralNet]] by a [[TDNeuralNet]] with the current feedbacks */
-  private def train(samples: Seq[Feedback], net: TDNeuralNet): TDNeuralNet = {
+  def processing(trainer: TDTrainer): Receive = {
+    case Feed(f) =>
+      context become processing(trainer.feed(f))
 
-    /** Returns a new [[TDNeuralNet]] by a [[TDNeuralNet]] with the a single feedback */
-    def trainSample(net: TDNeuralNet, feedback: Feedback): TDNeuralNet = {
-
-      // Computes the state value pre and post step
-      val s0Vect = feedback.s0.toDenseVector
-      val s1Vect = feedback.s1.toDenseVector
-
-      val end0 = feedback.s0.finalStatus
-      val end1 = feedback.s1.finalStatus
-
-      // The status value of post state is 0 if final episode else bootstraps from critic
-      val postValue = if (end1 || end0) 0.0 else net(s1Vect).output(0)
-
-      // Computes the expected state value by booting the previous status value */
-      val expectedValue = postValue * net.parms.gamma + feedback.reward
-
-      // Computes the error by critic
-      val preValue = net(s0Vect).output(0)
-
-      // Teaches the critic by evidence
-      net.learn(s0Vect, DenseVector(expectedValue))
-    }
-
-    samples.foldLeft(net)(trainSample)
+    case Train(net) =>
+      sender ! Trained(trainer.train(net))
   }
 
-  def processing(feedback: Seq[Feedback]): Receive = {
-    case TrainSet(f) => context become processing(f)
-
-    case Train(net: TDNeuralNet) =>
-      val nn = train(feedback, net)
-      sender ! Trained(nn)
-  }
-
-  def receive: Receive = processing(Seq())
+  def receive: Receive = processing(TDTrainer(maxSamples, Seq()))
 }

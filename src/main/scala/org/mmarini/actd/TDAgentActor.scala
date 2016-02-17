@@ -29,16 +29,12 @@
 
 package org.mmarini.actd
 
-import org.mmarini.actd.TrainerActor.Train
-import org.mmarini.actd.TrainerActor.TrainSet
-
 import TDAgentActor.Reaction
 import TDAgentActor.Trained
 import akka.actor.Actor
 import akka.actor.ActorLogging
 import akka.actor.Props
 import akka.actor.actorRef2Scala
-import breeze.linalg.DenseVector
 
 /** Props and messages factory for [[TDAgentActor]] */
 object TDAgentActor {
@@ -65,7 +61,7 @@ object TDAgentActor {
   case class Feed(feedback: Feedback)
 
   /** Message sent by [[TDAgentActor]] to reply a [[Feed]] */
-  case class Trained(delta: Double, critic: TDNeuralNet, actor: TDNeuralNet)
+  case class Trained(delta: Double, agent: TDAgent)
 }
 
 /**
@@ -82,72 +78,36 @@ class TDAgentActor(parms: TDParms,
 
   import TDAgentActor._
 
-  val trainer = context.actorOf(TrainerActor.props)
+  val trainer = context.actorOf(TrainerActor.props(parms.maxTrainingSamples))
 
-  def receive: Receive = processing(critic, actor, Seq())
+  def receive: Receive = waitingFirstFeed(new TDAgent(parms, critic, actor))
 
-  /** Returns a new agent that has learned by reward and the error */
-  private def trainImpl(feedback: Feedback): (TDNeuralNet, TDNeuralNet, Double) = {
+  private def waitingFirstFeed(agent: TDAgent): Receive = {
 
-    // Computes the state value pre and post step
-    val s0Vect = feedback.s0.toDenseVector
-    val s1Vect = feedback.s1.toDenseVector
+    case React(s) =>
+      sender ! Reaction(agent.action(s))
 
-    val end0 = feedback.s0.finalStatus
-    val end1 = feedback.s1.finalStatus
-
-    // The status value of post state is 0 if final episode else bootstraps from critic
-    val postValue = if (end1 || end0) 0.0 else critic(s1Vect).output(0)
-
-    // Computes the expected state value by booting the previous status value */
-    val expectedValue = postValue * critic.parms.gamma + feedback.reward
-
-    // Computes the error by critic
-    val preValue = critic(s0Vect).output(0)
-    val delta = expectedValue - preValue
-
-    // Teaches the critic by evidence
-    val nc = critic.learn(s0Vect, DenseVector(expectedValue))
-
-    // Computes the expected action preferences applying the critic error to previous decision */
-    val pref = actor(s0Vect).output
-    val expectedPref = pref.copy
-    val action = feedback.action
-    expectedPref(action to action) += actor.parms.beta * delta
-
-    // Teaches the actor by evidence
-    val na = actor.learn(s0Vect, expectedPref)
-
-    val nc1 = if (end0) nc.clearTraces else nc
-    val na1 = if (end0) na.clearTraces else na
-
-    (nc1, na1, delta)
+    case Feed(feedback) =>
+      val (na, delta) = agent.train(feedback)
+      trainer ! TrainerActor.Feed(feedback)
+      trainer ! TrainerActor.Train(na.critic)
+      context become processing(na)
+      sender ! Trained(delta, na)
   }
 
-  private def processing(
-    critic: TDNeuralNet,
-    actor: TDNeuralNet,
-    feedbacks: Seq[Feedback]): Receive = {
+  private def processing(agent: TDAgent): Receive = {
 
     case TrainerActor.Trained(net) =>
-      context become processing(net, actor, feedbacks)
+      context become processing(agent.critic(net))
       trainer ! TrainerActor.Train(net)
 
     case React(s) =>
-      val action = parms.indexEGreedyBySoftmax(actor(s.toDenseVector).output)
-      sender ! Reaction(action)
+      sender ! Reaction(agent.action(s))
 
     case Feed(feedback) =>
-      val nf = (feedbacks :+ feedback).takeRight(parms.maxTrainingSamples)
-
-      val (nc, na, delta) = trainImpl(feedback)
-
-      trainer ! TrainSet(nf)
-      trainer ! TrainSet(nf)
-      if (feedbacks.isEmpty) trainer ! TrainerActor.Train(critic)
-
-      sender ! Trained(delta, critic, actor)
-
-      context become processing(nc, na, nf)
+      val (na, delta) = agent.train(feedback)
+      trainer ! TrainerActor.Feed(feedback)
+      context become processing(na)
+      sender ! Trained(delta, na)
   }
 }

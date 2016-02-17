@@ -31,19 +31,17 @@ package org.mmarini.actd.samples
 
 import scala.concurrent.Await
 import scala.concurrent.duration.DurationInt
-
 import org.mmarini.actd.EnvironmentActor
-import org.mmarini.actd.EnvironmentActor.Interact
-import org.mmarini.actd.EnvironmentActor.Step
 import org.mmarini.actd.Feedback
-import org.mmarini.actd.ProxyActor
 import org.mmarini.actd.TDNeuralNet
-
 import com.typesafe.scalalogging.LazyLogging
-
 import akka.actor.ActorSystem
 import akka.pattern.ask
 import akka.util.Timeout
+import org.mmarini.actd.EnvironmentActor.Step
+import org.mmarini.actd.EnvironmentActor.Interact
+import org.mmarini.actd.ProxyActor
+import org.mmarini.actd.TDAgent
 
 /**
  * Tests the maze environment
@@ -63,7 +61,7 @@ object FilteredWallTraceApp extends App with LazyLogging {
     EnvironmentActor.props(initStatus, parms, critic, actor))
 
   val filter = system.actorOf(ProxyActor.filterProps(environment, Interact) {
-    case Step(Feedback(WallStatus((9, 6), (1, -1), 3), _, _, _), _, _, _) => true
+    case Step(Feedback(WallStatus((9, 6), (1, -1), 3), _, _, _), _, _) => true
     case _ => false
   })
 
@@ -71,7 +69,7 @@ object FilteredWallTraceApp extends App with LazyLogging {
 
   implicit val timeout = Timeout(TimeLimit)
 
-  val f = (takeActor ask None).mapTo[Seq[(Feedback, Double, TDNeuralNet, TDNeuralNet)]]
+  val f = (takeActor ask None).mapTo[Seq[(Feedback, Double, TDAgent)]]
 
   try {
     Await.result(f, TimeLimit).
@@ -95,8 +93,8 @@ object FilteredWallTraceApp extends App with LazyLogging {
      *   9 |      O   |
      *  10 |   ---    |
      *      0123456789
-     *  
-     * Value = 
+     *
+     * Value =
      */
 
 //  private def filter3(x: DenseVector[Double]) =

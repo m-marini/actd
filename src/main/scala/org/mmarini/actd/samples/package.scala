@@ -238,7 +238,7 @@ package object samples extends LazyLogging {
     val ActionIdx = 5
   }
 
-  implicit class WallIteratorFactory(iter: Iterator[(Feedback, Double, TDNeuralNet, TDNeuralNet)]) {
+  implicit class WallIteratorFactory(iter: Iterator[(Feedback, Double, TDAgent)]) {
     val RowIdx = 0
     val ColIdx = 1
     val RowSpeedIdx = 2
@@ -267,7 +267,7 @@ package object samples extends LazyLogging {
      */
     def toSamples: Iterator[DenseVector[Double]] =
       iter.map {
-        case (Feedback(s0, action, reward, s1), err, _, _) =>
+        case (Feedback(s0, action, reward, s1), err, _) =>
           val WallStatus((r0, c0), (sr0, sc0), pad0) = s0.asInstanceOf[WallStatus]
           val WallStatus((r1, c1), (sr1, sc1), pad1) = s1.asInstanceOf[WallStatus]
           DenseVector.vertcat(DenseVector(r0, c0, sr0, sc0, pad0,
@@ -296,11 +296,11 @@ package object samples extends LazyLogging {
      */
     def toSamplesWithStatus: Iterator[DenseVector[Double]] =
       iter.map {
-        case (Feedback(s0, action, reward, s1), err, critic, _) =>
+        case (Feedback(s0, action, reward, s1), err, agent) =>
           val WallStatus((r0, c0), (sr0, sc0), pad0) = s0.asInstanceOf[WallStatus]
           val WallStatus((r1, c1), (sr1, sc1), pad1) = s1.asInstanceOf[WallStatus]
-          val sv0 = critic(s0.toDenseVector).output
-          val sv1 = critic(s1.toDenseVector).output
+          val sv0 = agent.critic(s0.toDenseVector).output
+          val sv1 = agent.critic(s1.toDenseVector).output
           DenseVector.vertcat(DenseVector(r0, c0, sr0, sc0, pad0,
             action.toDouble, reward,
             r1, c1, sr1, sc1, pad1, err), sv0, sv1)

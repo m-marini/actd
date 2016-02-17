@@ -158,7 +158,7 @@ object WallApp extends SimpleSwingApplication with LazyLogging {
     environment ! Interact
 
     def receive: Receive = {
-      case Step(f, d, _, _) =>
+      case Step(f, d, _) =>
         gamePane.sOpt = Some(f.s1.asInstanceOf[WallStatus])
         gamePane.repaint
         environment ! Interact

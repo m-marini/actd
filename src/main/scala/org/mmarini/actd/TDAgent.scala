@@ -47,6 +47,12 @@ class TDAgent(
     val critic: TDNeuralNet,
     val actor: TDNeuralNet) extends Agent {
 
+  /** Creates a new agent with a new critic network */
+  def critic(c: TDNeuralNet): TDAgent = new TDAgent(
+    parms = parms,
+    critic = c,
+    actor = actor)
+
   /** Returns the action to be taken in a state */
   def action(status: Status): Action =
     parms.indexEGreedyBySoftmax(actor(status.toDenseVector).output)

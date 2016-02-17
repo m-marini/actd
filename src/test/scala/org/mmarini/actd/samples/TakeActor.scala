@@ -40,6 +40,7 @@ import akka.actor.Props
 import akka.actor.actorRef2Scala
 import org.mmarini.actd.TDNeuralNet
 import org.mmarini.actd.TDNeuralNetTest
+import org.mmarini.actd.TDAgent
 
 object TakeActor {
   def props(
@@ -63,11 +64,11 @@ class TakeActor(
 
   private def waitingStep(replyTo: ActorRef,
     counter: Int,
-    list: Seq[(Feedback, Double, TDNeuralNet, TDNeuralNet)]): Receive = {
-    case Step(f, d, c, a) =>
+    list: Seq[(Feedback, Double, TDAgent)]): Receive = {
+    case Step(f, d, a) =>
       val ct = counter + 1
       tlog.info(s"counter = $ct")
-      val l = list :+ (f, d, c, a)
+      val l = list :+ (f, d, a)
       if (ct >= count) {
         replyTo ! l
         context stop self
