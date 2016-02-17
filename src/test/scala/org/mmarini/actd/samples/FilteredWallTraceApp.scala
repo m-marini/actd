@@ -61,7 +61,26 @@ object FilteredWallTraceApp extends App with LazyLogging {
     EnvironmentActor.props(initStatus, parms, critic, actor))
 
   val filter = system.actorOf(ProxyActor.filterProps(environment, Interact) {
-    case Step(Feedback(WallStatus((9, 6), (1, -1), 3), _, _, _), _, _) => true
+    /*
+     * Filter on the following status:
+     *
+     *   8 |     o .  |
+     *   9 |      O   |
+     *  10 |   ---    |
+     *      0123456789
+     *
+     * Value =
+     */
+    case Step(Feedback(WallStatus((9, 6), (1, -1), 3), _, _, _), _, _) => false
+    /*
+     * Filter on the following status:
+     *
+     *   8 |       .  |
+     *   9 |      O   |
+     *  10 |  ---o    |
+     *      0123456789
+     */
+    case Step(Feedback(WallStatus((9, 6), (1, -1), 2), _, _, _), _, _) => true
     case _ => false
   })
 
@@ -85,33 +104,6 @@ object FilteredWallTraceApp extends App with LazyLogging {
   system.terminate
 }
 
-
-  /*
-     * Filter on the following status:
-     *
-     *   8 |     o .  |
-     *   9 |      O   |
-     *  10 |   ---    |
-     *      0123456789
-     *
-     * Value =
-     */
-
-//  private def filter3(x: DenseVector[Double]) =
-//    x(RowIdx) == 9 &&
-//      x(ColIdx) == 6 &&
-//      x(RowSpeedIdx) == 1 &&
-//      x(ColSpeedIdx) == -1 &&
-//      x(PadIdx) == 3
-//
-//  /*
-//     * Filter on the following status:
-//     *
-//     *   8 |       .  |
-//     *   9 |      O   |
-//     *  10 |  ---o    |
-//     *      0123456789
-//     */
 //  private def filter1(x: DenseVector[Double]) =
 //    x(RowIdx) == 9 &&
 //      x(ColIdx) == 6 &&

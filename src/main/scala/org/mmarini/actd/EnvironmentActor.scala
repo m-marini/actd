@@ -29,7 +29,7 @@
 
 package org.mmarini.actd
 
-import org.mmarini.actd.TDAgentActor.Feed
+import org.mmarini.actd.TDAgentActor.Train
 import org.mmarini.actd.TDAgentActor.React
 import org.mmarini.actd.TDAgentActor.Reaction
 import org.mmarini.actd.TDAgentActor.Trained
@@ -98,7 +98,7 @@ class EnvironmentActor(initStatus: Status,
 
     case Reaction(action) =>
       val f = status(action)
-      agent ! Feed(f)
+      agent ! Train(f)
       context become waitingTrained(f.s1, replyTo, f)
   }
 

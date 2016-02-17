@@ -58,13 +58,12 @@ import akka.actor.Actor
 import akka.actor.Props
 import org.mmarini.actd.EnvironmentActor.Interact
 import org.mmarini.actd.EnvironmentActor.Step
+import scala.concurrent.duration.FiniteDuration
 
 /** */
 object WallApp extends SimpleSwingApplication with LazyLogging {
-  val WaitTime = 200 millis
-
-  val slowBtnObs = Subject[AbstractButton]()
-  val fastBtnObs = Subject[AbstractButton]()
+  val SlowTime = 200 millis
+  val FastTime = 0 nanos
 
   /** Button panel */
   val buttonPane = new BoxPanel(Orientation.Vertical) {
@@ -74,11 +73,11 @@ object WallApp extends SimpleSwingApplication with LazyLogging {
 
     slowBtn.reactions += {
       case ButtonClicked(b) =>
-        slowBtnObs.onNext(b)
+        uiActor ! SlowTime
     }
     fastBtn.reactions += {
       case ButtonClicked(b) =>
-        fastBtnObs.onNext(b)
+        uiActor ! FastTime
     }
 
     contents += slowBtn
@@ -153,15 +152,37 @@ object WallApp extends SimpleSwingApplication with LazyLogging {
   val system = ActorSystem("WallApp")
 
   class UIActor extends Actor {
+
     val environment = context.actorOf(EnvironmentActor.props(initStatus, parms, critic, actor))
 
     environment ! Interact
 
-    def receive: Receive = {
+    def receive: Receive = steppingDelayed(SlowTime)
+
+    private def stepping: Receive = {
+      case t: FiniteDuration if (t > (0 nanos)) =>
+        context become steppingDelayed(t)
+
       case Step(f, d, _) =>
         gamePane.sOpt = Some(f.s1.asInstanceOf[WallStatus])
         gamePane.repaint
         environment ! Interact
+    }
+
+    private def steppingDelayed(delay: FiniteDuration): Receive = {
+      case t: FiniteDuration if (t == (0 nanos)) =>
+        context become stepping
+
+      case t: FiniteDuration =>
+        context become steppingDelayed(t)
+
+      case Step(f, d, _) =>
+        gamePane.sOpt = Some(f.s1.asInstanceOf[WallStatus])
+        gamePane.repaint
+
+        import system.dispatcher
+
+        context.system.scheduler.scheduleOnce(delay, environment, Interact)
     }
   }
 

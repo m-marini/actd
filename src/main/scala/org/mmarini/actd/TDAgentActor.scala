@@ -58,7 +58,7 @@ object TDAgentActor {
   case class Reaction(action: Action)
 
   /** Message sent to [[TDAgentActor]] to add a feedback */
-  case class Feed(feedback: Feedback)
+  case class Train(feedback: Feedback)
 
   /** Message sent by [[TDAgentActor]] to reply a [[Feed]] */
   case class Trained(delta: Double, agent: TDAgent)
@@ -78,7 +78,7 @@ class TDAgentActor(parms: TDParms,
 
   import TDAgentActor._
 
-  val trainer = context.actorOf(TrainerActor.props(parms.maxTrainingSamples))
+  val trainerActor = context.actorOf(TrainerActor.props)
 
   def receive: Receive = waitingFirstFeed(new TDAgent(parms, critic, actor))
 
@@ -87,27 +87,26 @@ class TDAgentActor(parms: TDParms,
     case React(s) =>
       sender ! Reaction(agent.action(s))
 
-    case Feed(feedback) =>
+    case Train(feedback) =>
       val (na, delta) = agent.train(feedback)
-      trainer ! TrainerActor.Feed(feedback)
-      trainer ! TrainerActor.Train(na.critic)
-      context become processing(na)
+      val trainer = TDTrainer(parms.maxTrainingSamples, Seq(feedback))
+      trainerActor ! TrainerActor.Train(na.critic, trainer)
+      context become processing(na, trainer)
       sender ! Trained(delta, na)
   }
 
-  private def processing(agent: TDAgent): Receive = {
+  private def processing(agent: TDAgent, trainer: TDTrainer): Receive = {
 
     case TrainerActor.Trained(net) =>
-      context become processing(agent.critic(net))
-      trainer ! TrainerActor.Train(net)
+      context become processing(agent.critic(net), trainer)
+      trainerActor ! TrainerActor.Train(net, trainer)
 
     case React(s) =>
       sender ! Reaction(agent.action(s))
 
-    case Feed(feedback) =>
+    case Train(feedback) =>
       val (na, delta) = agent.train(feedback)
-      trainer ! TrainerActor.Feed(feedback)
-      context become processing(na)
+      context become processing(na, trainer.feed(feedback))
       sender ! Trained(delta, na)
   }
 }

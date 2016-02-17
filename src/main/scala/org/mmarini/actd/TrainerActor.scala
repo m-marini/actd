@@ -39,16 +39,13 @@ import akka.actor.actorRef2Scala
 object TrainerActor {
 
   /** Props for TrainerActor */
-  def props(maxSamples: Int): Props = Props(classOf[TrainerActor], maxSamples)
+  def props: Props = Props(classOf[TrainerActor])
 
   /** Message sent by [[TrainerActor]] when a [[TDNeuralNet]] has been trained */
   case class Trained(net: TDNeuralNet)
 
   /** Message sent to [[TrainerActor]] to train a [[TDNeuralNet]] */
-  case class Train(net: TDNeuralNet)
-
-  /** Message sent to [[TrainerActor]] to set the training set */
-  case class Feed(feedback: Feedback)
+  case class Train(net: TDNeuralNet, trainer: TDTrainer)
 }
 
 /**
@@ -56,17 +53,12 @@ object TrainerActor {
  *
  * It produces the critic after a complete cycle of training.
  */
-class TrainerActor(maxSamples: Int) extends Actor with ActorLogging {
+class TrainerActor extends Actor with ActorLogging {
 
   import TrainerActor._
 
-  def processing(trainer: TDTrainer): Receive = {
-    case Feed(f) =>
-      context become processing(trainer.feed(f))
-
-    case Train(net) =>
+  def receive: Receive = {
+    case Train(net, trainer) =>
       sender ! Trained(trainer.train(net))
   }
-
-  def receive: Receive = processing(TDTrainer(maxSamples, Seq()))
 }
