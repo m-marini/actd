@@ -47,7 +47,6 @@ import breeze.stats.distributions.Bernoulli
  * @param lambda tracebilty parameter of TD(lambda) algorithm
  * @param eta learning rate parameter of neural network
  * @param maxTrainingSample maximum number of training samples
- * @param maxTrainingIteration max number of training iteration
  * @param random
  */
 case class TDParms(
@@ -58,7 +57,6 @@ case class TDParms(
     lambda: Double,
     eta: Double,
     maxTrainingSamples: Int = 1,
-    maxTrainingIterations: Int = 1,
     random: RandBasis) {
 
   private val egreedyRand = new Bernoulli(epsilon, random)
@@ -72,7 +70,6 @@ case class TDParms(
       lambda = lambda,
       eta = value,
       maxTrainingSamples = maxTrainingSamples,
-      maxTrainingIterations = maxTrainingIterations,
       random = random)
 
   /** Returns a index with uniform distribution with epsilon probability otherwise by softmax algorithm */

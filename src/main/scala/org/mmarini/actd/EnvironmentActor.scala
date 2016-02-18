@@ -29,16 +29,17 @@
 
 package org.mmarini.actd
 
+import org.mmarini.actd.TDAgentActor.Train
+import org.mmarini.actd.TDAgentActor.React
+import org.mmarini.actd.TDAgentActor.Reaction
+import org.mmarini.actd.TDAgentActor.Trained
+
 import EnvironmentActor.Step
 import akka.actor.Actor
 import akka.actor.ActorLogging
 import akka.actor.ActorRef
 import akka.actor.Props
 import akka.actor.actorRef2Scala
-import org.mmarini.actd.TDAgentActor.React
-import org.mmarini.actd.TDAgentActor.Reaction
-import org.mmarini.actd.TDAgentActor.Feed
-import org.mmarini.actd.TDAgentActor.Trained
 
 /** Props and messages factory for [[EnvironmentActor]] */
 object EnvironmentActor {
@@ -61,7 +62,7 @@ object EnvironmentActor {
   object Interact
 
   /** Message by [[EnvironmentActor]] to reply a [[Next]] */
-  case class Step(feedback: Feedback, delta: Double)
+  case class Step(feedback: Feedback, delta: Double, agent: TDAgent)
 }
 
 /**
@@ -79,36 +80,36 @@ class EnvironmentActor(initStatus: Status,
 
   import EnvironmentActor._
 
-  var status = initStatus
-  var requestor: ActorRef = ActorRef.noSender
-  var feedback: Option[Feedback] = None
-
   val agent = context.actorOf(TDAgentActor.props(parms, critic, actor))
 
-  def receive: Receive = waiting
+  def receive: Receive = waiting(initStatus)
 
   /** Processes the messages while is waiting for an Interact request */
-  private def waiting: Receive = {
+  private def waiting(status: Status): Receive = {
     case Interact =>
-      requestor = sender;
-      context.become(processing)
+      context become waitingReaction(status, sender)
       agent ! React(status)
   }
 
   /** Processes the messages while is processing an Interact request */
-  private def processing: Receive = {
+  private def waitingReaction(
+    status: Status,
+    replyTo: ActorRef): Receive = {
+
     case Reaction(action) =>
-      val feedback = status(action)
-      this.feedback = Some(feedback)
-      status = feedback.s1
-      agent ! Feed(feedback)
-
-    case Trained(delta) =>
-      for (f <- feedback) {
-        requestor ! Step(f, delta)
-      }
-      context.become(waiting)
-
+      val f = status(action)
+      agent ! Train(f)
+      context become waitingTrained(f.s1, replyTo, f)
   }
 
+  /** Processes the messages while is processing an Interact request */
+  private def waitingTrained(
+    status: Status,
+    replyTo: ActorRef,
+    feedback: Feedback): Receive = {
+
+    case Trained(delta, agent) =>
+      replyTo ! Step(feedback, delta, agent)
+      context become waiting(status)
+  }
 }
