@@ -127,7 +127,7 @@ possibili stati.
 
 In tutto possiamo contare 
 \[
-2w+2w(m-w-2) = 2w(m-w-1)=54
+4w+2w(m-w-2) = 2w(m-w)=60
 \]
 possibili stati di rimbalzo certo.
 
@@ -138,34 +138,35 @@ Contiamo ora quanti stati dove, indipendentemente dalla strategia, si arriva a f
 
 Quando la racchetta si trova in prima colonna e la pallina si trova in quarta o quinta colonna con direzione SE o dalla sesta alla penultima colonna con due direzioni possibili o infine la pallina si trova in ultima colonna direzione SO
 \[
-2+2(m-w-2)+1]=2(m-w)-1=19
+2(m-w-3)+3=2(m-w)-3=17
 \]
 stati possibili.
 
 Quando la racchetta si trova in seconda colonna e la pallina si trova in quinta o sesta colonna con direzione SE oppure tra la settima e la penultima colonna con due direzioni possibili o infine la pallina si trova in ultima colonna con direzione SO
 \[
-2+2(m-w-3)+1 = 2(m-w)-3 = 17
+2(m-w-4)+3 = 2(m-w)-5 = 15
+\]
+stati possibili.
+
+Quando la racchetta si trova in terza colonna e la pallina si trova in seconda colonna con direzione SO o in sesta o settima colonna con direzione SE oppure tra la ottava e la penultima colonna con due direzioni possibili o infine la pallina si trova in ultima colonna con direzione SO
+\[
+2(m-w-5)+4= 2(m-w)-6 = 14
 \]
 stati possibili.
 
 Gli stessi stati li abbiamo per simmetria quando la racchetta si trova al lato opposto.
 
-Quando la racchetta si trova tra terza colonna e la sei colonne prima dell'ultima e la pallina si trova nei bordi con singole direzioni, o nelle due adiacenti la sx o la dx della racchetta con singole direzioni o nelle colonne intermedie tra i bordi e le precedenti colonne
+Quando la racchetta si trova tra la quarta colonna e sei colonne prima dell'ultima e la pallina si trova nei bordi con singole direzioni, o nelle due adiacenti la sx o la dx della racchetta con singole direzioni o nelle colonne intermedie tra i bordi e le precedenti colonne con due direzioni
 \[
-(m-w-6)[6 + 2(m-w-6)]=
-(m-w-6)[2(m-w)-6]=
-2(m-w-6)(m-w-3)=56
+2(m-w-6)+6 = 2(m-w)-6=14
 \]
-stati possibili.
 
 In tutto quindi ci sono
 \[
-\begin{array}{c}
- 2[2(m-w)-1+2(m-w)-3]+2(m-w-6)(m-w-3)= \\
- 8(m-w)-8+2(m-w-6)(m-w-3)= \\
- 8(m-w-3+3)-8+2(m-w-6)(m-w-3)= \\
- 8(m-w-3)+2(m-w-6)(m-w-3)+16= \\
- 2(m-w-3)(m-w-2)+16=128 \\
+\begin{array}{r}
+ 2[2(m-w)-3+2(m-w)-5+2(m-w)-6]+2(m-w)-6 = \\
+ = 12(m-w)-28+2(m-w)-6 = \\
+ = 14(m-w)-34 = 106 \\
 \end{array}
 \] stati di fine certa del gioco.
 
@@ -173,22 +174,41 @@ In tutto quindi ci sono
 
 Contiamo ora gli stati di rimbalzo dipendenti dalla strategia.
 
-Quando la racchetta si trova tra la prima colonna e cinque colonne prima del bordo dx e la pallina in 4 colonne dopo con direzione SO
+Quando la racchetta si trova in prima colonna e la pallina in quinta colonna con direzione SO 
 \[
-2(m-w-2)=2(m-w)-4=16
+1
 \]
-possibili stati e simmetricamente nel verso opposto per un totale di 
+stato possibile.
+
+Quando la racchetta si trova in seconda colonna e la pallina in prima colonna con direzione SE o in quinta o sesta colonna con direzione SO
 \[
-4(m-w)-8 = 32
-\] stati possibili.
+3
+\]
+stati possibili.
+
+Altrettanti stati per simmetria.
+
+Quando la racchetta si trova tra la terza e cinque colonne prima dell'ultima, la pallina nelle due colonne antecedente la racchetta
+con direzione SE o nelle duce colonne sucessiva la fine della racchetta
+con direzione S0
+\[
+4 (m-w-4)=4(m-w)-16=24
+\]
+
+In totale abbiamo
+\[
+(1+3)2+4(m-w)-16=4(m-w)-8=32
+\]
+possibili stati.
 
 \section{Considerazioni}
 
 In tutto gli stati finali sono quindi 
 \[
-\begin{array}{c}
- 2w(m-w-1)+2(m-w-3)(m-w-2)+16+4(m-w)-8= \\
- 2w(m-w-1)+2(m-w-3)(m-w-2)+16+4(m-w)-8= \\
+\begin{array}{r}
+ 2w(m-w)+14(m-w)-34+4(m-w)-8= \\
+ =2w(m-w)+18(m-w)-42= \\
+ =2(w+9)(m-w)-42= 198\\
 \end{array}
 \]
 
@@ -197,10 +217,25 @@ porti ad una distribuzione uniforme degli stati precedenti i rimbalzo, abbiamo q
 
 \begin{itemize}
 	\item 	
-	Rimbalzo certo con probabilità $ P(rimbalzo)= $
+	Rimbalzo certo con probabilità
+	 \[ P(rimbalzo)=\frac{2w(m-w)}{2(w+9)(m-w)-42}
+	 =\frac{w(m-w)}{(w+9)(m-w)-21}
+	 = \frac{10}{33}\approx0.303
+	 \]
 
 	\item 	
-	Finale certo con probabilità $ P(fine) = $
+	Finale certo con probabilità 
+	 \[ P(fine)=\frac{14(m-w)-34}{2(w+9)(m-w)-42}
+	 =\frac{7(m-w)-17}{(w+9)(m-w)-21}
+	 = \frac{53}{99}\approx0.535
+	 \]
+	 
+	 \item 	
+	 Rimbalzo condizionato con probabilità 
+	 \[ P(condizionale)=\frac{4(m-w)-8}{2(w+9)(m-w)-42}
+	 =2\frac{(m-w)-2}{(w+9)(m-w)-21}
+	 = \frac{16}{99}\approx0.162
+	 \]
 \end{itemize}
 
 
