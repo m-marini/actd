@@ -60,37 +60,7 @@ object FilteredWallTraceApp extends App with LazyLogging {
   val environment = system.actorOf(
     EnvironmentActor.props(initStatus, parms, critic, actor))
 
-  /*
-     * Filter on the following status:
-     *
-     *   8 |     o .  |
-     *   9 |      O   |
-     *  10 |   ---    |
-     *      0123456789
-     *
-     * Value =
-     */
-  val S0 = WallStatus((9, 6), (1, -1), 3)
-  /*
-     * Filter on the following status:
-     *
-     *   8 |       .  |
-     *   9 |      O   |
-     *  10 |  ---o    |
-     *      0123456789
-     */
-  val S1 = WallStatus((9, 6), (1, -1), 2)
-  /*
-     * Filter on the following status:
-     *
-     *   8 |       O  |
-     *   9 |      o   |
-     *  10 |  ---o    |
-     *      0123456789
-     */
-  val S2 = WallStatus((8, 7), (1, -1), 2)
-
-  val States = Set(S0, S1, S2)
+  val States = Set[WallStatus]()
 
   val filter = system.actorOf(ProxyActor.filterProps(environment, Interact)(x =>
     States.contains(x.asInstanceOf[Step].feedback.s0.asInstanceOf[WallStatus])))

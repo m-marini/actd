@@ -47,11 +47,15 @@ import WallStatus.Width
 import breeze.linalg.DenseVector
 import breeze.stats.distributions.RandBasis
 import breeze.optimize.MaxIterations
+import org.mmarini.actd.Feedback
+import org.mmarini.actd.samples.WallStatus.Direction
 
 /** */
-case class WallStatus(ball: (Int, Int), speed: (Int, Int), pad: Int) extends Status {
+case class WallStatus(ball: (Int, Int), direction: Direction.Value, pad: Int) extends Status {
 
   import PadAction._
+  import Direction._
+  import WallStatus._
 
   /** */
   val toDenseVector: DenseVector[Double] = {
@@ -62,12 +66,7 @@ case class WallStatus(ball: (Int, Int), speed: (Int, Int), pad: Int) extends Sta
     val v = DenseVector.zeros[Double](ballDim * speedDim * padDim)
 
     val ballIdx = ball._1 * Width + ball._2
-    val speedIdx = speed match {
-      case (-1, -1) => 0
-      case (-1, 1) => 1
-      case (1, -1) => 2
-      case (1, 1) => 3
-    }
+    val speedIdx = direction.id
 
     val idx = ballIdx + speedIdx * ballDim + pad * (ballDim * speedDim)
     v.update(idx, 1.0)
@@ -102,26 +101,89 @@ case class WallStatus(ball: (Int, Int), speed: (Int, Int), pad: Int) extends Sta
   }
 
   /** */
-  def apply(action: Action): Feedback =
-    if (finalStatus) {
-      // Restarts because ball is out of field
-      Feedback(this, action, 0.0, WallStatus.initial)
-    } else if (ball._1 < Height - 1 || speed._1 < 0) {
-      // Ball in the field
-      val (nb, ns) = hBounce(vBounce(ball, speed))
-      Feedback(this, action, 0.0, WallStatus(nb, ns, movePad(action)))
-    } else if (ball._2 >= pad && ball._2 <= pad + 2 ||
-      ball._2 == pad - 1 && speed._2 == 1 ||
-      ball._2 == pad + 3 && speed._2 == -1) {
-      val (nb, ns) = hBounce(vBounce((ball, (-1, speed._2))))
-      Feedback(this, action, PositiveReward, WallStatus(nb, ns, movePad(action)))
-    } else {
-      val (nb, ns) = hBounce(vBounce(ball, speed))
-      Feedback(this, action, NegativeReward, WallStatus(nb, ns, movePad(action)))
+  def apply(action: Action): Feedback = {
+
+    def nextStatus: (WallStatus, Double) = {
+      val pad1 = movePad(action)
+      if (finalStatus) {
+        // Restarts because ball is out of field
+        (WallStatus.initial, 0.0)
+      } else {
+        this match {
+
+          case WallStatus((2, 1), SO, _) => (WallStatus((1, 0), NE, pad1), PositiveReward)
+
+          case WallStatus((2, 0), SE, _) => (WallStatus((1, 1), NE, pad1), PositiveReward)
+
+          case WallStatus((2, c), SE, _) if (c >= 1 && c <= Width - PadSize - 1 && pad1 >= c - 1 && pad1 <= c + 1) =>
+            (WallStatus((1, c + 1), NE, pad1), PositiveReward)
+
+          case WallStatus((2, LastCol2), SE, _) if (pad1 >= Width - PadSize - 1) =>
+            (WallStatus((1, 11), NE, pad1), PositiveReward)
+
+          case WallStatus((2, LastCol1), SE, _) if (pad1 == Width - PadSize) =>
+            (WallStatus((1, 12), NO, pad1), PositiveReward)
+
+          case WallStatus((2, 2), SO, _) if (pad1 <= 1) =>
+            (WallStatus((1, 1), NO, pad1), PositiveReward)
+
+          case WallStatus((2, c), SO, _) if (c >= 3 && c <= Width - PadSize + 1 && pad1 >= c - 3 && pad1 <= c - 1) =>
+            (WallStatus((1, c - 1), NO, pad1), PositiveReward)
+
+          case WallStatus((2, LastCol), SO, _) if (pad1 >= Width - PadSize - 1) =>
+            (WallStatus((1, 11), NO, pad1), PositiveReward)
+
+          case WallStatus((2, Col4), SO, _) if (pad1 == 0) =>
+            (WallStatus((1, 11), NO, pad1), PositiveReward)
+
+          case WallStatus((r, 1), SO, _) if (r >= 3) =>
+            (WallStatus((r - 1, 0), SE, pad1), 0.0)
+
+          case WallStatus((r, LastCol1), SE, _) if (r >= 3) =>
+            (WallStatus((r - 1, Width - 1), SO, pad1), 0.0)
+
+          case WallStatus((LastRow1, c), NE, _) if (c <= 10) =>
+            (WallStatus((Height, c + 1), SE, pad1), 0.0)
+
+          case WallStatus((LastRow1, c), NO, _) if (c >= 2) =>
+            (WallStatus((Height, c - 1), SO, pad1), 0.0)
+
+          case WallStatus((LastRow1, 1), NO, _) =>
+            (WallStatus((Height, 0), SE, pad1), 0.0)
+
+          case WallStatus((LastRow1, LastCol1), NE, _) =>
+            (WallStatus((Height, Width - 1), SO, pad1), 0.0)
+
+          case _ =>
+            (this, 0.0)
+        }
+      }
     }
 
+    nextStatus match {
+      case (s1, reward) => Feedback(this, action, reward, s1)
+    }
+
+    //    if (finalStatus) {
+    //      // Restarts because ball is out of field
+    //      Feedback(this, action, 0.0, )
+    //    } else if (ball._1 < Height - 1 || speed._1 < 0) {
+    //      // Ball in the field
+    //      val (nb, ns) = hBounce(vBounce(ball, speed))
+    //      Feedback(this, action, 0.0, WallStatus(nb, ns, movePad(action)))
+    //    } else if (ball._2 >= pad && ball._2 <= pad + 2 ||
+    //      ball._2 == pad - 1 && speed._2 == 1 ||
+    //      ball._2 == pad + 3 && speed._2 == -1) {
+    //      val (nb, ns) = hBounce(vBounce((ball, (-1, speed._2))))
+    //      Feedback(this, action, PositiveReward, WallStatus(nb, ns, movePad(action)))
+    //    } else {
+    //      val (nb, ns) = hBounce(vBounce(ball, speed))
+    //      Feedback(this, action, NegativeReward, WallStatus(nb, ns, movePad(action)))
+    //    }
+  }
+
   /** */
-  override def finalStatus: Boolean = ball._1 >= Height
+  override def finalStatus: Boolean = ball._1 == 0
 
 }
 
@@ -130,8 +192,13 @@ object WallStatus extends LazyLogging {
   val Height = 10
   val Width = 13
   val PadSize = 3
+  val LastRow1 = Height - 1
   val PositiveReward = 5.0
   val NegativeReward = -1.0
+  val Col4 = 4
+  val LastCol = Width - 1
+  val LastCol1 = Width - 2
+  val LastCol2 = Width - 3
 
   val Alpha = 100e-6
   val Beta = 0.3
@@ -153,7 +220,10 @@ object WallStatus extends LazyLogging {
   /** MazeAction */
   object PadAction extends Enumeration {
     val Rest, Left, Right = Value
+  }
 
+  object Direction extends Enumeration {
+    val NO, NE, SE, SO = Value
   }
 
   import PadAction._
@@ -161,7 +231,7 @@ object WallStatus extends LazyLogging {
   /** Creates a initial game status */
   def initial: WallStatus = {
     val b = (Height - 1, random.randInt(Width).get)
-    val s = (-1, random.choose(Seq(-1, 1)).get)
+    val s = random.choose(Seq(Direction.NE, Direction.NO)).get
     val pad = b._2 match {
       case 0 => 0
       case c if (c - 1 >= Width - PadSize) => Width - PadSize

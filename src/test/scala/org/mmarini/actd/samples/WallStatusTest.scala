@@ -40,382 +40,365 @@ import org.mmarini.actd.samples.GraphStatus.MazeAction
 
 class WallStatusTest extends PropSpec with PropertyChecks with Matchers with GivenWhenThen {
   import WallStatus.PadAction._
+  import WallStatus.Direction._
   import WallStatus._
 
-  val allGen = for {
-    r <- Gen.choose(0, Height)
-    c <- Gen.choose(0, Width - 1)
-    sr <- Gen.oneOf(-1, 1)
-    sc <- Gen.oneOf(-1, 1)
-    p <- Gen.choose(0, Width - PadSize)
-  } yield WallStatus((r, c), (sr, sc), p)
-
-  val finalGen = for {
-    c <- Gen.choose(0, Width - 1)
-    sr <- Gen.oneOf(-1, 1)
-    sc <- Gen.oneOf(-1, 1)
-    p <- Gen.choose(0, Width - PadSize)
-  } yield WallStatus((Height, c), (sr, sc), p)
-
-  val actionGen = Gen.choose(0, 2)
-
-  property("Initial status vector") {
-    Given("initial wall status")
-    Then("status vector should be as exepcted")
-
-    forAll((allGen, "s0")) {
-      (s0) =>
-        val IndexesSize4 = 4
-
-        val status: DenseVector[Double] = s0.toDenseVector
-
-        status should have('size(Width * (Height + 1) * (Width - PadSize + 1) * 4))
-
-        val i0 = status.findAll(_ == 0.0)
-        val i1 = status.findAll(_ == 1.0)
-
-        i1 should have('size(1))
-    }
-  }
-
-  property("final status") {
-    Given("status with ball in Hieght row")
-    Then("status should be final")
-    forAll((finalGen, "s0")) {
-      (s0) =>
-        {
-          s0 should have('finalStatus(true))
-        }
-    }
-  }
-
-  property("restart status") {
-    Given("status with ball out of field")
-    And("an action")
-    When("apply action")
-    Then("result status should be inital status")
-    forAll(
-      (finalGen, "s0"),
-      (actionGen, "a")) {
-        (s0, a) =>
-          {
-            val Feedback(_, _, r, s1) = s0.apply(a)
-
-            r should be(0.0)
-            s1.asInstanceOf[WallStatus].ball._1 should be(Height - 1)
-            s1.asInstanceOf[WallStatus].speed._1 should be(-1)
-
-            val col = s1.asInstanceOf[WallStatus].ball._2
-            val expPad = col match {
-              case 0 => 0
-              case c if (c - 1 >= Width - PadSize) => Width - PadSize
-              case c => c - 1
-            }
-            s1.asInstanceOf[WallStatus].pad should be(expPad)
-
-          }
-      }
-  }
-
   /**
-   * |      |    |  o  o|
-   * | o  o | -> |      |
-   * |  --- |    |  --- |
+   *    ====
+   * 10 |o
+   *  9 | O
+   *
+   *     012
+   *     000
    */
-  property("bounce from left") {
-    Given("status with ball in last row")
-    And("ball coming from left")
-    And("pad on the path of ball")
-    When("apply action rest")
-    Then("result status should be as expected")
-
-    val s0Gen = for {
-      pad <- Gen.choose(2, Width - 4)
-      c <- Gen.choose(pad - 1, pad + 2)
-    } yield WallStatus((Height - 1, c), (1, 1), pad)
-
-    forAll((s0Gen, "s0")) {
-      (s0) =>
+  property("Ball in (10,0) SE") {
+    forAll((for {
+      pad <- Gen.choose(0, 10)
+    } yield WallStatus((9, 1), NO, pad), "s0")) {
+      s0 =>
         {
           val Feedback(_, _, r, s1) = s0.apply(WallStatus.PadAction.Rest.id)
-
-          r should be(1.0)
-          s1 should have('ball((Height - 2, s0.ball._2 + 1)))
-          s1 should have('speed((-1, 1)))
+          r should be(0.0)
+          s1 should matchPattern {
+            case WallStatus((10, 0), SE, _) =>
+          }
         }
     }
   }
 
   /**
-   * |      |    |o  o  |
-   * | o  o | -> |      |
-   * | ---  |    | ---  |
+   *    ====
+   * 10   o|
+   *  9  O |
+   *
+   *    012
+   *    111
    */
-  property("bounce from right") {
-    Given("status with ball in last row")
-    And("ball coming from right")
-    And("pad on the path of ball")
-    When("apply action rest")
-    Then("result status should be as expected")
-
-    val s0Gen = for {
-      pad <- Gen.choose(1, Width - 5)
-      c <- Gen.choose(pad, pad + 3)
-    } yield WallStatus((Height - 1, c), (1, -1), pad)
-
-    forAll((s0Gen, "s0")) {
-      (s0) =>
+  property("Ball in (10,12) SO") {
+    forAll((for {
+      pad <- Gen.choose(0, 10)
+    } yield WallStatus((9, 11), NE, pad), "s0")) {
+      s0 =>
         {
           val Feedback(_, _, r, s1) = s0.apply(WallStatus.PadAction.Rest.id)
-
-          r should be(1.0)
-          s1 should have('ball((Height - 2, s0.ball._2 - 1)))
-          s1 should have('speed((-1, -1)))
+          r should be(0.0)
+          s1 should matchPattern {
+            case WallStatus((10, 12), SO, _) =>
+          }
         }
     }
   }
 
   /**
-   * |          | o
-   * |o      -> |
-   * |---       |---
+   *    ===============
+   * 10 | o         o |
+   *  9 |O .       O .|
+   *
+   *     0123456789012
+   *     0000000000111
    */
-  property("left bounce") {
-    Given("status with ball in last row and first column")
-    And("ball from right")
-    When("apply action rest")
-    Then("result status should be as expected")
-
-    val s0Gen = Gen.const(WallStatus((Height - 1, 0), (1, -1), 0))
-
-    forAll((s0Gen, "s0")) {
-      (s0) =>
+  property("Ball in (10,1-11) SE") {
+    forAll((for {
+      c <- Gen.choose(0, 10)
+      pad <- Gen.choose(0, 10)
+    } yield WallStatus((9, c), NE, pad), "s0")) {
+      s0 =>
         {
           val Feedback(_, _, r, s1) = s0.apply(WallStatus.PadAction.Rest.id)
-
-          r should be(1.0)
-          s1 should have('ball((Height - 2, 1)))
-          s1 should have('speed((-1, 1)))
+          r should be(0.0)
+          s1 should matchPattern {
+            case WallStatus((10, c), SE, _) if (c == s0.ball._2 + 1) =>
+          }
         }
     }
   }
 
   /**
-   *     |       o |
-   *    o| ->      |
-   *  ---|      ---|
+   *    ===============
+   * 10 | o         o |
+   *  9 |. O       . O|
+   *
+   *     0123456789012
+   *     0000000000111
    */
-  property("all right bounce") {
-    Given("status with ball in last row and in last col")
-    And("ball from left")
-    When("apply action rest")
-    Then("result status should be as expected")
-
-    val s0Gen = Gen.const(WallStatus((Height - 1, Width - 1), (1, 1), Width - PadSize))
-
-    forAll((s0Gen, "s0")) {
-      (s0) =>
+  property("Ball in (10,1-11) SO") {
+    forAll((for {
+      c <- Gen.choose(2, 12)
+      pad <- Gen.choose(0, 10)
+    } yield WallStatus((9, c), NO, pad), "s0")) {
+      s0 =>
         {
           val Feedback(_, _, r, s1) = s0.apply(WallStatus.PadAction.Rest.id)
-
-          r should be(1.0)
-          s1 should have('ball((Height - 2, Width - 2)))
-          s1 should have('speed((-1, -1)))
+          r should be(0.0)
+          s1 should matchPattern {
+            case WallStatus((10, c), SO, _) if (c == s0.ball._2 - 1) =>
+          }
         }
     }
   }
 
-  property("no bounce") {
-    Given("status with ball in Hieght-1 row")
-    And("pad not in range")
-    When("apply action rest")
-    Then("result status should be as expected")
-
-    val s0Gen = for {
-      c <- Gen.choose(1, Width - 2)
-      sc <- Gen.oneOf(-1, 1)
-      pad <- Gen.choose(1, Width - PadSize)
-    } yield WallStatus((Height - 1, c), (1, sc), pad)
-
-    forAll((s0Gen, "s0")) {
-      (s0) =>
-        whenever(
-          s0.speed._2 < 0 && (s0.ball._2 < s0.pad || s0.ball._2 > s0.pad + 3) ||
-            s0.speed._2 > 0 && (s0.ball._2 < s0.pad - 1 || s0.ball._2 > s0.pad + 2)) {
-            {
-              val Feedback(_, _, r, s1) = s0.apply(WallStatus.PadAction.Rest.id)
-
-              r should be(NegativeReward)
-              s1 should have('finalStatus(true))
-            }
+  /**
+   *    =======
+   * 10 | O
+   *  9 |o
+   *  8 | .
+   *
+   *  3 | O
+   *  2 |o
+   *  1 | .
+   *  0  ===
+   *     012
+   */
+  property("Ball in (2-9,0) SE") {
+    forAll((for {
+      r <- Gen.choose(3, 10)
+      pad <- Gen.choose(0, 10)
+    } yield WallStatus((r, 1), SO, pad), "s0")) {
+      s0 =>
+        {
+          val Feedback(_, _, r, s1) = s0.apply(WallStatus.PadAction.Rest.id)
+          r should be(0.0)
+          s1 should matchPattern {
+            case WallStatus((row, 0), SE, _) if (row == s0.ball._1 - 1) =>
           }
+        }
     }
   }
 
-  property("flow") {
-    Given("status with ball not in boundary")
-    When("apply any action")
-    Then("result status should be as expected")
-
-    val s0Gen = for {
-      r <- Gen.choose(1, Height - 2)
-      c <- Gen.choose(1, Width - 2)
-      pad <- Gen.choose(0, Width - PadSize)
-      sr <- Gen.oneOf(-1, 1)
-      sc <- Gen.oneOf(-1, 1)
-    } yield WallStatus((r, c), (sr, sc), pad)
-
-    forAll((s0Gen, "s0"),
-      (actionGen, "a")) {
-        (s0, a) =>
-          {
-            val Feedback(_, _, r, s1) = s0.apply(a)
-
-            r should be(0.0)
-            s1 should have('ball((s0.ball._1 + s0.speed._1, s0.ball._2 + s0.speed._2)))
-            s1 should have('speed(s0.speed))
+  /**
+   *    ====
+   * 10  O |
+   *  9   o|
+   *  8  . |
+   *
+   *  3  O |
+   *  2   o|
+   *  1  . |
+   *  0 ===
+   *    012
+   *    111
+   */
+  property("Ball in (2-9,12) SO") {
+    forAll((for {
+      r <- Gen.choose(3, 10)
+      pad <- Gen.choose(0, 10)
+    } yield WallStatus((r, 11), SE, pad), "s0")) {
+      s0 =>
+        {
+          val Feedback(_, _, r, s1) = s0.apply(WallStatus.PadAction.Rest.id)
+          r should be(0.0)
+          s1 should matchPattern {
+            case WallStatus((row, 12), SO, _) if (row == s0.ball._1 - 1) =>
           }
-      }
+        }
+    }
   }
 
-  property("left wall bounce") {
-    Given("status with ball at left wall")
-    When("apply any action")
-    Then("result status should be as expected")
-
-    val s0Gen = for {
-      r <- Gen.choose(1, Height - 2)
-      pad <- Gen.choose(0, Width - PadSize)
-      sr <- Gen.oneOf(-1, 1)
-    } yield WallStatus((r, 0), (sr, -1), pad)
-
-    forAll((s0Gen, "s0"),
-      (actionGen, "a")) {
-        (s0, a) =>
-          {
-            val Feedback(_, _, r, s1) = s0.apply(a)
-
-            r should be(0.0)
-            s1 should have('ball((s0.ball._1 + s0.speed._1, 1)))
-            s1 should have('speed((s0.speed._1, 1)))
+  /**
+   * 2 | O
+   * 1 |o
+   * 0  ===
+   *    012
+   */
+  property("Ball in (1,0) NE bouncing") {
+    forAll((Gen.const(WallStatus((2, 1), SO, 0)), "s0")) {
+      s0 =>
+        {
+          val Feedback(_, _, r, s1) = s0.apply(WallStatus.PadAction.Rest.id)
+          r should be(PositiveReward)
+          s1 should matchPattern {
+            case WallStatus((1, 0), NE, _) =>
           }
-      }
+        }
+    }
   }
 
-  property("right wall bounce") {
-    Given("status with ball at right wall")
-    When("apply any action")
-    Then("result status should be as expected")
-
-    val s0Gen = for {
-      r <- Gen.choose(1, Height - 2)
-      pad <- Gen.choose(0, Width - PadSize)
-      sr <- Gen.oneOf(-1, 1)
-    } yield WallStatus((r, Width - 1), (sr, 1), pad)
-
-    forAll((s0Gen, "s0"),
-      (actionGen, "a")) {
-        (s0, a) =>
-          {
-            val Feedback(_, _, r, s1) = s0.apply(a)
-
-            r should be(0.0)
-            s1 should have('ball((s0.ball._1 + s0.speed._1, Width - 2)))
-            s1 should have('speed((s0.speed._1, -1)))
+  /**
+   * 2 |O .          |
+   * 1 | o           |
+   * 0  -===         |
+   *    0123456789012
+   *    0000000000111
+   */
+  property("Ball in (1,1) NE bouncing") {
+    forAll((for { pad <- Gen.choose(0, 1) } yield WallStatus((2, 0), SE, pad), "s0")) {
+      s0 =>
+        {
+          val Feedback(_, _, r, s1) = s0.apply(WallStatus.PadAction.Rest.id)
+          r should be(PositiveReward)
+          s1 should matchPattern {
+            case WallStatus((1, 1), NE, _) =>
           }
-      }
+        }
+    }
   }
 
-  property("top wall bounce") {
-    Given("status with ball at top wall")
-    When("apply any action")
-    Then("result status should be as expected")
-
-    val s0Gen = for {
-      c <- Gen.choose(1, Width - 2)
-      pad <- Gen.choose(0, Width - PadSize)
-      sc <- Gen.oneOf(-1, 1)
-    } yield WallStatus((0, c), (-1, sc), pad)
-
-    forAll((s0Gen, "s0"),
-      (actionGen, "a")) {
-        (s0, a) =>
-          {
-            val Feedback(_, _, r, s1) = s0.apply(a)
-
-            r should be(0.0)
-            s1 should have('ball((1, s0.ball._2 + s0.speed._2)))
-            s1 should have('speed((1, s0.speed._2)))
+  /**
+   * 2 | O .     O . |
+   * 1 |  o       o  |
+   * 0  --===-----===|
+   *    0123456789012
+   *    0000000000111
+   */
+  property("Ball in (1,2-10) NE bouncing") {
+    forAll((for {
+      col <- Gen.choose(1, 9)
+      pad <- Gen.choose(col - 1, col + 1)
+    } yield WallStatus((2, col), SE, pad), "s0")) {
+      s0 =>
+        {
+          val Feedback(_, _, r, s1) = s0.apply(WallStatus.PadAction.Rest.id)
+          r should be(PositiveReward)
+          s1 should matchPattern {
+            case WallStatus((1, c), NE, _) if (c == s0.ball._2 + 1) =>
           }
-      }
+        }
+    }
   }
 
-  property("top left wall bounce") {
-    Given("status with ball at top left wall")
-    When("apply any action")
-    Then("result status should be as expected")
-
-    val s0Gen = for {
-      pad <- Gen.choose(0, Width - PadSize)
-      sr <- Gen.oneOf(-1, 1)
-      sc <- Gen.oneOf(-1, 1)
-    } yield WallStatus((0, 0), (sr, sc), pad)
-
-    forAll((s0Gen, "s0"),
-      (actionGen, "a")) {
-        (s0, a) =>
-          {
-            val Feedback(_, _, r, s1) = s0.apply(a)
-
-            r should be(0.0)
-            s1 should have('ball((1, 1)))
-            s1 should have('speed((1, 1)))
+  /**
+   * 2 |          O .|
+   * 1 |           o |
+   * 0           -===|
+   *    0123456789012
+   *    0000000000111
+   */
+  property("Ball in (1,11) NE bouncing") {
+    forAll((for {
+      pad <- Gen.choose(9, 10)
+    } yield WallStatus((2, 10), SE, pad), "s0")) {
+      s0 =>
+        {
+          val Feedback(_, _, r, s1) = s0.apply(WallStatus.PadAction.Rest.id)
+          r should be(PositiveReward)
+          s1 should matchPattern {
+            case WallStatus((1, 11), NE, _) =>
           }
-      }
+        }
+    }
   }
 
-  property("top right wall bounce") {
-    Given("status with ball at top right wall")
-    When("apply any action")
-    Then("result status should be as expected")
-
-    val s0Gen = for {
-      pad <- Gen.choose(0, Width - PadSize)
-      sr <- Gen.oneOf(-1, 1)
-      sc <- Gen.oneOf(-1, 1)
-    } yield WallStatus((0, Width - 1), (sr, sc), pad)
-
-    forAll((s0Gen, "s0"),
-      (actionGen, "a")) {
-        (s0, a) =>
-          {
-            val Feedback(_, _, r, s1) = s0.apply(a)
-
-            r should be(0.0)
-            s1 should have('ball((1, Width - 2)))
-            s1 should have('speed((1, -1)))
+  /**
+   * 2 |           O |
+   * 1 |            o|
+   * 0            ===|
+   *    0123456789012
+   *    0000000000111
+   */
+  property("Ball in (1,12) NO bouncing") {
+    forAll((Gen.const(WallStatus((2, 11), SE, 10)), "s0")) {
+      s0 =>
+        {
+          val Feedback(_, _, r, s1) = s0.apply(WallStatus.PadAction.Rest.id)
+          r should be(PositiveReward)
+          s1 should matchPattern {
+            case WallStatus((1, 12), NO, _) =>
           }
-      }
+        }
+    }
   }
 
-  property("pad move") {
-    Given("a non final status")
-    When("apply any action")
-    Then("result status should be as expected")
-
-    forAll((allGen, "s0"),
-      (actionGen, "a")) {
-        (s0, a) =>
-          whenever(!s0.finalStatus) {
-            val Feedback(_, _, _, s1) = s0.apply(a)
-            (PadAction.apply(a), s0.pad) match {
-              case (PadAction.Left, 0) => s1 should have('pad(0))
-              case (PadAction.Left, p) => s1 should have('pad(p - 1))
-              case (PadAction.Right, p) if (p == Width - PadSize) => s1 should have('pad(Width - PadSize))
-              case (PadAction.Right, p) => s1 should have('pad(p + 1))
-              case (PadAction.Rest, p) => s1 should have('pad(p))
-            }
+  /**
+   * 2 |. O          |
+   * 1 | o           |
+   * 0  -===         |
+   *    0123456789012
+   *    0000000000111
+   */
+  property("Ball in (1,1) NO bouncing") {
+    forAll((for { pad <- Gen.choose(0, 1) } yield WallStatus((2, 2), SO, pad), "s0")) {
+      s0 =>
+        {
+          val Feedback(_, _, r, s1) = s0.apply(WallStatus.PadAction.Rest.id)
+          r should be(PositiveReward)
+          s1 should matchPattern {
+            case WallStatus((1, 1), NO, _) =>
           }
-      }
+        }
+    }
+  }
+
+  /**
+   * 2 | . O     . O |
+   * 1 |  o       o  |
+   * 0  --===-----===|
+   *    0123456789012
+   *    0000000000111
+   */
+  property("Ball in (1,2-10) NO bouncing") {
+    forAll((for {
+      c <- Gen.choose(3, 11)
+      pad <- Gen.choose(c - 3, c - 1)
+    } yield WallStatus((2, c), SO, pad), "s0")) {
+      s0 =>
+        {
+          val Feedback(_, _, r, s1) = s0.apply(WallStatus.PadAction.Rest.id)
+          r should be(PositiveReward)
+          s1 should matchPattern {
+            case WallStatus((1, c), NO, _) if (c == s0.ball._2 - 1) =>
+          }
+        }
+    }
+  }
+
+  /**
+   * 2 |          . O|
+   * 1 |           o |
+   * 0           -===|
+   *    0123456789012
+   *    0000000000111
+   */
+  property("Ball in (1,11) NO bouncing") {
+    forAll((for {
+      pad <- Gen.choose(9, 10)
+    } yield WallStatus((2, 12), SO, pad), "s0")) {
+      s0 =>
+        {
+          val Feedback(_, _, r, s1) = s0.apply(WallStatus.PadAction.Rest.id)
+          r should be(PositiveReward)
+          s1 should matchPattern {
+            case WallStatus((1, 11), NO, _) =>
+          }
+        }
+    }
+  }
+
+  /**
+   * 2 |  . O
+   * 1 |   o
+   * 0  ===
+   *    01234
+   */
+  property("Ball in (1,3) NE bouncing") {
+    forAll((Gen.const(WallStatus((2, 4), SO, 0)), "s0")) {
+      s0 =>
+        {
+          val Feedback(_, _, r, s1) = s0.apply(WallStatus.PadAction.Rest.id)
+          r should be(PositiveReward)
+          s1 should matchPattern {
+            case WallStatus((1, 3), NE, _) =>
+          }
+        }
+    }
+  }
+
+  /**
+   * 2 O .  |
+   * 1  o   |
+   * 0   ===
+   *   89012
+   *   00111
+   */
+  property("Ball in (1,9) NO bouncing") {
+    forAll((Gen.const(WallStatus((2, 8), SE, 10)), "s0")) {
+      s0 =>
+        {
+          val Feedback(_, _, r, s1) = s0.apply(WallStatus.PadAction.Rest.id)
+          r should be(PositiveReward)
+          s1 should matchPattern {
+            case WallStatus((1, 9), NO, _) =>
+          }
+        }
+    }
   }
 }
