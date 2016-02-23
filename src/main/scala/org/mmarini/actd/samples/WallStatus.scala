@@ -61,7 +61,7 @@ case class WallStatus(ball: (Int, Int), direction: Direction.Value, pad: Int) ex
   val toDenseVector: DenseVector[Double] = {
     val ballDim = Width * (Height + 1)
     val speedDim = 4
-    val padDim = Width - PadSize + 1
+    val padDim = LastPad + 1
 
     val v = DenseVector.zeros[Double](ballDim * speedDim * padDim)
 
@@ -74,116 +74,37 @@ case class WallStatus(ball: (Int, Int), direction: Direction.Value, pad: Int) ex
     v
   }
 
-  /** Computes the position and speed after a bounce in a vertical wall */
-  private def hBounce(x: ((Int, Int), (Int, Int))) = {
-    val ((r, c), (sr, sc)) = x
-    (c + sc) match {
-      case -1 => ((r, 1), (sr, 1))
-      case Width => ((r, Width - 2), (sr, -1))
-      case c1 => ((r, c1), (sr, sc))
-    }
-  }
-
-  /** Computes the position and speed after a bounce in a horizontal wall */
-  private def vBounce(x: ((Int, Int), (Int, Int))) = {
-    val ((r, c), (sr, sc)) = x
-    (r + sr) match {
-      case -1 => ((1, c), (1, sc))
-      case r => ((r, c), (sr, sc))
-    }
-  }
+  /** Returns a [[WallStatus]] with changed pad location */
+  def pad(x: Int): WallStatus = WallStatus(ball, direction, x)
 
   /** */
   private def movePad(action: Action) = PadAction.apply(action) match {
     case Left if pad > 0 => pad - 1
-    case Right if pad < Width - PadSize => pad + 1
+    case Right if pad < LastPad => pad + 1
     case _ => pad
   }
 
   /** */
   def apply(action: Action): Feedback = {
-
-    def nextStatus: (WallStatus, Double) = {
-      val pad1 = movePad(action)
-      if (finalStatus) {
-        // Restarts because ball is out of field
-        (WallStatus.initial, 0.0)
-      } else {
-        this match {
-
-          case WallStatus((2, 1), SO, _) => (WallStatus((1, 0), NE, pad1), PositiveReward)
-
-          case WallStatus((2, 0), SE, _) => (WallStatus((1, 1), NE, pad1), PositiveReward)
-
-          case WallStatus((2, c), SE, _) if (c >= 1 && c <= Width - PadSize - 1 && pad1 >= c - 1 && pad1 <= c + 1) =>
-            (WallStatus((1, c + 1), NE, pad1), PositiveReward)
-
-          case WallStatus((2, LastCol2), SE, _) if (pad1 >= Width - PadSize - 1) =>
-            (WallStatus((1, 11), NE, pad1), PositiveReward)
-
-          case WallStatus((2, LastCol1), SE, _) if (pad1 == Width - PadSize) =>
-            (WallStatus((1, 12), NO, pad1), PositiveReward)
-
-          case WallStatus((2, 2), SO, _) if (pad1 <= 1) =>
-            (WallStatus((1, 1), NO, pad1), PositiveReward)
-
-          case WallStatus((2, c), SO, _) if (c >= 3 && c <= Width - PadSize + 1 && pad1 >= c - 3 && pad1 <= c - 1) =>
-            (WallStatus((1, c - 1), NO, pad1), PositiveReward)
-
-          case WallStatus((2, LastCol), SO, _) if (pad1 >= Width - PadSize - 1) =>
-            (WallStatus((1, 11), NO, pad1), PositiveReward)
-
-          case WallStatus((2, Col4), SO, _) if (pad1 == 0) =>
-            (WallStatus((1, 11), NO, pad1), PositiveReward)
-
-          case WallStatus((r, 1), SO, _) if (r >= 3) =>
-            (WallStatus((r - 1, 0), SE, pad1), 0.0)
-
-          case WallStatus((r, LastCol1), SE, _) if (r >= 3) =>
-            (WallStatus((r - 1, Width - 1), SO, pad1), 0.0)
-
-          case WallStatus((LastRow1, c), NE, _) if (c <= 10) =>
-            (WallStatus((Height, c + 1), SE, pad1), 0.0)
-
-          case WallStatus((LastRow1, c), NO, _) if (c >= 2) =>
-            (WallStatus((Height, c - 1), SO, pad1), 0.0)
-
-          case WallStatus((LastRow1, 1), NO, _) =>
-            (WallStatus((Height, 0), SE, pad1), 0.0)
-
-          case WallStatus((LastRow1, LastCol1), NE, _) =>
-            (WallStatus((Height, Width - 1), SO, pad1), 0.0)
-
-          case _ =>
-            (this, 0.0)
-        }
-      }
+    val pad1 = movePad(action)
+    val (s1, reward) = if (finalStatus) {
+      // Restarts because ball is out of field
+      (WallStatus.initial, 0.0)
+    } else {
+      val nextOpt = StatusMap.get((this.pad(pad1)))
+      nextOpt.getOrElse((
+        direction match {
+          case NO => WallStatus((ball._1 + 1, ball._2 - 1), direction, pad1)
+          case NE => WallStatus((ball._1 + 1, ball._2 + 1), direction, pad1)
+          case SO => WallStatus((ball._1 - 1, ball._2 - 1), direction, pad1)
+          case SE => WallStatus((ball._1 - 1, ball._2 + 1), direction, pad1)
+        }, 0.0));
     }
-
-    nextStatus match {
-      case (s1, reward) => Feedback(this, action, reward, s1)
-    }
-
-    //    if (finalStatus) {
-    //      // Restarts because ball is out of field
-    //      Feedback(this, action, 0.0, )
-    //    } else if (ball._1 < Height - 1 || speed._1 < 0) {
-    //      // Ball in the field
-    //      val (nb, ns) = hBounce(vBounce(ball, speed))
-    //      Feedback(this, action, 0.0, WallStatus(nb, ns, movePad(action)))
-    //    } else if (ball._2 >= pad && ball._2 <= pad + 2 ||
-    //      ball._2 == pad - 1 && speed._2 == 1 ||
-    //      ball._2 == pad + 3 && speed._2 == -1) {
-    //      val (nb, ns) = hBounce(vBounce((ball, (-1, speed._2))))
-    //      Feedback(this, action, PositiveReward, WallStatus(nb, ns, movePad(action)))
-    //    } else {
-    //      val (nb, ns) = hBounce(vBounce(ball, speed))
-    //      Feedback(this, action, NegativeReward, WallStatus(nb, ns, movePad(action)))
-    //    }
+    Feedback(this, action, reward, s1)
   }
 
   /** */
-  override def finalStatus: Boolean = ball._1 == 0
+  override def finalStatus: Boolean = this == endStatus
 
 }
 
@@ -197,8 +118,10 @@ object WallStatus extends LazyLogging {
   val NegativeReward = -1.0
   val Col4 = 4
   val LastCol = Width - 1
-  val LastCol1 = Width - 2
-  val LastCol2 = Width - 3
+  val SecondLastCol = Width - 2
+  val LastPad = Width - PadSize
+  val SecondLastPad = LastPad - 1
+  //  val LastCol2 = Width - 3
 
   val Alpha = 100e-6
   val Beta = 0.3
@@ -215,8 +138,6 @@ object WallStatus extends LazyLogging {
   val OutputCount = 3
   val HiddenCount = 20
 
-  val random = new RandBasis(new MersenneTwister(Seed))
-
   /** MazeAction */
   object PadAction extends Enumeration {
     val Rest, Left, Right = Value
@@ -225,8 +146,14 @@ object WallStatus extends LazyLogging {
   object Direction extends Enumeration {
     val NO, NE, SE, SO = Value
   }
-
   import PadAction._
+  import Direction._
+
+  val random = new RandBasis(new MersenneTwister(Seed))
+
+  val endStatus = WallStatus((0, 0), SE, 1)
+
+  val StatusMap = createMap
 
   /** Creates a initial game status */
   def initial: WallStatus = {
@@ -234,7 +161,7 @@ object WallStatus extends LazyLogging {
     val s = random.choose(Seq(Direction.NE, Direction.NO)).get
     val pad = b._2 match {
       case 0 => 0
-      case c if (c - 1 >= Width - PadSize) => Width - PadSize
+      case c if (c - 1 >= LastPad) => LastPad
       case c => c - 1
     }
     WallStatus(b, s, pad)
@@ -261,4 +188,109 @@ object WallStatus extends LazyLogging {
 
     (initStatus, parms, critic, actor)
   }
+
+  /** Create the map of transitions in the borders */
+  private def createBordersMap: Map[WallStatus, (WallStatus, Double)] = {
+    val m9 = for {
+      r <- 3 to Height
+      pad1 <- 0 to LastPad
+    } yield (WallStatus((r, 1), SO, pad1) -> (WallStatus((r - 1, 0), SE, pad1), 0.0))
+
+    val m10 = for {
+      r <- 3 to Height
+      pad1 <- 0 to LastPad
+    } yield (WallStatus((r, SecondLastCol), SE, pad1) -> (WallStatus((r - 1, Width - 1), SO, pad1), 0.0))
+
+    val m11 = for {
+      c <- 0 to Width - 3
+      pad1 <- 0 to LastPad
+    } yield (WallStatus((LastRow1, c), NE, pad1) -> (WallStatus((Height, c + 1), SE, pad1), 0.0))
+
+    val m12 = for {
+      c <- 2 to Width - 1
+      pad1 <- 0 to LastPad
+    } yield (WallStatus((LastRow1, c), NO, pad1) -> (WallStatus((Height, c - 1), SO, pad1), 0.0))
+
+    val m13 = for {
+      pad1 <- 0 to LastPad
+    } yield (WallStatus((Height - 1, 1), NO, pad1) -> (WallStatus((Height, 0), SE, pad1), 0.0))
+
+    val m14 = for {
+      pad1 <- 0 to LastPad
+    } yield (WallStatus((LastRow1, SecondLastCol), NE, pad1) -> (WallStatus((Height, Width - 1), SO, pad1), 0.0))
+
+    val m15 = for {
+      pad1 <- 0 to LastPad
+    } yield (WallStatus((LastRow1, 1), NO, pad1) -> (WallStatus((Height, 0), SE, pad1), 0.0))
+    (m9 ++ m10 ++ m11 ++ m12 ++ m13 ++ m14 ++ m15).toMap
+  }
+
+  /** Create the map of bounce transitions */
+  private def createBounceMap: Map[WallStatus, (WallStatus, Double)] = {
+    val m1 = for {
+      pad1 <- 0 to LastPad
+    } yield (WallStatus((2, 1), SO, pad1) -> (WallStatus((1, 0), NE, pad1), PositiveReward))
+
+    val m2 = for {
+      pad1 <- 0 to LastPad
+    } yield (WallStatus((2, 0), SE, pad1) -> (WallStatus((1, 1), NE, pad1), PositiveReward))
+
+    val m3 = for {
+      c <- 1 to SecondLastPad
+      pad1 <- c - 1 to c + 1
+    } yield (WallStatus((2, c), SE, pad1) -> (WallStatus((1, c + 1), NE, pad1), PositiveReward))
+
+    val m4 = for {
+      pad1 <- SecondLastPad to LastPad
+    } yield (WallStatus((2, Width - 3), SE, pad1) -> (WallStatus((1, 11), NE, pad1), PositiveReward))
+
+    val m5 = Map(WallStatus((2, SecondLastCol), SE, LastPad) -> (WallStatus((1, 12), NO, LastPad), PositiveReward))
+
+    val m6 = for {
+      pad1 <- 0 to 1
+    } yield (WallStatus((2, 2), SO, pad1) -> (WallStatus((1, 1), NO, pad1), PositiveReward))
+
+    val m7 = for {
+      c <- 3 to LastPad + 1
+      pad1 <- c - 3 to c - 1
+    } yield (WallStatus((2, c), SO, pad1) -> (WallStatus((1, c - 1), NO, pad1), PositiveReward))
+
+    val m8 = for {
+      pad1 <- SecondLastPad to LastPad
+    } yield (WallStatus((2, LastCol), SO, pad1) -> (WallStatus((1, LastCol - 1), NO, pad1), PositiveReward))
+
+    val m16 = Map(WallStatus((2, 4), SO, 0) -> (WallStatus((1, 3), NE, 0), PositiveReward))
+
+    val m17 = Map(WallStatus((2, 8), SE, LastPad) -> (WallStatus((1, 9), NO, LastPad), PositiveReward))
+
+    (m1 ++ m2 ++ m3 ++ m4 ++ m5 ++ m6 ++ m7 ++ m8 ++ m16 ++ m17).toMap
+  }
+
+  /** Create the map of missing transitions */
+  private def createMissingMap: Map[WallStatus, (WallStatus, Double)] = {
+    val m1 = for {
+      c <- 0 to LastPad - 2
+      pad1 <- c + 2 to LastPad
+    } yield (WallStatus((1, c), SE, pad1) -> (endStatus, NegativeReward))
+
+    val m2 = for {
+      c <- 3 to Width - 1
+      pad1 <- 0 to c - 3
+    } yield (WallStatus((1, c), SE, pad1) -> (endStatus, NegativeReward))
+
+    val m3 = for {
+      c <- 1 to SecondLastPad
+      pad1 <- c + 1 to LastPad
+    } yield (WallStatus((1, c), SO, pad1) -> (endStatus, NegativeReward))
+
+    val m4 = for {
+      c <- 4 to Width - 1
+      pad1 <- 0 to c - 4
+    } yield (WallStatus((1, c), SO, pad1) -> (endStatus, NegativeReward))
+
+    (m1 ++ m2 ++ m3 ++ m4).toMap
+  }
+
+  /** Create the map of transitions */
+  private def createMap: Map[WallStatus, (WallStatus, Double)] = createBounceMap ++ createBordersMap ++ createMissingMap
 }
