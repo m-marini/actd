@@ -116,12 +116,10 @@ object WallStatus extends LazyLogging {
   val LastRow1 = Height - 1
   val PositiveReward = 5.0
   val NegativeReward = -1.0
-  val Col4 = 4
   val LastCol = Width - 1
   val SecondLastCol = Width - 2
   val LastPad = Width - PadSize
   val SecondLastPad = LastPad - 1
-  //  val LastCol2 = Width - 3
 
   val Alpha = 100e-6
   val Beta = 0.3
@@ -291,6 +289,23 @@ object WallStatus extends LazyLogging {
     (m1 ++ m2 ++ m3 ++ m4).toMap
   }
 
+  /** Create the map of missing transitions */
+  private def createConditionalMap: Map[WallStatus, (WallStatus, Double)] = {
+    val m1 = for {
+      c <- PadSize + 1 to LastCol
+    } yield (WallStatus((1, c), SO, c - 3) -> (WallStatus((2, c + 1), NE, c - 3), PositiveReward))
+
+    val m2 = for {
+      c <- 2 to LastPad - 2
+    } yield (WallStatus((1, c), SE, c + 1) -> (WallStatus((2, c - 1), NO, c + 1), PositiveReward))
+
+    (m1 ++ m2).toMap
+  }
+
   /** Create the map of transitions */
-  private def createMap: Map[WallStatus, (WallStatus, Double)] = createBounceMap ++ createBordersMap ++ createMissingMap
+  private def createMap: Map[WallStatus, (WallStatus, Double)] =
+    createBounceMap ++
+      createBordersMap ++
+      createMissingMap ++
+      createConditionalMap
 }
