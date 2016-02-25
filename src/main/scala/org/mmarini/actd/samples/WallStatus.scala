@@ -57,6 +57,16 @@ case class WallStatus(ball: (Int, Int), direction: Direction.Value, pad: Int) ex
   import Direction._
   import WallStatus._
 
+  require(ball._2 >= 0)
+  require(ball._2 <= Width - 1)
+  require(ball._2 >= 1 || direction == NE || direction == SE, s"$ball $direction")
+  require(ball._2 < Width - 1 || direction == NO || direction == SO, s"$ball $direction")
+  require(pad >= 0)
+  require(pad <= LastPad)
+  require(ball._1 <= Height)
+  require(ball._1 >= 0)
+  require(ball._1 >= 1 || ball._2 == 0 && direction == SE && pad == 1, s"$ball $direction $pad")
+
   /** */
   val toDenseVector: DenseVector[Double] = {
     val ballDim = Width * (Height + 1)
@@ -272,7 +282,7 @@ object WallStatus extends LazyLogging {
     } yield (WallStatus((1, c), SE, pad1) -> (endStatus, NegativeReward))
 
     val m2 = for {
-      c <- 3 to Width - 1
+      c <- 3 to Width - 2
       pad1 <- 0 to c - 3
     } yield (WallStatus((1, c), SE, pad1) -> (endStatus, NegativeReward))
 
@@ -292,14 +302,19 @@ object WallStatus extends LazyLogging {
   /** Create the map of missing transitions */
   private def createConditionalMap: Map[WallStatus, (WallStatus, Double)] = {
     val m1 = for {
-      c <- PadSize + 1 to LastCol
+      c <- PadSize + 1 to LastCol - 2
     } yield (WallStatus((1, c), SO, c - 3) -> (WallStatus((2, c + 1), NE, c - 3), PositiveReward))
 
     val m2 = for {
       c <- 2 to LastPad - 2
     } yield (WallStatus((1, c), SE, c + 1) -> (WallStatus((2, c - 1), NO, c + 1), PositiveReward))
 
-    (m1 ++ m2).toMap
+    val m3 = Map(
+      WallStatus((1, LastCol - 1), SO, LastPad - 2) -> (WallStatus((2, LastCol), NO, LastPad - 2), PositiveReward),
+      WallStatus((1, LastCol), SO, LastPad - 1) -> (WallStatus((2, LastCol - 1), NO, LastPad - 1), PositiveReward),
+      WallStatus((1, 1), SE, 2) -> (WallStatus((2, 0), NE, 2), PositiveReward),
+      WallStatus((1, 0), SE, 1) -> (WallStatus((2, 1), NE, 1), PositiveReward))
+    (m1 ++ m2 ++ m3).toMap
   }
 
   /** Create the map of transitions */
