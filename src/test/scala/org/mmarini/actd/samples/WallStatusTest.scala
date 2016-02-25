@@ -30,14 +30,13 @@
 package org.mmarini.actd.samples
 
 import org.mmarini.actd.Feedback
+import org.mmarini.actd.samples.WallStatus.Direction
+import org.mmarini.actd.samples.WallStatus.PadAction
 import org.scalacheck.Gen
 import org.scalatest.GivenWhenThen
 import org.scalatest.Matchers
 import org.scalatest.PropSpec
 import org.scalatest.prop.PropertyChecks
-import breeze.linalg.DenseVector
-import org.mmarini.actd.samples.GraphStatus.MazeAction
-import com.sun.org.apache.xalan.internal.xsltc.compiler.LastCall
 
 class WallStatusTest extends PropSpec with PropertyChecks with Matchers with GivenWhenThen {
   import WallStatus.PadAction._
@@ -93,12 +92,36 @@ class WallStatusTest extends PropSpec with PropertyChecks with Matchers with Giv
   /**
    *    ===============
    * 10 | o         o |
+   *  9 |. O       . O|
+   *
+   *     0123456789012
+   *     0000000000111
+   */
+  property("Ball in (9,3-12) NO") {
+    forAll((for {
+      c <- Gen.choose(3, LastCol)
+      pad <- Gen.choose(0, LastPad)
+    } yield WallStatus((Height - 1, c), NO, pad), "s0")) {
+      s0 =>
+        {
+          val Feedback(_, _, r, s1) = s0.apply(WallStatus.PadAction.Rest.id)
+          r should be(0.0)
+          s1 should matchPattern {
+            case WallStatus((Height, c), SO, _) if (c == s0.ball._2 - 1) =>
+          }
+        }
+    }
+  }
+
+  /**
+   *    ===============
+   * 10 | o         o |
    *  9 |O .       O .|
    *
    *     0123456789012
    *     0000000000111
    */
-  property("Ball in (10,1-11) SE") {
+  property("Ball in (9,0-10) NE") {
     forAll((for {
       c <- Gen.choose(0, Width - 3)
       pad <- Gen.choose(0, LastPad)
@@ -109,30 +132,6 @@ class WallStatusTest extends PropSpec with PropertyChecks with Matchers with Giv
           r should be(0.0)
           s1 should matchPattern {
             case WallStatus((Height, c), SE, _) if (c == s0.ball._2 + 1) =>
-          }
-        }
-    }
-  }
-
-  /**
-   *    ===============
-   * 10 | o         o |
-   *  9 |. O       . O|
-   *
-   *     0123456789012
-   *     0000000000111
-   */
-  property("Ball in (10,1-11) SO") {
-    forAll((for {
-      c <- Gen.choose(2, LastCol)
-      pad <- Gen.choose(0, LastPad)
-    } yield WallStatus((9, c), NO, pad), "s0")) {
-      s0 =>
-        {
-          val Feedback(_, _, r, s1) = s0.apply(WallStatus.PadAction.Rest.id)
-          r should be(0.0)
-          s1 should matchPattern {
-            case WallStatus((Height, c), SO, _) if (c == s0.ball._2 - 1) =>
           }
         }
     }
@@ -167,6 +166,34 @@ class WallStatusTest extends PropSpec with PropertyChecks with Matchers with Giv
   }
 
   /**
+   *    =======
+   * 10 | .
+   *  9 |o
+   *  8 | O
+   *
+   *  3 | .
+   *  2 |o
+   *  1 | O
+   *  0  ===
+   *     012
+   */
+  property("Ball in (2-9,0) NE") {
+    forAll((for {
+      r <- Gen.choose(1, Height - 2)
+      pad <- Gen.choose(0, LastPad)
+    } yield WallStatus((r, 1), NO, pad), "s0")) {
+      s0 =>
+        {
+          val Feedback(_, _, r, s1) = s0.apply(WallStatus.PadAction.Rest.id)
+          r should be(0.0)
+          s1 should matchPattern {
+            case WallStatus((row, 0), NE, _) if (row == s0.ball._1 + 1) =>
+          }
+        }
+    }
+  }
+
+  /**
    *    ====
    * 10  O |
    *  9   o|
@@ -174,7 +201,7 @@ class WallStatusTest extends PropSpec with PropertyChecks with Matchers with Giv
    *
    *  3  O |
    *  2   o|
-   *  1  . |
+   *  2  . |
    *  0 ===
    *    012
    *    111
@@ -183,13 +210,42 @@ class WallStatusTest extends PropSpec with PropertyChecks with Matchers with Giv
     forAll((for {
       r <- Gen.choose(3, Height)
       pad <- Gen.choose(0, LastPad)
-    } yield WallStatus((r, 11), SE, pad), "s0")) {
+    } yield WallStatus((r, LastCol - 1), SE, pad), "s0")) {
       s0 =>
         {
           val Feedback(_, _, r, s1) = s0.apply(WallStatus.PadAction.Rest.id)
           r should be(0.0)
           s1 should matchPattern {
             case WallStatus((row, LastCol), SO, _) if (row == s0.ball._1 - 1) =>
+          }
+        }
+    }
+  }
+
+  /**
+   *    ====
+   * 10  . |
+   *  9   o|
+   *  8  O |
+   *
+   *  3  . |
+   *  2   o|
+   *  1  O |
+   *  0 ===
+   *    012
+   *    111
+   */
+  property("Ball in (2-9,12) NO") {
+    forAll((for {
+      r <- Gen.choose(1, Height - 2)
+      pad <- Gen.choose(0, LastPad)
+    } yield WallStatus((r, 11), NE, pad), "s0")) {
+      s0 =>
+        {
+          val Feedback(_, _, r, s1) = s0.apply(WallStatus.PadAction.Rest.id)
+          r should be(0.0)
+          s1 should matchPattern {
+            case WallStatus((row, LastCol), NO, _) if (row == s0.ball._1 + 1) =>
           }
         }
     }
@@ -427,15 +483,15 @@ class WallStatusTest extends PropSpec with PropertyChecks with Matchers with Giv
 
   /**
    * 2 |             |
-   * 1 |   o.......o |
-   * 0 |=== O-------O|
+   * 1 |   o......o  |
+   * 0 |=== O------O |
    *    0123456789012
    *    0000000000111
    */
-  property("Ball in (1,3-11) SE missing pad") {
+  property("Ball in (1,3-10) SE missing pad") {
     forAll((
       for {
-        c <- Gen.choose(3, SecondLastCol)
+        c <- Gen.choose(3, LastCol - 2)
         pad <- Gen.choose(0, c - 3)
       } yield WallStatus((1, c), SE, pad), "s0")) {
       s0 =>
@@ -449,17 +505,105 @@ class WallStatusTest extends PropSpec with PropertyChecks with Matchers with Giv
 
   /**
    * 2 |             |
-   * 1 | o-------o   |
-   * 0 |O-------O ===|
+   * 1 |           O |
+   * 0 |===-----=== o|
    *    0123456789012
    *    0000000000111
    */
-  property("Ball in (1,1-9) SO missing pad") {
+  property("Ball in (1,11) SE missing pad") {
     forAll((
       for {
-        c <- Gen.choose(1, SecondLastPad)
+        pad <- Gen.choose(0, LastPad - 2)
+      } yield WallStatus((1, LastCol - 1), SE, pad), "s0")) {
+      s0 =>
+        {
+          val Feedback(_, _, r, s1) = s0.apply(WallStatus.PadAction.Rest.id)
+          r should be(NegativeReward)
+          s1 should have('finalStatus(true))
+        }
+    }
+  }
+
+  /**
+   * 2 |           O |
+   * 1 |            o|
+   * 0 |===------=== |
+   *    0123456789012
+   *    0000000000111
+   */
+  property("Ball in (2,11) SE") {
+    forAll((
+      for {
+        pad <- Gen.choose(0, LastPad - 1)
+      } yield WallStatus((2, LastCol - 1), SE, pad), "s0")) {
+      s0 =>
+        {
+          val Feedback(_, _, r, s1) = s0.apply(WallStatus.PadAction.Rest.id)
+          r should be(0.0)
+          s1 should matchPattern {
+            case WallStatus((1, LastCol), SO, _) =>
+          }
+        }
+    }
+  }
+
+  /**
+   * 2 | O           |
+   * 1 |o            |
+   * 0 | ===------===|
+   *    0123456789012
+   *    0000000000111
+   */
+  property("Ball in (2,1) SO") {
+    forAll((
+      for {
+        pad <- Gen.choose(1, LastPad)
+      } yield WallStatus((2, 1), SO, pad), "s0")) {
+      s0 =>
+        {
+          val Feedback(_, _, r, s1) = s0.apply(WallStatus.PadAction.Rest.id)
+          r should be(0.0)
+          s1 should matchPattern {
+            case WallStatus((1, 0), SE, _) =>
+          }
+        }
+    }
+  }
+
+  /**
+   * 2 |             |
+   * 1 |  o------o   |
+   * 0 | O------O ===|
+   *    0123456789012
+   *    0000000000111
+   */
+  property("Ball in (1,2-9) SO missing pad") {
+    forAll((
+      for {
+        c <- Gen.choose(2, SecondLastPad)
         pad <- Gen.choose(c + 1, LastPad)
       } yield WallStatus((1, c), SO, pad), "s0")) {
+      s0 =>
+        {
+          val Feedback(_, _, r, s1) = s0.apply(WallStatus.PadAction.Rest.id)
+          r should be(NegativeReward)
+          s1 should have('finalStatus(true))
+        }
+    }
+  }
+
+  /**
+   * 2 |             |
+   * 1 | O           |
+   * 0 |o ===-----===|
+   *    0123456789012
+   *    0000000000111
+   */
+  property("Ball in (1,1) SO missing pad") {
+    forAll((
+      for {
+        pad <- Gen.choose(2, LastPad)
+      } yield WallStatus((1, 1), SO, pad), "s0")) {
       s0 =>
         {
           val Feedback(_, _, r, s1) = s0.apply(WallStatus.PadAction.Rest.id)
