@@ -460,6 +460,48 @@ class WallStatusTest extends PropSpec with PropertyChecks with Matchers with Giv
   }
 
   /**
+   * 2 |  O-------O  |
+   * 1 |   o-------o |
+   * 0 |===#.-------.|
+   *    0123456789012
+   *    0000000000111
+   */
+  property("Ball in (1,3-11) SE") {
+    forAll((
+      for {
+        c <- Gen.choose(3, LastCol - 1)
+      } yield WallStatus((1, c), SE, c - PadSize), "s0")) {
+      s0 =>
+        {
+          val Feedback(_, _, r, s1) = s0.apply(WallStatus.PadAction.Right.id)
+          r should be(NegativeReward)
+          s1 should have('finalStatus(true))
+        }
+    }
+  }
+
+  /**
+   * 2 |  O-------O  |
+   * 1 | o-------o   |
+   * 0 |.-------.#===|
+   *    0123456789012
+   *    0000000000111
+   */
+  property("Ball in (1,1-9) SO") {
+    forAll((
+      for {
+        c <- Gen.choose(1, LastPad - 1)
+      } yield WallStatus((1, c), SO, c + 1), "s0")) {
+      s0 =>
+        {
+          val Feedback(_, _, r, s1) = s0.apply(WallStatus.PadAction.Left.id)
+          r should be(NegativeReward)
+          s1 should have('finalStatus(true))
+        }
+    }
+  }
+
+  /**
    * 2 |             |
    * 1 |o-------o    |
    * 0 | O-------O===|
