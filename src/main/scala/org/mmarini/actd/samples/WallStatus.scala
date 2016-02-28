@@ -31,24 +31,17 @@ package org.mmarini.actd.samples
 
 import org.apache.commons.math3.random.MersenneTwister
 import org.mmarini.actd.Action
-import org.mmarini.actd.DummyAgent
 import org.mmarini.actd.Feedback
 import org.mmarini.actd.Status
-import org.mmarini.actd.TDAgent
 import org.mmarini.actd.TDNeuralNet
 import org.mmarini.actd.TDParms
+import org.mmarini.actd.samples.WallStatus.Direction
+
 import com.typesafe.scalalogging.LazyLogging
-import WallStatus.Height
-import WallStatus.NegativeReward
+
 import WallStatus.PadAction
-import WallStatus.PadSize
-import WallStatus.PositiveReward
-import WallStatus.Width
 import breeze.linalg.DenseVector
 import breeze.stats.distributions.RandBasis
-import breeze.optimize.MaxIterations
-import org.mmarini.actd.Feedback
-import org.mmarini.actd.samples.WallStatus.Direction
 
 /** */
 case class WallStatus(ball: (Int, Int), direction: Direction.Value, pad: Int) extends Status {
@@ -58,9 +51,7 @@ case class WallStatus(ball: (Int, Int), direction: Direction.Value, pad: Int) ex
   import WallStatus._
 
   require(ball._2 >= 0)
-  require(ball._2 <= Width - 1)
-  require(ball._2 >= 1 || direction == NE || direction == SE, s"$ball $direction $pad")
-  require(ball._2 < Width - 1 || direction == NO || direction == SO, s"$ball $direction $pad")
+  require(ball._2 <= Width)
   require(pad >= 0)
   require(pad <= LastPad)
   require(ball._1 <= Height)
@@ -101,7 +92,7 @@ case class WallStatus(ball: (Int, Int), direction: Direction.Value, pad: Int) ex
       // Restarts because ball is out of field
       (WallStatus.initial, 0.0)
     } else {
-      val nextOpt = StatusMap.get((this.pad(pad1)))
+      val nextOpt = StatusMap.get((this, PadAction(action)))
       nextOpt.getOrElse((
         direction match {
           case NO => WallStatus((ball._1 + 1, ball._2 - 1), direction, pad1)
@@ -119,6 +110,10 @@ case class WallStatus(ball: (Int, Int), direction: Direction.Value, pad: Int) ex
 }
 
 object WallStatus extends LazyLogging {
+
+  type TransitionSource = (WallStatus, PadAction.Value)
+  type TransitionTarget = (WallStatus, Double)
+  type TransitionMap = Map[TransitionSource, TransitionTarget]
 
   val Height = 10
   val Width = 13
@@ -201,202 +196,101 @@ object WallStatus extends LazyLogging {
     (initStatus, parms, critic, actor)
   }
 
-  private def validateTx(s: Seq[(WallStatus, (WallStatus, Double))]) = {
+  private def validateTx(s: Seq[(TransitionSource, TransitionTarget)]) = {
     require(s.size == s.toMap.size, s)
     s.toMap
   }
 
   private def createTx0 =
-    validateTx(
-      Seq(
-        WallStatus((1, LastCol - 1), SO, LastPad - 2) -> (WallStatus((2, LastCol), NO, LastPad - 2), PositiveReward),
-        WallStatus((1, LastCol), SO, LastPad - 1) -> (WallStatus((2, LastCol - 1), NO, LastPad - 1), PositiveReward),
-        WallStatus((1, 1), SE, 2) -> (WallStatus((2, 0), NE, 2), PositiveReward),
-        WallStatus((1, 0), SE, 1) -> (WallStatus((2, 1), NE, 1), PositiveReward)))
+    validateTx(for {
+      pad <- (0 to LastPad)
+      dir <- Seq(NO, NE, SO)
+      act <- PadAction.values.toSeq
+    } yield {
+      val s0 = WallStatus((Height, 0), dir, pad)
+      val s1 = WallStatus((SecondLastRow, 1), SE, s0.movePad(act.id))
+      ((s0, act), (s1, 0.0))
+    })
 
   private def createTx1 =
-    validateTx(
-      for {
-        r <- 3 to Height
-        pad1 <- 0 to LastPad
-      } yield (WallStatus((r, 1), SO, pad1) -> (WallStatus((r - 1, 0), SE, pad1), 0.0)))
+    validateTx(for {
+      pad <- (0 to LastPad)
+      dir <- Seq(NO, NE, SE)
+      act <- PadAction.values.toSeq
+    } yield {
+      val s0 = WallStatus((Height, LastCol), dir, pad)
+      val s1 = WallStatus((SecondLastRow, SecondLastCol), SO, s0.movePad(act.id))
+      ((s0, act), (s1, 0.0))
+    })
 
   private def createTx2 =
-    validateTx(
-      for {
-        r <- 3 to Height
-        pad1 <- 0 to LastPad
-      } yield (WallStatus((r, SecondLastCol), SE, pad1) -> (WallStatus((r - 1, Width - 1), SO, pad1), 0.0)))
+    validateTx(for {
+      c <- 1 to SecondLastCol
+      pad <- (0 to LastPad)
+      act <- PadAction.values.toSeq
+    } yield {
+      val s0 = WallStatus((Height, c), NO, pad)
+      val s1 = WallStatus((SecondLastRow, c - 1), SO, s0.movePad(act.id))
+      ((s0, act), (s1, 0.0))
+    })
 
   private def createTx3 =
-    validateTx(
-      for {
-        c <- 0 to Width - 3
-        pad1 <- 0 to LastPad
-      } yield (WallStatus((SecondLastRow, c), NE, pad1) -> (WallStatus((Height, c + 1), SE, pad1), 0.0)))
+    validateTx(for {
+      c <- 1 to SecondLastCol
+      pad <- (0 to LastPad)
+      act <- PadAction.values.toSeq
+    } yield {
+      val s0 = WallStatus((Height, c), NE, pad)
+      val s1 = WallStatus((SecondLastRow, c + 1), SE, s0.movePad(act.id))
+      ((s0, act), (s1, 0.0))
+    })
 
   private def createTx4 =
-    validateTx(
-      for {
-        c <- 2 to Width - 1
-        pad1 <- 0 to LastPad
-      } yield (WallStatus((SecondLastRow, c), NO, pad1) -> (WallStatus((Height, c - 1), SO, pad1), 0.0)))
+    validateTx(for {
+      r <- 2 to SecondLastRow
+      pad <- (0 to LastPad)
+      act <- PadAction.values.toSeq
+    } yield {
+      val s0 = WallStatus((r, 0), NO, pad)
+      val s1 = WallStatus((r + 1, 1), NE, s0.movePad(act.id))
+      ((s0, act), (s1, 0.0))
+    })
 
   private def createTx5 =
-    validateTx(
-      for {
-        pad1 <- 0 to LastPad
-      } yield (WallStatus((Height - 1, 1), NO, pad1) -> (WallStatus((Height, 0), SE, pad1), 0.0)))
+    validateTx(for {
+      r <- 2 to SecondLastRow
+      pad <- (0 to LastPad)
+      act <- PadAction.values.toSeq
+    } yield {
+      val s0 = WallStatus((r, 0), SO, pad)
+      val s1 = WallStatus((r - 1, 1), SE, s0.movePad(act.id))
+      ((s0, act), (s1, 0.0))
+    })
 
   private def createTx6 =
-    validateTx(
-      for {
-        pad1 <- 0 to LastPad
-      } yield (WallStatus((SecondLastRow, SecondLastCol), NE, pad1) -> (WallStatus((Height, Width - 1), SO, pad1), 0.0)))
+    validateTx(for {
+      r <- 2 to SecondLastRow
+      pad <- (0 to LastPad)
+      act <- PadAction.values.toSeq
+    } yield {
+      val s0 = WallStatus((r, LastCol), SE, pad)
+      val s1 = WallStatus((r - 1, SecondLastCol), SO, s0.movePad(act.id))
+      ((s0, act), (s1, 0.0))
+    })
 
   private def createTx7 =
-    validateTx(
-      for {
-        pad1 <- 1 to LastPad
-      } yield (WallStatus((2, 1), SO, pad1) -> (WallStatus((1, 0), SE, pad1), 0.0)))
-
-  private def createTx8 =
-    validateTx(
-      for {
-        r <- 1 to Height - 2
-        pad1 <- 0 to LastPad
-      } yield (WallStatus((r, 1), NO, pad1) -> (WallStatus((r + 1, 0), NE, pad1), 0.0)))
-
-  private def createTx9 =
-    validateTx(
-      for {
-        r <- 1 to Height - 2
-        pad1 <- 0 to LastPad
-      } yield (WallStatus((r, LastCol - 1), NE, pad1) -> (WallStatus((r + 1, LastCol), NO, pad1), 0.0)))
-
-  private def createTx10 =
-    validateTx(
-      for {
-        pad1 <- 0 to LastPad - 1
-      } yield (WallStatus((2, SecondLastCol), SE, pad1) -> (WallStatus((1, Width - 1), SO, pad1), 0.0)))
-
-  /** Create the map of bounce transitions */
-  private def createTx11 =
-    validateTx(
-      for {
-        pad1 <- 0 to 1
-      } yield (WallStatus((2, 0), SE, pad1) -> (WallStatus((1, 1), NE, pad1), PositiveReward)))
-
-  private def createTx12 =
-    validateTx(Seq((WallStatus((2, 1), SO, 0) -> (WallStatus((1, 0), NE, 0), PositiveReward))))
-
-  private def createTx13 =
-    validateTx(
-      for {
-        c <- 1 to SecondLastPad
-        pad1 <- c - 1 to c + 1
-      } yield (WallStatus((2, c), SE, pad1) -> (WallStatus((1, c + 1), NE, pad1), PositiveReward)))
-
-  private def createTx14 =
-    validateTx(
-      for {
-        pad1 <- SecondLastPad to LastPad
-      } yield (WallStatus((2, Width - 3), SE, pad1) -> (WallStatus((1, 11), NE, pad1), PositiveReward)))
-
-  private def createTx15 =
-    validateTx(
-      for {
-        pad1 <- 0 to 1
-      } yield (WallStatus((2, 2), SO, pad1) -> (WallStatus((1, 1), NO, pad1), PositiveReward)))
-
-  private def createTx16 =
-    validateTx(
-      for {
-        c <- 3 to LastPad + 1
-        pad1 <- c - 3 to c - 1
-      } yield (WallStatus((2, c), SO, pad1) -> (WallStatus((1, c - 1), NO, pad1), PositiveReward)))
-
-  private def createTx17 =
-    validateTx(
-      for {
-        pad1 <- SecondLastPad to LastPad
-      } yield (WallStatus((2, LastCol), SO, pad1) -> (WallStatus((1, LastCol - 1), NO, pad1), PositiveReward)))
-
-  private def createTx18 =
-    validateTx(Seq(WallStatus((2, SecondLastCol), SE, LastPad) -> (WallStatus((1, 12), NO, LastPad), PositiveReward)))
-
-  private def createTx19 =
-    validateTx(Seq(WallStatus((2, 4), SO, 0) -> (WallStatus((1, 3), NE, 0), PositiveReward)))
-
-  private def createTx20 =
-    validateTx(Seq(WallStatus((2, 8), SE, LastPad) -> (WallStatus((1, 9), NO, LastPad), PositiveReward)))
-
-  private def createTx21 =
-    validateTx(
-      for {
-        c <- 0 to LastPad - 2
-        pad1 <- c + 2 to LastPad
-      } yield (WallStatus((1, c), SE, pad1) -> (endStatus, NegativeReward)))
-
-  private def createTx22 =
-    validateTx(
-      for {
-        c <- 3 to Width - 3
-        pad1 <- 0 to c - 3
-      } yield (WallStatus((1, c), SE, pad1) -> (endStatus, NegativeReward)))
-
-  private def createTx23 =
-    validateTx(
-      for {
-        c <- 2 to SecondLastPad
-        pad1 <- c + 1 to LastPad
-      } yield (WallStatus((1, c), SO, pad1) -> (endStatus, NegativeReward)))
-
-  private def createTx24 =
-    validateTx(
-      for {
-        c <- 4 to Width - 1
-        pad1 <- 0 to c - 4
-      } yield (WallStatus((1, c), SO, pad1) -> (endStatus, NegativeReward)))
-
-  private def createTx25 =
-    validateTx(
-      for {
-        pad1 <- 0 to LastPad - 2
-      } yield (WallStatus((1, LastCol - 1), SE, pad1) -> (endStatus, NegativeReward)))
-
-  private def createTx26 =
-    validateTx(
-      for {
-        pad1 <- 2 to LastPad
-      } yield (WallStatus((1, 1), SO, pad1) -> (endStatus, NegativeReward)))
-
-  private def createTx27 =
-    validateTx(
-      for {
-        c <- PadSize + 1 to LastCol - 2
-      } yield (WallStatus((1, c), SO, c - 3) -> (WallStatus((2, c + 1), NE, c - 3), PositiveReward)))
-
-  private def createTx28 =
-    validateTx(
-      for {
-        c <- 2 to LastPad - 2
-      } yield (WallStatus((1, c), SE, c + 1) -> (WallStatus((2, c - 1), NO, c + 1), PositiveReward)))
-
-  private def createTx30 =
-    validateTx(
-      for {
-        c <- 1 to LastPad - 1
-      } yield (WallStatus((1, c), SO, c) -> (endStatus, NegativeReward)))
-
-  private def createTx29 =
-    validateTx(
-      for {
-        c <- 3 to LastCol - 1
-      } yield (WallStatus((1, c), SE, c - PadSize + 1) -> (endStatus, NegativeReward)))
+    validateTx(for {
+      r <- 2 to SecondLastRow
+      pad <- (0 to LastPad)
+      act <- PadAction.values.toSeq
+    } yield {
+      val s0 = WallStatus((r, LastCol), NE, pad)
+      val s1 = WallStatus((r + 1, SecondLastCol), NO, s0.movePad(act.id))
+      ((s0, act), (s1, 0.0))
+    })
 
   /** Create the map of transitions */
-  private def createMap: Map[WallStatus, (WallStatus, Double)] = {
+  private def createMap: TransitionMap = {
     val lm =
       createTx0 +:
         createTx1 +:
@@ -406,38 +300,20 @@ object WallStatus extends LazyLogging {
         createTx5 +:
         createTx6 +:
         createTx7 +:
-        createTx8 +:
-        createTx9 +:
-        createTx10 +:
-        createTx11 +:
-        createTx12 +:
-        createTx13 +:
-        createTx14 +:
-        createTx15 +:
-        createTx16 +:
-        createTx17 +:
-        createTx18 +:
-        createTx19 +:
-        createTx20 +:
-        createTx21 +:
-        createTx22 +:
-        createTx23 +:
-        createTx24 +:
-        createTx25 +:
-        createTx26 +:
-        createTx27 +:
-        createTx28 +:
-        createTx29 +:
-        createTx30 +:
+        //        createTx8 +:
+        //        createTx9 +:
+        //        createTx10 +:
+        //        createTx11 +:
         Seq()
-
+    //
     val lmi = lm.zipWithIndex
     for {
       (li, i) <- lmi
       (lj, j) <- lmi
       if (j > i)
     } {
-      require(li.forall(k => !lj.contains(k._1)), s"createTx$i in createTx$j")
+      val inter = li.keySet & lj.keySet
+      require(inter.isEmpty, s"createTx$i & createTx$j = $inter")
     }
 
     val map = lm.reduce(_ ++ _)
