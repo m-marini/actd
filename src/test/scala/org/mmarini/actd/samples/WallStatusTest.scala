@@ -579,7 +579,7 @@ class WallStatusTest extends PropSpec with PropertyChecks with Matchers with Giv
   property("tx21") {
     forAll((for {
       pad <- Gen.choose(0, LastPad - 2)
-    } yield WallStatus((1, pad - PadSize), SO, pad), "s0"),
+    } yield WallStatus((1, pad + PadSize), SO, pad), "s0"),
       (Gen.const(Rest), "act")) {
         (s0, act) =>
           {
@@ -602,13 +602,13 @@ class WallStatusTest extends PropSpec with PropertyChecks with Matchers with Giv
   property("tx22") {
     forAll((for {
       pad <- Gen.choose(0, LastPad - 3)
-    } yield WallStatus((1, pad - PadSize - 1), SO, pad), "s0"),
+    } yield WallStatus((1, pad + PadSize + 1), SO, pad), "s0"),
       (Gen.const(Right), "act")) {
         (s0, act) =>
           {
             val Feedback(_, _, r, s1) = s0.apply(act.id)
             s1 should matchPattern {
-              case WallStatus((2, c), NO, p) if (p == s0.pad + 1 && c == s0.ball._2 + 1) =>
+              case WallStatus((2, c), NE, p) if (p == s0.pad + 1 && c == s0.ball._2 + 1) =>
             }
             r should be(PositiveReward)
           }
@@ -625,7 +625,7 @@ class WallStatusTest extends PropSpec with PropertyChecks with Matchers with Giv
   property("tx23") {
     forAll((for {
       pad <- Gen.choose(1, SecondLastPad)
-    } yield WallStatus((1, pad), SO, pad), "s0"),
+    } yield WallStatus((1, pad + PadSize - 1), SO, pad), "s0"),
       (Gen.const(Left), "act")) {
         (s0, act) =>
           {

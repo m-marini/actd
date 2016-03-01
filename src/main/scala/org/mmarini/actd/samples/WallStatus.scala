@@ -414,6 +414,33 @@ object WallStatus extends LazyLogging {
       ((s0, Right), (s1, PositiveReward))
     })
 
+  private def createTx21 =
+    validateTx(for {
+      pad <- 0 to LastPad - 2
+    } yield {
+      val s0 = WallStatus((1, pad + PadSize), SO, pad)
+      val s1 = WallStatus((2, pad + PadSize + 1), NE, pad)
+      ((s0, Rest), (s1, PositiveReward))
+    })
+
+  private def createTx22 =
+    validateTx(for {
+      pad <- 0 to LastPad - 3
+    } yield {
+      val s0 = WallStatus((1, pad + PadSize + 1), SO, pad)
+      val s1 = WallStatus((2, pad + PadSize + 2), NE, pad + 1)
+      ((s0, Right), (s1, PositiveReward))
+    })
+
+  private def createTx23 =
+    validateTx(for {
+      pad <- 1 to SecondLastPad
+    } yield {
+      val s0 = WallStatus((1, pad + PadSize - 1), SO, pad)
+      val s1 = WallStatus((2, pad + PadSize - 2), NO, pad - 1)
+      ((s0, Left), (s1, PositiveReward))
+    })
+
   /** Create the map of transitions */
   private def createMap: TransitionMap = {
     val lm =
@@ -438,6 +465,9 @@ object WallStatus extends LazyLogging {
         createTx18 +:
         createTx19 +:
         createTx20 +:
+        createTx21 +:
+        createTx22 +:
+        createTx23 +:
         Seq()
     //
     val lmi = lm.zipWithIndex
