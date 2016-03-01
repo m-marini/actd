@@ -501,6 +501,144 @@ class WallStatusTest extends PropSpec with PropertyChecks with Matchers with Giv
   }
 
   /**
+   *  2 |.------..    |
+   *  1 | o-------o   |
+   *  0 |  ===-----===|
+   *     0123456789012
+   *     0000000000111
+   */
+  property("tx18") {
+    forAll((for {
+      pad <- Gen.choose(2, LastPad)
+    } yield WallStatus((1, pad - 1), SE, pad), "s0"),
+      (Gen.const(Rest), "act")) {
+        (s0, act) =>
+          {
+            val Feedback(_, _, r, s1) = s0.apply(act.id)
+            s1 should matchPattern {
+              case WallStatus((2, c), NO, p) if (p == s0.pad && c == s0.ball._2 - 1) =>
+            }
+            r should be(PositiveReward)
+          }
+      }
+  }
+
+  /**
+   *  2 |.------.     |
+   *  1 | o------o    |
+   *  0 |  #===---#===|
+   *     0123456789012
+   *     0000000000111
+   */
+  property("tx19") {
+    forAll((for {
+      pad <- Gen.choose(3, LastPad)
+    } yield WallStatus((1, pad - 2), SE, pad), "s0"),
+      (Gen.const(Left), "act")) {
+        (s0, act) =>
+          {
+            val Feedback(_, _, r, s1) = s0.apply(act.id)
+            s1 should matchPattern {
+              case WallStatus((2, c), NO, p) if (p == s0.pad - 1 && c == s0.ball._2 - 1) =>
+            }
+            r should be(PositiveReward)
+          }
+      }
+  }
+
+  /**
+   *  2 |O-.---- O-.  |
+   *  1 | o------ o   |
+   *  0 | ===#----===#|
+   *     0123456789012
+   *     0000000000111
+   */
+  property("tx20") {
+    forAll((for {
+      pad <- Gen.choose(1, SecondLastPad)
+    } yield WallStatus((1, pad), SE, pad), "s0"),
+      (Gen.const(Right), "act")) {
+        (s0, act) =>
+          {
+            val Feedback(_, _, r, s1) = s0.apply(act.id)
+            s1 should matchPattern {
+              case WallStatus((2, c), NE, p) if (p == s0.pad + 1 && c == s0.ball._2 + 1) =>
+            }
+            r should be(PositiveReward)
+          }
+      }
+  }
+
+  /**
+   *  2 |    .-------.|
+   *  1 |   o-------o |
+   *  0 |===-----===  |
+   *     0123456789012
+   *     0000000000111
+   */
+  property("tx21") {
+    forAll((for {
+      pad <- Gen.choose(0, LastPad - 2)
+    } yield WallStatus((1, pad - PadSize), SO, pad), "s0"),
+      (Gen.const(Rest), "act")) {
+        (s0, act) =>
+          {
+            val Feedback(_, _, r, s1) = s0.apply(act.id)
+            s1 should matchPattern {
+              case WallStatus((2, c), NE, p) if (p == s0.pad && c == s0.ball._2 + 1) =>
+            }
+            r should be(PositiveReward)
+          }
+      }
+  }
+
+  /**
+   *  2 |     .------.|
+   *  1 |    o------o |
+   *  0 |===#---===#  |
+   *     0123456789012
+   *     0000000000111
+   */
+  property("tx22") {
+    forAll((for {
+      pad <- Gen.choose(0, LastPad - 3)
+    } yield WallStatus((1, pad - PadSize - 1), SO, pad), "s0"),
+      (Gen.const(Right), "act")) {
+        (s0, act) =>
+          {
+            val Feedback(_, _, r, s1) = s0.apply(act.id)
+            s1 should matchPattern {
+              case WallStatus((2, c), NO, p) if (p == s0.pad + 1 && c == s0.ball._2 + 1) =>
+            }
+            r should be(PositiveReward)
+          }
+      }
+  }
+
+  /**
+   *  2 |  .-O-----.-O|
+   *  1 |   o------ o |
+   *  0 |#===----#=== |
+   *     0123456789012
+   *     0000000000111
+   */
+  property("tx23") {
+    forAll((for {
+      pad <- Gen.choose(1, SecondLastPad)
+    } yield WallStatus((1, pad), SO, pad), "s0"),
+      (Gen.const(Left), "act")) {
+        (s0, act) =>
+          {
+            val Feedback(_, _, r, s1) = s0.apply(act.id)
+            s1 should matchPattern {
+              case WallStatus((2, c), NO, p) if (p == s0.pad - 1 && c == s0.ball._2 - 1) =>
+            }
+            r should be(PositiveReward)
+          }
+      }
+  }
+
+  /**
    *  2 | O           |
    *  1 |o            |
    *  0 | .===-----===|
