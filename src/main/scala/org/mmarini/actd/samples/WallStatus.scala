@@ -36,9 +36,7 @@ import org.mmarini.actd.Status
 import org.mmarini.actd.TDNeuralNet
 import org.mmarini.actd.TDParms
 import org.mmarini.actd.samples.WallStatus.Direction
-
 import com.typesafe.scalalogging.LazyLogging
-
 import WallStatus.PadAction
 import breeze.linalg.DenseVector
 import breeze.stats.distributions.RandBasis
@@ -93,13 +91,15 @@ case class WallStatus(ball: (Int, Int), direction: Direction.Value, pad: Int) ex
       (WallStatus.initial, 0.0)
     } else {
       val nextOpt = StatusMap.get((this, PadAction(action)))
-      nextOpt.getOrElse((
+      nextOpt.getOrElse(
         direction match {
-          case NO => WallStatus((ball._1 + 1, ball._2 - 1), direction, pad1)
-          case NE => WallStatus((ball._1 + 1, ball._2 + 1), direction, pad1)
-          case SO => WallStatus((ball._1 - 1, ball._2 - 1), direction, pad1)
-          case SE => WallStatus((ball._1 - 1, ball._2 + 1), direction, pad1)
-        }, 0.0));
+          case NO => (WallStatus((ball._1 + 1, ball._2 - 1), direction, pad1), 0.0)
+          case NE => (WallStatus((ball._1 + 1, ball._2 + 1), direction, pad1), 0.0)
+          case SO if (ball._1 == 1) => (endStatus, NegativeReward)
+          case SE if (ball._1 == 1) => (endStatus, NegativeReward)
+          case SO => (WallStatus((ball._1 - 1, ball._2 - 1), direction, pad1), 0.0)
+          case SE => (WallStatus((ball._1 - 1, ball._2 + 1), direction, pad1), 0.0)
+        })
     }
     Feedback(this, action, reward, s1)
   }
@@ -358,6 +358,35 @@ object WallStatus extends LazyLogging {
       ((s0, Left), (s1, PositiveReward))
     })
 
+  private def createTx15 =
+    validateTx(for {
+      pad <- SecondLastPad to LastPad
+      dir <- Seq(SO, SE)
+    } yield {
+      val s0 = WallStatus((1, LastCol), dir, pad)
+      val s1 = WallStatus((2, SecondLastCol), NO, pad)
+      ((s0, Rest), (s1, PositiveReward))
+    })
+
+  private def createTx16 =
+    validateTx(for {
+      dir <- Seq(SO, SE)
+    } yield {
+      val s0 = WallStatus((1, LastCol), dir, LastPad)
+      val s1 = WallStatus((2, SecondLastCol), NO, SecondLastPad)
+      ((s0, Left), (s1, PositiveReward))
+    })
+
+  private def createTx17 =
+    validateTx(for {
+      pad <- LastPad - 2 to SecondLastPad
+      dir <- Seq(SO, SE)
+    } yield {
+      val s0 = WallStatus((1, LastCol), dir, pad)
+      val s1 = WallStatus((2, SecondLastCol), NO, pad + 1)
+      ((s0, Right), (s1, PositiveReward))
+    })
+
   /** Create the map of transitions */
   private def createMap: TransitionMap = {
     val lm =
@@ -376,6 +405,9 @@ object WallStatus extends LazyLogging {
         createTx12 +:
         createTx13 +:
         createTx14 +:
+        createTx15 +:
+        createTx16 +:
+        createTx17 +:
         Seq()
     //
     val lmi = lm.zipWithIndex
