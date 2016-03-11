@@ -20,7 +20,7 @@ Studio del gioco wall
 Wall è un gioco dove una pallina si muove in un campo rettangolare con traiettorie rettilinee diagonali.
 I limiti superiore e laterali sono costituiti da muri che
 fanno rimbalzare la pallina.
-La parte inferiore invece è aperta e una racchetta controllatada giocatore si muove orizzontalmente
+La parte inferiore invece è aperta e una racchetta controllata dal giocatore si muove orizzontalmente
 permettendo allo stesso di far rimbalzare la pallina all'interno del campo da gioco.
 La numerazione delle righe parte dal basso e verso l'alto.
 
@@ -55,58 +55,29 @@ Calcoliamo il numero di stati possibili:
 La racchetta può trovarsi in uno degli
 \[m - w + 1 = 11 \] possibili posizioni.
 
+\subsection{Palla in centro}
+
 Quando la pallina non si trova in prossimità dei muri o della racchetta
 può muoversi in 4 diverse direzioni: NE, SE, SO, NO.
 Quindi abbiamo
 \[ 4 (n-2)(m-2) (m - w + 1) = 3872 \]
 possibili stati.
 
-Negli angoli superiori la pallina può avere solo una direzione quindi
+\subsection{Palla negli angoli superiori}
+
+Negli angoli superiori la pallina può avere solo una direzione (NO per l'angolo ovest e NE per l'angolo est) quindi
 si aggiungono altri 
 \[
-	2 (m -w +1) = 22
+	2 (m - w +1) = 11
 \] stati.
 
-Quando si trova in prossimità invece del muro superiore o di quelli laterali, la pallina può assumere solo due possibili velocità quindi avremo:
-\[ (m -w + 1) 2 [ 2 (n - 2) + m - 2] = 594 \]
-ulteriori stati.
+\subsection{Palla nel muro superiore}
 
-Vediamo ora alcuni particolari quando la pallina si trova su nell'angolo
-inferiore sx nel qual caso è possibile una sola traiettoria verso l'alto
-se la racchetta si trova in prima o seconda posizione (rimbalzo) o verso 
-l'uscita del campo negli altri casi, quindi avremo
-\[ m-w+1 = 11 \] possibili casi.
+Quando si trova in prossimità invece del muro superiore può avere solo due direzioni (NE o NO) quindi \[ (m - w + 1) 2 (m - 2) = 242 \] stati
 
-Altrettanti se consideriamo quando la pallina si trova nell'angolo inferiore dx.
+\subsection{Palla nei muri laterali}
 
-Nel caso invece la pallina si trovi sulla riga inferiore del campo avremo due possibili traiettorie: NE o  NO se la pallina si trova esattamente sotto la racchetta (rimbalzo) o SE o SO negli altri casi.
-
-Quindi avremo
-\[ 2 * (m - 2) = 22 \] stati.
-
-Poi avremo lo stato finale di pallina fuori campo.
-
-In totale quindi possiamo contare
-\[
-	3872 + 22 + 594 + 11 + 11 + 22 + 1 = 4533
-\] possibili stati.
-
-
-\section{Miglior policy}
-
-La policy migliore è quella di far rimbalzare la pallina una volta che raggiunge la parte inferiore del campo
-
-La pallina rimbalza ogni
-\[
-	2 (n - 1)
-\]
-passi.
-
-Il ritorno aspettato allo stato dopo $ i = (1 \dots 2(n-1) $ passi dal rimbalzo sarà quindi
-\[
-	R_i = \gamma ^ {2(n-1)-i} \sum_{j=0}^{\infty} R^+ \gamma ^ {2(n-1)j} =
-	 R^+ \frac{ \gamma ^ {2(n-1)-i}}{1-\gamma ^ {2(n-1)}}
-\]
+Quando si trova in prossimità invece del muro laterali, la pallina può assumere solo due possibili velocità (SE NE per il lato est e SO NO per il lato ovest) quindi avremo \[ 2 (m - w + 1) 2 (n - 2) = 352 \] ulteriori stati.
 
 
 \section{Rimbalzi certi}
@@ -201,7 +172,49 @@ In totale abbiamo
 \]
 possibili stati.
 
+\section{Miglior policy}
+
+La policy migliore è quella di far rimbalzare la pallina una volta che raggiunge la parte inferiore del campo
+
+La pallina rimbalza ogni
+\[
+2 (n - 1)
+\]
+passi.
+
+Il ritorno aspettato allo stato dopo $ i = (1 \dots 2(n-1) $ passi dal rimbalzo sarà quindi
+\[
+R_i = \gamma ^ {2(n-1)-i} \sum_{j=0}^{\infty} R^+ \gamma ^ {2(n-1)j} =
+R^+ \frac{ \gamma ^ {2(n-1)-i}}{1-\gamma ^ {2(n-1)}}
+\]
+
+
 \section{Considerazioni}
+
+Consideriamo ora la startegia $ \varepsilon $-greedy dove viene generata un'azione casuale con probabilità $ \varepsilon $.
+
+Supponiamo che l'azione casuale porti alla fine gioco.
+
+Che probabilità abbiamo che la sequenza si concluda con la fine del gioco dopo $ k $ iterazioni?
+
+\[
+P(fine) = 1 - (1 - \varepsilon) ^ k
+\]
+
+Per una sequenza di episodica abbiamo che \[ k = 2(n-1) \] quindi
+\[
+P(fine) = 1 - (1 - \varepsilon) ^ {2(n-1)}
+\]
+
+Quindi se vogliamo che la fine del gioco capiti con probabilità $ p $ sobbiamo avere
+\[
+\varepsilon = 1- (1 - p) ^ \frac{1}{2(n-1)}
+\]
+
+nel caso di $ p = 0.1 $ avremo che 
+\[
+\varepsilon \approx 5.8363 \cdot 10^{-3}
+\]
 
 In tutto gli stati finali sono quindi 
 \[
@@ -212,8 +225,7 @@ In tutto gli stati finali sono quindi
 \end{array}
 \]
 
-Supponiamo ora che la strategia per gli stati precedenti il rimbalzo
-porti ad una distribuzione uniforme degli stati precedenti i rimbalzo, abbiamo quindi tre situazioni:
+Supponiamo ora che la strategia porti ad una distribuzione uniforme degli stati i rimbalzo, abbiamo quindi tre situazioni:
 
 \begin{itemize}
 	\item 	
@@ -237,7 +249,6 @@ porti ad una distribuzione uniforme degli stati precedenti i rimbalzo, abbiamo q
 	 = \frac{16}{99}\approx0.162
 	 \]
 \end{itemize}
-
 
 
 \end{document}

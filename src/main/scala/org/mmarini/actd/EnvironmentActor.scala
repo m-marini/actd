@@ -33,13 +33,13 @@ import org.mmarini.actd.TDAgentActor.Train
 import org.mmarini.actd.TDAgentActor.React
 import org.mmarini.actd.TDAgentActor.Reaction
 import org.mmarini.actd.TDAgentActor.Trained
-
 import EnvironmentActor.Step
 import akka.actor.Actor
 import akka.actor.ActorLogging
 import akka.actor.ActorRef
 import akka.actor.Props
 import akka.actor.actorRef2Scala
+import org.mmarini.actd.TDAgentActor.QueryAgent
 
 /** Props and messages factory for [[EnvironmentActor]] */
 object EnvironmentActor {
@@ -48,15 +48,11 @@ object EnvironmentActor {
    * Creates the props for a [[TDAgentActor]]
    *
    * @param initStatus initial status
-   * @param critic the initial critic network
-   * @param actor the initial actor network
-   *
+   * @param initAgent the initial agent
    */
   def props(initStatus: Status,
-    parms: TDParms,
-    critic: TDNeuralNet,
-    actor: TDNeuralNet): Props =
-    Props(classOf[EnvironmentActor], initStatus, parms, critic, actor)
+    initAgent: TDAgent): Props =
+    Props(classOf[EnvironmentActor], initStatus, initAgent)
 
   /** Message to [[EnvironmentActor]] to process a single step interaction */
   object Interact
@@ -70,17 +66,14 @@ object EnvironmentActor {
  *
  * @constructor create the actor
  * @param initStatus initial status
- * @param critic the initial critic network
- * @param actor the initial actor network
+ * @param initAgent the initial agent
  */
 class EnvironmentActor(initStatus: Status,
-    parms: TDParms,
-    critic: TDNeuralNet,
-    actor: TDNeuralNet) extends Actor with ActorLogging {
+    initAgent: TDAgent) extends Actor with ActorLogging {
 
   import EnvironmentActor._
 
-  val agent = context.actorOf(TDAgentActor.props(parms, critic, actor))
+  val agent = context.actorOf(TDAgentActor.props(initAgent))
 
   def receive: Receive = waiting(initStatus)
 
@@ -89,6 +82,8 @@ class EnvironmentActor(initStatus: Status,
     case Interact =>
       context become waitingReaction(status, sender)
       agent ! React(status)
+    case QueryAgent =>
+      agent forward QueryAgent
   }
 
   /** Processes the messages while is processing an Interact request */
@@ -100,6 +95,9 @@ class EnvironmentActor(initStatus: Status,
       val f = status(action)
       agent ! Train(f)
       context become waitingTrained(f.s1, replyTo, f)
+
+    case QueryAgent =>
+      agent forward QueryAgent
   }
 
   /** Processes the messages while is processing an Interact request */
@@ -111,5 +109,8 @@ class EnvironmentActor(initStatus: Status,
     case Trained(delta, agent) =>
       replyTo ! Step(feedback, delta, agent)
       context become waiting(status)
+
+    case QueryAgent =>
+      agent forward QueryAgent
   }
 }

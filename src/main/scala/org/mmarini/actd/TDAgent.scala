@@ -105,10 +105,10 @@ class TDAgent(
     val parm = IndexedSeq(DenseVector[Double](
       parms.alpha,
       parms.beta,
-      parms.epsilon,
-      parms.eta,
       parms.gamma,
+      parms.epsilon,
       parms.lambda,
+      parms.eta,
       parms.maxTrainingSamples.toDouble))
     parm.iterator.write(s"$file-parms.csv")
 

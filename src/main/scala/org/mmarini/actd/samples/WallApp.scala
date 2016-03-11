@@ -59,6 +59,8 @@ import akka.actor.Props
 import org.mmarini.actd.EnvironmentActor.Interact
 import org.mmarini.actd.EnvironmentActor.Step
 import scala.concurrent.duration.FiniteDuration
+import org.mmarini.actd.TDAgentActor.QueryAgent
+import org.mmarini.actd.TDAgentActor.CurrentAgent
 
 /** */
 object WallApp extends SimpleSwingApplication with LazyLogging {
@@ -70,6 +72,7 @@ object WallApp extends SimpleSwingApplication with LazyLogging {
 
     val slowBtn = new Button("Slow")
     val fastBtn = new Button("Fast")
+    val saveBtn = new Button("Save")
 
     slowBtn.reactions += {
       case ButtonClicked(b) =>
@@ -79,9 +82,14 @@ object WallApp extends SimpleSwingApplication with LazyLogging {
       case ButtonClicked(b) =>
         uiActor ! FastTime
     }
+    saveBtn.reactions += {
+      case ButtonClicked(b) =>
+        uiActor ! "aaaa"
+    }
 
     contents += slowBtn
     contents += fastBtn
+    contents += saveBtn
   }
 
   /** Info panel */
@@ -153,7 +161,7 @@ object WallApp extends SimpleSwingApplication with LazyLogging {
 
   class UIActor extends Actor {
 
-    val environment = context.actorOf(EnvironmentActor.props(initStatus, parms, critic, actor))
+    val environment = context.actorOf(EnvironmentActor.props(initStatus, new TDAgent(parms, critic, actor)))
 
     environment ! Interact
 
@@ -163,10 +171,32 @@ object WallApp extends SimpleSwingApplication with LazyLogging {
       case t: FiniteDuration if (t > (0 nanos)) =>
         context become steppingDelayed(t)
 
+      case filename: String =>
+        environment ! QueryAgent
+        context become steppingSave(filename)
+
       case Step(f, d, _) =>
         gamePane.sOpt = Some(f.s1.asInstanceOf[WallStatus])
         gamePane.repaint
         environment ! Interact
+    }
+
+    private def steppingSave(filename: String): Receive = {
+      case t: FiniteDuration if (t > (0 nanos)) =>
+        context become steppingDelayedSave(t, filename)
+
+      case filename: String =>
+        context become steppingSave(filename)
+
+      case Step(f, d, _) =>
+        gamePane.sOpt = Some(f.s1.asInstanceOf[WallStatus])
+        gamePane.repaint
+        environment ! Interact
+
+      case CurrentAgent(agent) =>
+        agent.write(filename)
+        logger.info(s"Saved $filename")
+        context become stepping
     }
 
     private def steppingDelayed(delay: FiniteDuration): Receive = {
@@ -176,6 +206,10 @@ object WallApp extends SimpleSwingApplication with LazyLogging {
       case t: FiniteDuration =>
         context become steppingDelayed(t)
 
+      case filename: String =>
+        environment ! QueryAgent
+        context become steppingDelayedSave(delay, filename)
+
       case Step(f, d, _) =>
         gamePane.sOpt = Some(f.s1.asInstanceOf[WallStatus])
         gamePane.repaint
@@ -183,6 +217,30 @@ object WallApp extends SimpleSwingApplication with LazyLogging {
         import system.dispatcher
 
         context.system.scheduler.scheduleOnce(delay, environment, Interact)
+    }
+
+    private def steppingDelayedSave(delay: FiniteDuration, filename: String): Receive = {
+      case t: FiniteDuration if (t == (0 nanos)) =>
+        context become steppingSave(filename)
+
+      case t: FiniteDuration =>
+        context become steppingDelayedSave(t, filename)
+
+      case filename: String =>
+        context become steppingDelayedSave(delay, filename)
+
+      case Step(f, d, _) =>
+        gamePane.sOpt = Some(f.s1.asInstanceOf[WallStatus])
+        gamePane.repaint
+
+        import system.dispatcher
+
+        context.system.scheduler.scheduleOnce(delay, environment, Interact)
+
+      case CurrentAgent(agent) =>
+        agent.write(filename)
+        logger.info(s"Saved $filename")
+        context become steppingDelayed(delay)
     }
   }
 

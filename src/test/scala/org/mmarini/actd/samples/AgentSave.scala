@@ -30,15 +30,20 @@
 package org.mmarini.actd.samples
 
 import scala.concurrent.Await
+import scala.concurrent.Future
+import scala.concurrent.Promise
 import scala.concurrent.duration.DurationInt
+import scala.concurrent.duration.FiniteDuration
 
-import org.mmarini.actd.EnvironmentActor
-import org.mmarini.actd.Feedback
 import org.mmarini.actd.TDAgent
+import org.mmarini.actd.TDAgentActor.CurrentAgent
+import org.mmarini.actd.TDAgentActor.CurrentAgent
+import org.mmarini.actd.TDAgentActor.QueryAgent
 import org.mmarini.actd.VectorIteratorFactory
 
 import com.typesafe.scalalogging.LazyLogging
 
+import akka.actor.ActorRef
 import akka.actor.ActorSystem
 import akka.pattern.ask
 import akka.util.Timeout
@@ -47,15 +52,40 @@ import akka.util.Timeout
  * Tests the maze environment
  * and generates a report of episode returns as octave data file
  */
-object WallTraceApp extends App with FeedbackDump with AgentSave with LazyLogging {
-  val StepCount = 100
+trait AgentSave extends WallEnvironment with LazyLogging {
 
-  val takeActor = system.actorOf(TakeActor.props(environment, StepCount))
+  val agentFilename: String = "data/agent"
+  val trainingTime = 10 seconds
 
-  dumpFeedback
-  saveAgent
+  private val timeLimit = 10 hours
 
-  system stop environment
+  def saveAgent {
+    try {
+      val agentFuture = trainedAgent
 
-  system.terminate
+      logger.info("Waiting for training agent ...")
+      val agent = Await.result(agentFuture, timeLimit)
+      logger.info(s"Save agent in $agentFilename")
+      agent.write(agentFilename)
+    } catch {
+      case x: Throwable => logger.error("Error", x)
+    }
+  }
+
+  private def trainedAgent: Future[TDAgent] = {
+    import system.dispatcher
+
+    val p = Promise[TDAgent]
+    import system.dispatcher
+    system.scheduler.scheduleOnce(trainingTime) {
+      implicit val timeout = Timeout(timeLimit)
+      val agentFuture = for {
+        CurrentAgent(agent) <- (environment ask QueryAgent).mapTo[CurrentAgent]
+      } yield agent
+      agentFuture.andThen {
+        case result => p.complete(result)
+      }
+    }
+    p.future
+  }
 }

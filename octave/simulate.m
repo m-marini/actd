@@ -7,7 +7,7 @@ function Y = simulate(W, X)
     no = size(WL, 1);
     OUT = zeros(m, no);
     OUT = IN * WL';
-    OUT = sigmoid(OUT);
+    OUT = logistic_cdf(OUT);
     IN = [ones(n,1) OUT(:,:)];
   endfor
   WL = W{l};

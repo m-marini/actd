@@ -42,17 +42,18 @@ object TDAgentActor {
   /**
    * Creates the props for a [[TDAgentActor]]
    *
-   * @param parms parameters
-   * @param critic the initial critic network
-   * @param actor the initial actor network
+   * @param agent initial agent
    */
-  def props(parms: TDParms,
-    critic: TDNeuralNet,
-    actor: TDNeuralNet): Props =
-    Props(classOf[TDAgentActor], parms, critic, actor)
+  def props(agent: TDAgent): Props = Props(classOf[TDAgentActor], agent)
+
+  /** Message to [[TDAgentActor]] to process a single step interaction */
+  object QueryAgent
 
   /** Message sent to [[TDAgentActor]] to react with an action */
   case class React(status: Status)
+
+  /** Message sent to [[TDAgentActor]] to reply to a QueryAgent */
+  case class CurrentAgent(agent: TDAgent)
 
   /** Message sent by [[TDAgentActor]] to reply a [[React]] */
   case class Reaction(action: Action)
@@ -67,29 +68,28 @@ object TDAgentActor {
 /**
  * An Actor that plays the agent role in the environment agent interaction
  *
- * @constructor create the agent
- * @param parms parameters
- * @param critic the initial critic network
- * @param actor the initial actor network
+ * @constructor create the actor
+ * @param agent the initial agent
  */
-class TDAgentActor(parms: TDParms,
-    critic: TDNeuralNet,
-    actor: TDNeuralNet) extends Actor with ActorLogging {
+class TDAgentActor(agent: TDAgent) extends Actor with ActorLogging {
 
   import TDAgentActor._
 
   val trainerActor = context.actorOf(TrainerActor.props)
 
-  def receive: Receive = waitingFirstFeed(new TDAgent(parms, critic, actor))
+  def receive: Receive = waitingFirstFeed(agent)
 
   private def waitingFirstFeed(agent: TDAgent): Receive = {
 
     case React(s) =>
       sender ! Reaction(agent.action(s))
 
+    case QueryAgent =>
+      sender ! CurrentAgent(agent)
+
     case Train(feedback) =>
       val (na, delta) = agent.train(feedback)
-      val trainer = TDTrainer(parms.maxTrainingSamples, Seq(feedback))
+      val trainer = TDTrainer(agent.parms.maxTrainingSamples, Seq(feedback))
       trainerActor ! TrainerActor.Train(na.critic, trainer)
       context become processing(na, trainer)
       sender ! Trained(delta, na)
@@ -103,6 +103,9 @@ class TDAgentActor(parms: TDParms,
 
     case React(s) =>
       sender ! Reaction(agent.action(s))
+
+    case QueryAgent =>
+      sender ! CurrentAgent(agent)
 
     case Train(feedback) =>
       val (na, delta) = agent.train(feedback)

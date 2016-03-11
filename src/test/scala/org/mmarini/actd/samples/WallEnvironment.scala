@@ -58,59 +58,13 @@ import scala.util.Failure
  * Tests the maze environment
  * and generates a report of episode returns as octave data file
  */
-object FilteredWallTraceApp extends App with AgentSave with LazyLogging {
+trait WallEnvironment extends LazyLogging {
 
-  val File = "data/debug-wall.csv"
-  val EpisodeCount = 100
-  val TimeLimit = 10 hours
+  val system = ActorSystem()
 
-  val States = Set[WallStatus]()
-
-  //  val filter = system.actorOf(ProxyActor.filterProps(environment, Interact)(x =>
-  //    States.contains(x.asInstanceOf[Step].feedback.s0.asInstanceOf[WallStatus])))
-
-  val takeActor = system.actorOf(TakeUntilActor.props(environment, {
-    (f, d, a) => f.s1.finalStatus
-  }))
-
-  implicit val timeout = Timeout(TimeLimit)
-
-  val seqFuture = (takeActor ask None).mapTo[Seq[(Feedback, Double, TDAgent)]]
-
-  try {
-    val feedbackSeq = Await.result(seqFuture, TimeLimit)
-    feedbackSeq.iterator.
-      toSamplesWithStatus.
-      write(File)
-
-    saveAgent
-
-  } catch {
-    case x: Throwable => logger.error("Error", x)
+  val environment = {
+    val (initStatus, parms, critic, actor) = WallStatus.initEnvParms
+    system.actorOf(
+      EnvironmentActor.props(initStatus, new TDAgent(parms, critic, actor)))
   }
-
-  system stop environment
-
-  system.terminate
 }
-
-//  /*
-//     * Filter on the following status
-//     *
-//     *   8  O
-//     *   9   o
-//     *  10    o---
-//     *      234567
-//     */
-//  private def filter2(x: DenseVector[Double]) =
-//    x(RowIdx) == 8 && x(ColIdx) == 2 && x(RowSpeedIdx) == 1 && x(ColSpeedIdx) == 1 && x(PadIdx) == 5
-//
-//  /** Generates the report */
-//  //  WallStatus.environment.iterator.
-//  //    toSamplesWithAC.
-//  //    trace("Sample", SampleTraceCount).
-//  //    filter(filter).
-//  //    trace("Filtered").
-//  //    take(EpisodeCount).
-//  //    write(file)
-//}
