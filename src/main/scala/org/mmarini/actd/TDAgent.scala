@@ -30,6 +30,7 @@
 package org.mmarini.actd
 
 import breeze.linalg.DenseVector
+import breeze.io.CSVWriter
 
 /**
  * A learning agent that replies to stimulus with actions and learns by receiving rewards
@@ -98,6 +99,25 @@ class TDAgent(
     (nag, delta)
   }
 
+  /** Writes a file with agent data */
+  def write(file: String) {
+    // Saves parameters
+    val parm = IndexedSeq(DenseVector[Double](
+      parms.alpha,
+      parms.beta,
+      parms.epsilon,
+      parms.eta,
+      parms.gamma,
+      parms.lambda,
+      parms.maxTrainingSamples.toDouble))
+    parm.iterator.write(s"$file-parms.csv")
+
+    // Saves critic
+    critic.weights.write(s"$file-critic")
+
+    // Saves actor
+    actor.weights.write(s"$file-actor")
+  }
 }
 
 /** Factory for [[TDAgent]] instances */
@@ -117,4 +137,5 @@ object TDAgent {
     new TDAgent(parms,
       TDNeuralNet(statusSize +: hiddenLayers :+ 1, parms, sigma),
       TDNeuralNet(statusSize +: hiddenLayers :+ actionCount, parms, sigma))
+
 }

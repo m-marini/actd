@@ -31,14 +31,17 @@ package org.mmarini.actd.samples
 
 import scala.concurrent.Await
 import scala.concurrent.duration.DurationInt
+
 import org.mmarini.actd.EnvironmentActor
-import com.typesafe.scalalogging.LazyLogging
-import akka.actor.ActorSystem
-import akka.pattern.{ gracefulStop, ask }
 import org.mmarini.actd.Feedback
-import akka.util.Timeout
-import org.mmarini.actd.TDNeuralNet
 import org.mmarini.actd.TDAgent
+import org.mmarini.actd.VectorIteratorFactory
+
+import com.typesafe.scalalogging.LazyLogging
+
+import akka.actor.ActorSystem
+import akka.pattern.ask
+import akka.util.Timeout
 
 /**
  * Tests the maze environment

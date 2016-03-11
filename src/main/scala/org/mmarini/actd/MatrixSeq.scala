@@ -33,7 +33,10 @@ import breeze.linalg.DenseMatrix
 import breeze.linalg.DenseVector
 import breeze.stats.distributions.Rand
 import breeze.stats.distributions.RandBasis
-
+import breeze.linalg.csvwrite
+import scalax.file.Path
+import scalax.io.Resource
+import java.io.File
 /**
  * A container of [[ DenseMatrix[Double] ]] that applies algebraic operation *, +, -
  *
@@ -85,6 +88,17 @@ case class MatrixSeq(matrices: Seq[DenseMatrix[Double]]) {
   /** Converts to [[DenseVector[Double]]] */
   def toDenseVector: DenseVector[Double] = DenseVector(toSeq.toArray)
 
+  /** Writes to file */
+  def write(file: String) {
+    Seq(DenseVector(matrices.size.toDouble)).iterator.write(s"$file-n.csv")
+    for {
+      (m, i) <- matrices.zipWithIndex
+    } {
+      val fn = s"$file-$i.csv"
+      Path.fromString(fn).deleteIfExists()
+      csvwrite(new File(fn), m)
+    }
+  }
 }
 
 /**

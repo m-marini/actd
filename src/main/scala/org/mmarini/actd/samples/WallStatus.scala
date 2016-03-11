@@ -160,16 +160,16 @@ object WallStatus extends LazyLogging {
 
   /** Creates a initial game status */
   def initial: WallStatus = {
-    val b = (Height - 1, random.randInt(Width).get)
-    val s = b._2 match {
-      case 0 => NE
-      case LastCol => NO
+    val b = (1, random.randInt(Width).get)
+    val s = b match {
+      case (_, 0) => NE
+      case (_, LastCol) => NO
       case _ => random.choose(Seq(Direction.NE, Direction.NO)).get
     }
-    val pad = b._2 match {
-      case 0 => 0
-      case c if (c >= LastPad) => LastPad
-      case c => c - 1
+    val pad = b match {
+      case (_, 0) => 0
+      case (_, c) if (c >= LastPad) => LastPad
+      case (_, c) => c - 1
     }
     WallStatus(b, s, pad)
   }

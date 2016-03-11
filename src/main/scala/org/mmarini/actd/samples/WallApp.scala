@@ -108,7 +108,7 @@ object WallApp extends SimpleSwingApplication with LazyLogging {
           val (br, bc) = s.ball
 
           val ball = new Ellipse2D.Float(bc * cw / WallStatus.Width,
-            br * ch / (WallStatus.Height + 1),
+            (WallStatus.Height - br) * ch / (WallStatus.Height + 1),
             cw / WallStatus.Width,
             ch / (WallStatus.Height + 1))
           g.setColor(Color.YELLOW)

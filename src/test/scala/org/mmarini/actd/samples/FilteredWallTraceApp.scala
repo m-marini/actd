@@ -30,6 +30,7 @@
 package org.mmarini.actd.samples
 
 import scala.concurrent.Await
+
 import scala.concurrent.duration.DurationInt
 import org.mmarini.actd.EnvironmentActor
 import org.mmarini.actd.Feedback
@@ -42,6 +43,7 @@ import org.mmarini.actd.EnvironmentActor.Step
 import org.mmarini.actd.EnvironmentActor.Interact
 import org.mmarini.actd.ProxyActor
 import org.mmarini.actd.TDAgent
+import org.mmarini.actd.VectorIteratorFactory
 
 /**
  * Tests the maze environment
@@ -62,18 +64,23 @@ object FilteredWallTraceApp extends App with LazyLogging {
 
   val States = Set[WallStatus]()
 
-  val filter = system.actorOf(ProxyActor.filterProps(environment, Interact)(x =>
-    States.contains(x.asInstanceOf[Step].feedback.s0.asInstanceOf[WallStatus])))
+  //  val filter = system.actorOf(ProxyActor.filterProps(environment, Interact)(x =>
+  //    States.contains(x.asInstanceOf[Step].feedback.s0.asInstanceOf[WallStatus])))
 
-  val takeActor = system.actorOf(TakeActor.props(filter, EpisodeCount))
+  val takeActor = system.actorOf(TakeUntilActor.props(environment, {
+    (f, d, a) => f.s1.finalStatus
+  }))
 
   implicit val timeout = Timeout(TimeLimit)
 
   val f = (takeActor ask None).mapTo[Seq[(Feedback, Double, TDAgent)]]
 
   try {
-    Await.result(f, TimeLimit).
-      iterator.
+    val x = Await.result(f, TimeLimit)
+    x.last match {
+      case (_, _, ag) => ag.write("data/agent")
+    }
+    x.iterator.
       toSamplesWithStatus.
       write(File)
   } catch {

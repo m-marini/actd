@@ -196,39 +196,6 @@ package object samples extends LazyLogging {
     }
   }
 
-  implicit class VectorIteratorFactory(iter: Iterator[DenseVector[Double]]) {
-
-    def toCsvRows(
-      separator: Char = ',',
-      quote: Char = '\u0000',
-      escape: Char = '\\'): Iterator[String] =
-      iter.map {
-        case (mat) =>
-          CSVWriter.mkString(
-            IndexedSeq.tabulate(1, mat.size)((_, c) => mat(c).toString),
-            separator, quote, escape)
-      }
-
-    def write(filename: String,
-      separator: Char = ',',
-      quote: Char = '\u0000',
-      escape: Char = '\\') {
-
-      Path.fromString(filename).deleteIfExists()
-      val output = Resource.fromFile(filename)
-      for {
-        processor <- output.outputProcessor
-        out = processor.asOutput
-      } {
-        for { row <- toCsvRows(separator, quote, escape) } {
-          out.write(row)
-          out.write("\n")
-        }
-      }
-    }
-
-  }
-
   object Indexes {
     val RowIdx = 0
     val ColIdx = 1

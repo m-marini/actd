@@ -27,46 +27,52 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 // OTHER DEALINGS IN THE SOFTWARE.
 
-package org.mmarini
+package org.mmarini.actd.samples
 
-import breeze.linalg.DenseVector
-import scalax.file.Path
-import breeze.io.CSVWriter
-import scalax.io.Resource
+import org.mmarini.actd.EnvironmentActor.Interact
+import org.mmarini.actd.EnvironmentActor.Step
+import org.mmarini.actd.Feedback
+import org.mmarini.actd.TimerLogger
+import akka.actor.Actor
+import akka.actor.ActorLogging
+import akka.actor.ActorRef
+import akka.actor.Props
+import akka.actor.actorRef2Scala
+import org.mmarini.actd.TDNeuralNet
+import org.mmarini.actd.TDNeuralNetTest
+import org.mmarini.actd.TDAgent
 
-package object actd {
-  type Action = Int
+object TakeUntilActor {
+  def props(
+    source: ActorRef,
+    proposition: (Feedback, Double, TDAgent) => Boolean): Props =
+    Props(classOf[TakeUntilActor], source, proposition)
+}
 
-  implicit class VectorIteratorFactory(iter: Iterator[DenseVector[Double]]) {
+class TakeUntilActor(
+    source: ActorRef,
+    proposition: (Feedback, Double, TDAgent) => Boolean) extends Actor with ActorLogging {
 
-    def toCsvRows(
-      separator: Char = ',',
-      quote: Char = '\u0000',
-      escape: Char = '\\'): Iterator[String] =
-      iter.map {
-        case (mat) =>
-          CSVWriter.mkString(
-            IndexedSeq.tabulate(1, mat.size)((_, c) => mat(c).toString),
-            separator, quote, escape)
+  val tlog: TimerLogger = new TimerLogger(log)
+
+  def receive: Receive = {
+    case _ =>
+      log.info("start")
+      source ! Interact
+      context.become(waitingStep(sender, Seq()))
+  }
+
+  private def waitingStep(replyTo: ActorRef,
+    list: Seq[(Feedback, Double, TDAgent)]): Receive = {
+    case Step(f, d, a) =>
+      val l = list :+ (f, d, a)
+      if (proposition(f, d, a)) {
+        replyTo ! l
+        context stop self
+      } else {
+        sender ! Interact
+        context become waitingStep(replyTo, l)
       }
-
-    def write(filename: String,
-      separator: Char = ',',
-      quote: Char = '\u0000',
-      escape: Char = '\\') {
-
-      Path.fromString(filename).deleteIfExists()
-      val output = Resource.fromFile(filename)
-      for {
-        processor <- output.outputProcessor
-        out = processor.asOutput
-      } {
-        for { row <- toCsvRows(separator, quote, escape) } {
-          out.write(row)
-          out.write("\n")
-        }
-      }
-    }
-
   }
 }
+
