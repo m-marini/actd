@@ -48,6 +48,13 @@ case class WallStatus(ball: (Int, Int), direction: Direction.Value, pad: Int) ex
   import Direction._
   import WallStatus._
 
+  private val BallDim = Width * Height
+  private val SpeedDim = 4
+  private val PadDim = LastPad + 1
+  private val FinalVector = DenseVector.zeros[Double](BallDim * SpeedDim * PadDim + 1)
+
+  FinalVector.update(BallDim * SpeedDim * PadDim, 1.0)
+
   require(ball._2 >= 0)
   require(ball._2 <= Width)
   require(pad >= 0)
@@ -58,19 +65,21 @@ case class WallStatus(ball: (Int, Int), direction: Direction.Value, pad: Int) ex
 
   /** */
   val toDenseVector: DenseVector[Double] = {
-    val ballDim = Width * (Height + 1)
-    val speedDim = 4
-    val padDim = LastPad + 1
+    if (finalStatus) {
+      FinalVector
+    } else {
 
-    val v = DenseVector.zeros[Double](ballDim * speedDim * padDim)
+      val v = DenseVector.zeros[Double](BallDim * SpeedDim * PadDim + 1)
 
-    val ballIdx = ball._1 * Width + ball._2
-    val speedIdx = direction.id
+      val ballIdx = (ball._1 - 1) * Width + ball._2
+      val speedIdx = direction.id
 
-    val idx = ballIdx + speedIdx * ballDim + pad * (ballDim * speedDim)
-    v.update(idx, 1.0)
+      val idx = ballIdx + speedIdx * BallDim + pad * (BallDim * SpeedDim)
 
-    v
+      v.update(idx, 1.0)
+
+      v
+    }
   }
 
   /** Returns a [[WallStatus]] with changed pad location */

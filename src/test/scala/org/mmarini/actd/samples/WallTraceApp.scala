@@ -48,7 +48,8 @@ import akka.util.Timeout
  * and generates a report of episode returns as octave data file
  */
 object WallTraceApp extends App with FeedbackDump with AgentSave with LazyLogging {
-  val StepCount = 100
+  val StepCount = 300
+  override val trainingTime = 30 seconds 
 
   val takeActor = system.actorOf(TakeActor.props(environment, StepCount))
 
