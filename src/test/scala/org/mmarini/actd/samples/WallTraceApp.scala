@@ -49,7 +49,7 @@ import akka.util.Timeout
  */
 object WallTraceApp extends App with FeedbackDump with AgentSave with LazyLogging {
   val StepCount = 300
-  override val trainingTime = 30 seconds 
+  override val trainingTime = 30 seconds
 
   val takeActor = system.actorOf(TakeActor.props(environment, StepCount))
 
