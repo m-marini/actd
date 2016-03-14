@@ -59,14 +59,9 @@ import breeze.linalg.DenseVector
  * Tests the maze environment
  * and generates a report of episode returns as octave data file
  */
-trait FeedbackDump extends LazyLogging {
+trait FeedbackDump extends WaitFeedback with LazyLogging {
 
   val feedbackFilename = "data/debug-wall.csv"
-  val returnsFilename = "data/returns.csv"
-  val timeLimit = 10 hours
-
-  def system: ActorSystem
-  def takeActor: ActorRef
 
   def dumpFeedback {
     val feedbackSeq = waitForFeedback
@@ -74,33 +69,5 @@ trait FeedbackDump extends LazyLogging {
     feedbackSeq.iterator.
       toSamplesWithStatus.
       write(feedbackFilename)
-  }
-
-  def dumpReturns {
-    def splitEpisode(list: Seq[Seq[Double]], record: (Feedback, Double, TDAgent)): Seq[Seq[Double]] = {
-      record match {
-        case (Feedback(s0, _, r, _), _, _) if (list.isEmpty) =>
-          Seq(Seq(r))
-        case (Feedback(s0, _, r, _), _, _) if (s0.finalStatus) =>
-          Seq() +: (list.head :+ r) +: list.tail
-        case (Feedback(s0, _, r, _), _, _) =>
-          (list.head :+ r) +: list.tail
-      }
-    }
-
-    def returns(gamma: Double)(list: Seq[Double]): Double =
-      list.reduceRight((a, b) => a + b * gamma)
-
-    val episodes = waitForFeedback.foldLeft(Seq[Seq[Double]]())(splitEpisode)
-    val rets = episodes.map(returns(1.0)).map(DenseVector(_))
-    logger.info(s"Dump returns into $returnsFilename")
-    rets.iterator.write(returnsFilename)
-
-  }
-
-  lazy val waitForFeedback: Seq[(Feedback, Double, TDAgent)] = {
-    implicit val timeout = Timeout(timeLimit)
-    val seqFuture = (takeActor ask None).mapTo[Seq[(Feedback, Double, TDAgent)]]
-    Await.result(seqFuture, timeLimit)
   }
 }

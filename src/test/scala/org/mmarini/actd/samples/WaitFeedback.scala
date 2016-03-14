@@ -31,34 +31,43 @@ package org.mmarini.actd.samples
 
 import scala.concurrent.Await
 import scala.concurrent.duration.DurationInt
-
 import org.mmarini.actd.EnvironmentActor
 import org.mmarini.actd.Feedback
-import org.mmarini.actd.TDAgent
-import org.mmarini.actd.VectorIteratorFactory
-
+import org.mmarini.actd.TDNeuralNet
 import com.typesafe.scalalogging.LazyLogging
-
 import akka.actor.ActorSystem
 import akka.pattern.ask
 import akka.util.Timeout
+import org.mmarini.actd.EnvironmentActor.Step
+import org.mmarini.actd.EnvironmentActor.Interact
+import org.mmarini.actd.ProxyActor
+import org.mmarini.actd.TDAgent
+import org.mmarini.actd.VectorIteratorFactory
+import org.mmarini.actd.TDAgentActor.QueryAgent
+import org.mmarini.actd.TDAgentActor.CurrentAgent
+import org.mmarini.actd.TDAgentActor.CurrentAgent
+import akka.actor.ActorRef
+import scala.concurrent.Future
+import scala.concurrent.duration.Duration
+import scala.concurrent.duration.FiniteDuration
+import scala.concurrent.Promise
+import scala.util.Success
+import scala.util.Failure
+import breeze.linalg.DenseVector
 
 /**
  * Tests the maze environment
  * and generates a report of episode returns as octave data file
  */
-object WallTraceApp extends App with FeedbackDump with ReturnsDump with AgentSave with LazyLogging {
-  val StepCount = 300
-  override val trainingTime = 30 seconds
+trait WaitFeedback extends LazyLogging {
 
-  val takeActor = system.actorOf(TakeActor.props(environment, StepCount))
+  val timeLimit = 10 hours
 
-  dumpFeedback
-  dumpReturns
+  def takeActor: ActorRef
 
-  saveAgent
-
-  system stop environment
-
-  system.terminate
+  lazy val waitForFeedback: Seq[(Feedback, Double, TDAgent)] = {
+    implicit val timeout = Timeout(timeLimit)
+    val seqFuture = (takeActor ask None).mapTo[Seq[(Feedback, Double, TDAgent)]]
+    Await.result(seqFuture, timeLimit)
+  }
 }
