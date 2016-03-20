@@ -59,22 +59,19 @@ class TakeActor(
     case _ =>
       log.info("start")
       source ! Interact
-      context.become(waitingStep(sender, 0, Seq()))
+      context.become(waitingStep(sender, 0))
   }
 
-  private def waitingStep(replyTo: ActorRef,
-    counter: Int,
-    list: Seq[(Feedback, Double, TDAgent)]): Receive = {
-    case Step(f, d, a) =>
+  private def waitingStep(replyTo: ActorRef, counter: Int): Receive = {
+    case step: Step =>
       val ct = counter + 1
       tlog.info(s"counter = $ct")
-      val l = list :+ (f, d, a)
       if (ct >= count) {
-        replyTo ! l
+        replyTo ! step
         context stop self
       } else {
         sender ! Interact
-        context become waitingStep(replyTo, ct, l)
+        context become waitingStep(replyTo, ct)
       }
   }
 }

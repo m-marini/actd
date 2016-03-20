@@ -29,39 +29,54 @@
 
 package org.mmarini.actd.samples
 
-import scala.concurrent.Await
-import scala.concurrent.duration.DurationInt
-import org.mmarini.actd.EnvironmentActor
+import org.mmarini.actd.EnvironmentActor.Interact
+import org.mmarini.actd.EnvironmentActor.Step
 import org.mmarini.actd.Feedback
+import org.mmarini.actd.TimerLogger
+import akka.actor.Actor
+import akka.actor.ActorLogging
+import akka.actor.ActorRef
+import akka.actor.Props
+import akka.actor.actorRef2Scala
+import org.mmarini.actd.TDNeuralNet
+import org.mmarini.actd.TDNeuralNetTest
 import org.mmarini.actd.TDAgent
-import org.mmarini.actd.VectorIteratorFactory
-import com.typesafe.scalalogging.LazyLogging
-import akka.actor.ActorSystem
-import akka.pattern.ask
-import akka.util.Timeout
-import org.mmarini.actd.samples.BroadcastActor.Register
-import akka.routing.Broadcast
+import akka.actor.Terminated
 
-/**
- * Tests the maze environment
- * and generates a report of episode returns as octave data file
- */
-object WallTraceApp extends App with FeedbackDump with ReturnsDump with AgentSave with LazyLogging {
-  val StepCount = 100
-  override val trainingTime = 30 seconds
-
-  val takeActor = system.actorOf(TakeActor.props(environment, StepCount))
-  val broadcastActor = system.actorOf(BroadcastActor.props(takeActor))
-  val toSeqActor = system.actorOf(ToSeqActor.props(broadcastActor))
-  val returnsActor = system.actorOf(ReturnsActor.props(broadcastActor)
-  
-      broadcastActor ! Register(toSeqActor)
-      broadcastActor ! Register(returnsActor)
-
-  dumpFeedback
-  dumpReturns
-  saveAgent
-
-  system stop environment
-  system.terminate
+object ReturnsActor {
+  def props(source: ActorRef): Props = Props(classOf[ReturnsActor], source)
 }
+
+class ReturnsActor(source: ActorRef) extends Actor with ActorLogging {
+
+  context watch source
+
+  def receive: Receive = {
+    case Terminated(`source`) =>
+      context stop self
+    case x =>
+      log.info("start")
+      source ! x
+      context.become(waitingStep(sender, 0.0, 0, 1.0))
+  }
+
+  private def waitingStep(replyTo: ActorRef, returns: Double, count: Int, k: Double): Receive = {
+    case Terminated(`source`) =>
+      if (count > 0) {
+        replyTo ! (returns, count)
+      }
+      context stop self
+
+    case Step(Feedback(s0, _, reward, _), delta, agent) =>
+      val ret = returns + reward * k
+      val c = count + 1
+      if (s0.finalStatus) {
+        replyTo ! (ret, c)
+        context become waitingStep(replyTo, 0.0, 0, 1.0)
+      } else {
+        context become waitingStep(replyTo, ret, c, k * agent.parms.gamma)
+      }
+  }
+
+}
+

@@ -64,9 +64,9 @@ trait FeedbackDump extends WaitFeedback with LazyLogging {
   val feedbackFilename = "data/debug-wall.csv"
 
   def dumpFeedback {
-    val feedbackSeq = waitForFeedback
     logger.info(s"Dump feedbacks into $feedbackFilename")
-    feedbackSeq.iterator.
+    waitForFeedback.
+      iterator.
       toSamplesWithStatus.
       write(feedbackFilename)
   }

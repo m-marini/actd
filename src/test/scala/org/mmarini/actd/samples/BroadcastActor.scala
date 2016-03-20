@@ -29,39 +29,49 @@
 
 package org.mmarini.actd.samples
 
-import scala.concurrent.Await
-import scala.concurrent.duration.DurationInt
-import org.mmarini.actd.EnvironmentActor
+import org.mmarini.actd.EnvironmentActor.Interact
+import org.mmarini.actd.EnvironmentActor.Step
 import org.mmarini.actd.Feedback
+import org.mmarini.actd.TimerLogger
+import akka.actor.Actor
+import akka.actor.ActorLogging
+import akka.actor.ActorRef
+import akka.actor.Props
+import akka.actor.actorRef2Scala
+import org.mmarini.actd.TDNeuralNet
+import org.mmarini.actd.TDNeuralNetTest
 import org.mmarini.actd.TDAgent
-import org.mmarini.actd.VectorIteratorFactory
-import com.typesafe.scalalogging.LazyLogging
-import akka.actor.ActorSystem
-import akka.pattern.ask
-import akka.util.Timeout
-import org.mmarini.actd.samples.BroadcastActor.Register
-import akka.routing.Broadcast
+import akka.actor.Terminated
 
-/**
- * Tests the maze environment
- * and generates a report of episode returns as octave data file
- */
-object WallTraceApp extends App with FeedbackDump with ReturnsDump with AgentSave with LazyLogging {
-  val StepCount = 100
-  override val trainingTime = 30 seconds
+object BroadcastActor {
+  def props(source: ActorRef): Props = Props(classOf[ToSeqActor], source)
 
-  val takeActor = system.actorOf(TakeActor.props(environment, StepCount))
-  val broadcastActor = system.actorOf(BroadcastActor.props(takeActor))
-  val toSeqActor = system.actorOf(ToSeqActor.props(broadcastActor))
-  val returnsActor = system.actorOf(ReturnsActor.props(broadcastActor)
-  
-      broadcastActor ! Register(toSeqActor)
-      broadcastActor ! Register(returnsActor)
+  case class Register(actor: ActorRef)
 
-  dumpFeedback
-  dumpReturns
-  saveAgent
-
-  system stop environment
-  system.terminate
 }
+
+class BrodcastActor(source: ActorRef) extends Actor with ActorLogging {
+
+  context.watch(source)
+
+  import BroadcastActor.Register
+
+  def receive: Receive = {
+    case Terminated(`source`) =>
+      context stop self
+    case Register(actor) =>
+      context.become(waitingStep(Seq(actor)))
+    case msg => source ! msg
+  }
+
+  private def waitingStep(list: Seq[ActorRef]): Receive = {
+    case Register(actor) =>
+      context.become(waitingStep(actor +: list))
+    case Terminated(`source`) =>
+      log.info(s"Completed")
+      context stop self
+    case msg if (sender == source) => for { actor <- list } { actor ! msg }
+    case msg => source ! msg
+  }
+}
+

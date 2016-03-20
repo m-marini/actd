@@ -67,6 +67,8 @@ object FirstEpisodeWallTraceApp extends App with WallEnvironment with AgentSave 
   val takeActor = system.actorOf(TakeUntilActor.props(environment, {
     (f, d, a) => f.s1.finalStatus
   }))
+  
+  val toSeqActor = system.actorOf(ToSeqActor.props(takeActor))
 
   dumpFeedback
   saveAgent

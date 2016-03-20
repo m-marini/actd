@@ -63,11 +63,14 @@ trait WaitFeedback extends LazyLogging {
 
   val timeLimit = 10 hours
 
-  def takeActor: ActorRef
+  def toSeqActor: ActorRef
 
   lazy val waitForFeedback: Seq[(Feedback, Double, TDAgent)] = {
     implicit val timeout = Timeout(timeLimit)
-    val seqFuture = (takeActor ask None).mapTo[Seq[(Feedback, Double, TDAgent)]]
-    Await.result(seqFuture, timeLimit)
+    val seqFuture = (toSeqActor ask None).mapTo[Seq[Step]]
+    Await.result(seqFuture, timeLimit).
+      map {
+        case Step(feedback, delta, agent) => (feedback, delta, agent)
+      }
   }
 }

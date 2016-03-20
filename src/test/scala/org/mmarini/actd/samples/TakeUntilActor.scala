@@ -59,19 +59,17 @@ class TakeUntilActor(
     case _ =>
       log.info("start")
       source ! Interact
-      context.become(waitingStep(sender, Seq()))
+      context.become(waitingStep(sender))
   }
 
-  private def waitingStep(replyTo: ActorRef,
-    list: Seq[(Feedback, Double, TDAgent)]): Receive = {
-    case Step(f, d, a) =>
-      val l = list :+ (f, d, a)
-      if (proposition(f, d, a)) {
-        replyTo ! l
+  private def waitingStep(replyTo: ActorRef): Receive = {
+    case x: Step =>
+      if (proposition(x.feedback, x.delta, x.agent)) {
+        replyTo ! x
         context stop self
       } else {
         sender ! Interact
-        context become waitingStep(replyTo, l)
+        context become waitingStep(replyTo)
       }
   }
 }
