@@ -29,49 +29,40 @@
 
 package org.mmarini.actd.samples
 
-import org.mmarini.actd.EnvironmentActor.Interact
-import org.mmarini.actd.EnvironmentActor.Step
-import org.mmarini.actd.Feedback
-import org.mmarini.actd.TimerLogger
 import akka.actor.Actor
 import akka.actor.ActorLogging
 import akka.actor.ActorRef
 import akka.actor.Props
-import akka.actor.actorRef2Scala
-import org.mmarini.actd.TDNeuralNet
-import org.mmarini.actd.TDNeuralNetTest
-import org.mmarini.actd.TDAgent
 import akka.actor.Terminated
+import akka.actor.actorRef2Scala
 
 object BroadcastActor {
-  def props(source: ActorRef): Props = Props(classOf[ToSeqActor], source)
+  def props(dest: ActorRef*): Props = props(dest.toSet)
 
-  case class Register(actor: ActorRef)
-
+  def props(dest: Set[ActorRef]): Props = Props(classOf[BroadcastActor], dest)
 }
 
-class BrodcastActor(source: ActorRef) extends Actor with ActorLogging {
+class BroadcastActor(dest: Set[ActorRef]) extends Actor with ActorLogging {
 
-  context.watch(source)
+  def receive: Receive = waiting(Set())
 
-  import BroadcastActor.Register
+  private def waiting(sources: Set[ActorRef]): Receive = {
+    case Terminated(source) =>
+      val remainder = sources - source
+      if (remainder.isEmpty) {
+        context stop self
+        log.info("Completed BroadcastActor")
+      } else {
+        waiting(remainder)
+      }
 
-  def receive: Receive = {
-    case Terminated(`source`) =>
-      context stop self
-    case Register(actor) =>
-      context.become(waitingStep(Seq(actor)))
-    case msg => source ! msg
+    case msg =>
+      for { to <- dest } { to ! msg }
+      if (!sources.contains(sender)) {
+        log.info(s"Watching $sender")
+        context watch sender
+        context become waiting(sources + sender)
+      }
   }
 
-  private def waitingStep(list: Seq[ActorRef]): Receive = {
-    case Register(actor) =>
-      context.become(waitingStep(actor +: list))
-    case Terminated(`source`) =>
-      log.info(s"Completed")
-      context stop self
-    case msg if (sender == source) => for { actor <- list } { actor ! msg }
-    case msg => source ! msg
-  }
 }
-

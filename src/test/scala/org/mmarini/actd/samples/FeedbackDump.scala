@@ -29,45 +29,36 @@
 
 package org.mmarini.actd.samples
 
-import scala.concurrent.Await
-import scala.concurrent.duration.DurationInt
-import org.mmarini.actd.EnvironmentActor
-import org.mmarini.actd.Feedback
-import org.mmarini.actd.TDNeuralNet
-import com.typesafe.scalalogging.LazyLogging
-import akka.actor.ActorSystem
-import akka.pattern.ask
-import akka.util.Timeout
 import org.mmarini.actd.EnvironmentActor.Step
-import org.mmarini.actd.EnvironmentActor.Interact
-import org.mmarini.actd.ProxyActor
-import org.mmarini.actd.TDAgent
 import org.mmarini.actd.VectorIteratorFactory
-import org.mmarini.actd.TDAgentActor.QueryAgent
-import org.mmarini.actd.TDAgentActor.CurrentAgent
-import org.mmarini.actd.TDAgentActor.CurrentAgent
+
+import com.typesafe.scalalogging.LazyLogging
+
+import akka.actor.Actor.Receive
 import akka.actor.ActorRef
-import scala.concurrent.Future
-import scala.concurrent.duration.Duration
-import scala.concurrent.duration.FiniteDuration
-import scala.concurrent.Promise
-import scala.util.Success
-import scala.util.Failure
-import breeze.linalg.DenseVector
+import akka.actor.ActorSystem
 
 /**
  * Tests the maze environment
  * and generates a report of episode returns as octave data file
  */
-trait FeedbackDump extends WaitFeedback with LazyLogging {
+trait FeedbackDump extends LazyLogging {
+  def system: ActorSystem
 
   val feedbackFilename = "data/debug-wall.csv"
 
-  def dumpFeedback {
-    logger.info(s"Dump feedbacks into $feedbackFilename")
-    waitForFeedback.
-      iterator.
-      toSamplesWithStatus.
-      write(feedbackFilename)
+  lazy val feedbackActor: ActorRef = {
+    val consumeActor = system.actorOf(ConsumerActor.props(consume))
+    system.actorOf(ToSeqActor.props(consumeActor))
+  }
+
+  private def consume: Receive = {
+    case msg: Seq[Any] =>
+      logger.info(s"Dump feedbacks into $feedbackFilename")
+      val data = for { Step(feedback, delta, agent) <- msg } yield (feedback, delta, agent)
+      data.
+        iterator.
+        toSamplesWithStatus.
+        write(feedbackFilename)
   }
 }

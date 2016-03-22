@@ -58,40 +58,22 @@ import scala.util.Failure
  * Tests the maze environment
  * and generates a report of episode returns as octave data file
  */
-object FilteredWallTraceApp extends App with AgentSave with LazyLogging {
-
-  val File = "data/debug-wall.csv"
-  val EpisodeCount = 100
-  val TimeLimit = 10 hours
+object FilteredWallTraceApp extends App with WallEnvironment with AgentSave with LazyLogging {
 
   val States = Set[WallStatus]()
 
   //  val filter = system.actorOf(ProxyActor.filterProps(environment, Interact)(x =>
   //    States.contains(x.asInstanceOf[Step].feedback.s0.asInstanceOf[WallStatus])))
 
-  val takeActor = system.actorOf(TakeUntilActor.props(environment, {
+  val controllerActor = system.actorOf(TakeUntilActor.props(environment, {
     (f, d, a) => f.s1.finalStatus
   }))
 
-  implicit val timeout = Timeout(TimeLimit)
+  val processorActorSet = Set(saveActor)
 
-  val seqFuture = (takeActor ask None).mapTo[Seq[(Feedback, Double, TDAgent)]]
+  startSim
 
-  try {
-    val feedbackSeq = Await.result(seqFuture, TimeLimit)
-    feedbackSeq.iterator.
-      toSamplesWithStatus.
-      write(File)
-
-    saveAgent
-
-  } catch {
-    case x: Throwable => logger.error("Error", x)
-  }
-
-  system stop environment
-
-  system.terminate
+  waitForCompletion
 }
 
 //  /*

@@ -44,32 +44,35 @@ import org.mmarini.actd.TDAgent
 import akka.actor.Terminated
 
 object ToSeqActor {
-  def props(source: ActorRef): Props =
-    Props(classOf[ToSeqActor], source)
+  def props(actors: ActorRef*): Props = Props(classOf[ToSeqActor], actors.toSet)
 }
 
-class ToSeqActor(source: ActorRef) extends Actor with ActorLogging {
+class ToSeqActor(targets: Set[ActorRef]) extends Actor with ActorLogging {
 
-  context.watch(source)
+  def receive: Receive = waitingStep(Set(), Seq())
 
-  def receive: Receive = {
-    case Terminated(`source`) =>
-      context stop self
-    case x =>
-      log.info(s"start $x")
-      source ! x
-      context.become(waitingStep(sender, Seq()))
-  }
-
-  private def waitingStep(replyTo: ActorRef,
+  private def waitingStep(
+    sources: Set[ActorRef],
     list: Seq[Any]): Receive = {
-    case Terminated(`source`) =>
-      log.info(s"Completed")
-      replyTo ! list
-      context stop self
-    case x =>
-      val l = list :+ x
-      context become waitingStep(replyTo, l)
+
+    case Terminated(source) =>
+      val reminder = sources - source
+      if (reminder.isEmpty) {
+        for { target <- targets } { target ! list }
+        context stop self
+        log.info("Completed ToSeqActor")
+      } else {
+        context become waitingStep(reminder, list)
+      }
+
+    case msg =>
+      val l = list :+ msg
+      if (sources.contains(sender)) {
+        context become waitingStep(sources, l)
+      } else {
+        log.info(s"Watching $sender")
+        context watch sender
+        context become waitingStep(sources + sender, l)
+      }
   }
 }
-

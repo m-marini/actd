@@ -32,25 +32,24 @@ package org.mmarini.actd.samples
 import org.mmarini.actd.EnvironmentActor.Interact
 import org.mmarini.actd.EnvironmentActor.Step
 import org.mmarini.actd.Feedback
+import org.mmarini.actd.TDAgent
 import org.mmarini.actd.TimerLogger
+
 import akka.actor.Actor
 import akka.actor.ActorLogging
 import akka.actor.ActorRef
 import akka.actor.Props
 import akka.actor.actorRef2Scala
-import org.mmarini.actd.TDNeuralNet
-import org.mmarini.actd.TDNeuralNetTest
-import org.mmarini.actd.TDAgent
 
 object TakeUntilActor {
   def props(
-    source: ActorRef,
+    envActor: ActorRef,
     proposition: (Feedback, Double, TDAgent) => Boolean): Props =
-    Props(classOf[TakeUntilActor], source, proposition)
+    Props(classOf[TakeUntilActor], envActor, proposition)
 }
 
 class TakeUntilActor(
-    source: ActorRef,
+    envActor: ActorRef,
     proposition: (Feedback, Double, TDAgent) => Boolean) extends Actor with ActorLogging {
 
   val tlog: TimerLogger = new TimerLogger(log)
@@ -58,8 +57,8 @@ class TakeUntilActor(
   def receive: Receive = {
     case _ =>
       log.info("start")
-      source ! Interact
-      context.become(waitingStep(sender))
+      envActor ! Interact
+      context become waitingStep(sender)
   }
 
   private def waitingStep(replyTo: ActorRef): Receive = {
@@ -68,7 +67,7 @@ class TakeUntilActor(
         replyTo ! x
         context stop self
       } else {
-        sender ! Interact
+        envActor ! Interact
         context become waitingStep(replyTo)
       }
   }

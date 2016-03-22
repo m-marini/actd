@@ -44,39 +44,49 @@ import org.mmarini.actd.TDAgent
 import akka.actor.Terminated
 
 object ReturnsActor {
-  def props(source: ActorRef): Props = Props(classOf[ReturnsActor], source)
+  def props(actors: ActorRef*): Props = Props(classOf[ReturnsActor], actors.toSet)
+
 }
 
-class ReturnsActor(source: ActorRef) extends Actor with ActorLogging {
+class ReturnsActor(targets: Set[ActorRef]) extends Actor with ActorLogging {
 
-  context watch source
+  def receive: Receive =
+    waitingStep(Set(), 0.0, 0, 1.0)
 
-  def receive: Receive = {
-    case Terminated(`source`) =>
-      context stop self
-    case x =>
-      log.info("start")
-      source ! x
-      context.become(waitingStep(sender, 0.0, 0, 1.0))
-  }
+  private def waitingStep(
+    sources: Set[ActorRef],
+    returns: Double,
+    count: Int,
+    k: Double): Receive = {
 
-  private def waitingStep(replyTo: ActorRef, returns: Double, count: Int, k: Double): Receive = {
-    case Terminated(`source`) =>
-      if (count > 0) {
-        replyTo ! (returns, count)
+    case Terminated(source) =>
+      val reminder = sources - source
+      if (reminder.isEmpty) {
+        if (count > 0) {
+          for { target <- targets } { target ! (returns, count) }
+          context stop self
+          log.info("Completed ReturnsActor")
+        }
+      } else {
+        context become waitingStep(reminder, returns, count, k)
       }
-      context stop self
 
     case Step(Feedback(s0, _, reward, _), delta, agent) =>
       val ret = returns + reward * k
       val c = count + 1
-      if (s0.finalStatus) {
-        replyTo ! (ret, c)
-        context become waitingStep(replyTo, 0.0, 0, 1.0)
+      val newSources = if (!sources.contains(sender)) {
+        log.info(s"Watching $sender")
+        context watch sender
+        sources + sender
       } else {
-        context become waitingStep(replyTo, ret, c, k * agent.parms.gamma)
+        sources
+      }
+      if (s0.finalStatus) {
+        for { target <- targets } { target ! (ret, c) }
+        context become waitingStep(newSources, 0.0, 0, 1.0)
+      } else {
+        context become waitingStep(newSources, ret, c, k * agent.parms.gamma)
       }
   }
 
 }
-

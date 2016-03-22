@@ -54,6 +54,7 @@ import scala.concurrent.Promise
 import scala.util.Success
 import scala.util.Failure
 import breeze.linalg.DenseVector
+import akka.actor.Actor.Receive
 
 /**
  * Tests the maze environment
@@ -61,25 +62,24 @@ import breeze.linalg.DenseVector
  */
 trait ReturnsDump extends LazyLogging {
 
+  def system: ActorSystem
+
   val returnsFilename = "data/returns.csv"
 
-  val timeLimit: FiniteDuration = 10 hours
-
-  def returnsActor: ActorRef
-
-  def dumpReturns {
-    val rets = waitForReturns.
-      map {
-        case (r, n) => DenseVector(r, n.toDouble)
-      }
-    logger.info(s"Dump returns into $returnsFilename")
-    rets.iterator.write(returnsFilename)
+  lazy val returnsActor: ActorRef = {
+    val consumeActor = system.actorOf(ConsumerActor.props(consume))
+    val toSeqActor = system.actorOf(ToSeqActor.props(consumeActor))
+    val retActor = system.actorOf(ReturnsActor.props(toSeqActor))
+    retActor
   }
 
-  lazy val waitForReturns: Seq[(Double, Int)] = {
-    implicit val timeout = Timeout(timeLimit)
-    val seqFuture = (returnsActor ask None).mapTo[Seq[(Double, Int)]]
-    Await.result(seqFuture, timeLimit)
+  private def consume: Receive = {
+    case msg: Seq[Any] =>
+      logger.info(s"Dump returns into $returnsFilename")
+      val data = for { (r, n) <- msg.asInstanceOf[Seq[(Double, Int)]] } yield DenseVector(r, n.toDouble)
+      data.
+        iterator.
+        write(returnsFilename)
   }
 
 }

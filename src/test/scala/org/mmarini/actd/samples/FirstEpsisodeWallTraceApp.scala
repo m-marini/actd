@@ -60,20 +60,14 @@ import scala.util.Failure
  */
 object FirstEpisodeWallTraceApp extends App with WallEnvironment with AgentSave with FeedbackDump with LazyLogging {
 
-  val EpisodeCount = 100
-
-  val (initStatus, parms, critic, actor) = WallStatus.initEnvParms
-
-  val takeActor = system.actorOf(TakeUntilActor.props(environment, {
+  val controllerActor = system.actorOf(TakeUntilActor.props(environment, {
     (f, d, a) => f.s1.finalStatus
   }))
-  
-  val toSeqActor = system.actorOf(ToSeqActor.props(takeActor))
 
-  dumpFeedback
-  saveAgent
+  val processorActorSet = Set(saveActor, feedbackActor)
 
-  system stop environment
+  startSim
 
-  system.terminate
+  waitForCompletion
+
 }

@@ -29,48 +29,40 @@
 
 package org.mmarini.actd.samples
 
-import scala.concurrent.Await
-import scala.concurrent.duration.DurationInt
-import org.mmarini.actd.EnvironmentActor
-import org.mmarini.actd.Feedback
-import org.mmarini.actd.TDNeuralNet
-import com.typesafe.scalalogging.LazyLogging
-import akka.actor.ActorSystem
-import akka.pattern.ask
-import akka.util.Timeout
-import org.mmarini.actd.EnvironmentActor.Step
-import org.mmarini.actd.EnvironmentActor.Interact
-import org.mmarini.actd.ProxyActor
-import org.mmarini.actd.TDAgent
-import org.mmarini.actd.VectorIteratorFactory
-import org.mmarini.actd.TDAgentActor.QueryAgent
-import org.mmarini.actd.TDAgentActor.CurrentAgent
-import org.mmarini.actd.TDAgentActor.CurrentAgent
+import akka.actor.Props
+import akka.actor.Actor.Receive
+import akka.actor.Terminated
+import akka.actor.ActorLogging
+import akka.actor.Actor
 import akka.actor.ActorRef
-import scala.concurrent.Future
-import scala.concurrent.duration.Duration
-import scala.concurrent.duration.FiniteDuration
-import scala.concurrent.Promise
-import scala.util.Success
-import scala.util.Failure
-import breeze.linalg.DenseVector
 
-/**
- * Tests the maze environment
- * and generates a report of episode returns as octave data file
- */
-trait WaitFeedback extends LazyLogging {
+object ConsumerActor {
 
-  val timeLimit = 10 hours
+  def props(consume: Receive): Props = Props(classOf[ConsumerActor], consume)
 
-  def toSeqActor: ActorRef
+}
 
-  lazy val waitForFeedback: Seq[(Feedback, Double, TDAgent)] = {
-    implicit val timeout = Timeout(timeLimit)
-    val seqFuture = (toSeqActor ask None).mapTo[Seq[Step]]
-    Await.result(seqFuture, timeLimit).
-      map {
-        case Step(feedback, delta, agent) => (feedback, delta, agent)
+class ConsumerActor(consume: Receive) extends Actor with ActorLogging {
+
+  def receive: Receive = waitingStep(Set())
+
+  private def waitingStep(sources: Set[ActorRef]): Receive = {
+
+    case Terminated(source) =>
+      val reminder = sources - source
+      if (reminder.isEmpty) {
+        log.info("Completed ConsumerActor")
+        context stop self
+      } else {
+        context become waitingStep(reminder)
+      }
+
+    case msg =>
+      consume(msg)
+      if (!sources.contains(sender)) {
+        log.info(s"Watching $sender")
+        context watch sender
+        context become waitingStep(sources + sender)
       }
   }
 }

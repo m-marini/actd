@@ -55,37 +55,42 @@ import akka.util.Timeout
 trait AgentSave extends WallEnvironment with LazyLogging {
 
   val agentFilename: String = "data/agent"
-  val trainingTime = 10 seconds
 
-  private val timeLimit = 10 hours
-
-  def saveAgent {
-    try {
-      val agentFuture = trainedAgent
-
-      logger.info("Waiting for training agent ...")
-      val agent = Await.result(agentFuture, timeLimit)
-      logger.info(s"Save agent in $agentFilename")
-      agent.write(agentFilename)
-    } catch {
-      case x: Throwable => logger.error("Error", x)
-    }
+  lazy val saveActor: ActorRef = {
+    ???
   }
 
-  private def trainedAgent: Future[TDAgent] = {
-    import system.dispatcher
-
-    val p = Promise[TDAgent]
-    import system.dispatcher
-    system.scheduler.scheduleOnce(trainingTime) {
-      implicit val timeout = Timeout(timeLimit)
-      val agentFuture = for {
-        CurrentAgent(agent) <- (environment ask QueryAgent).mapTo[CurrentAgent]
-      } yield agent
-      agentFuture.andThen {
-        case result => p.complete(result)
-      }
-    }
-    p.future
-  }
+  //  val trainingTime = 10 seconds
+  //
+  //  private val timeLimit = 10 hours
+  //
+  //  def saveAgent {
+  //    try {
+  //      val agentFuture = trainedAgent
+  //
+  //      logger.info("Waiting for training agent ...")
+  //      val agent = Await.result(agentFuture, timeLimit)
+  //      logger.info(s"Save agent in $agentFilename")
+  //      agent.write(agentFilename)
+  //    } catch {
+  //      case x: Throwable => logger.error("Error", x)
+  //    }
+  //  }
+  //
+  //  private def trainedAgent: Future[TDAgent] = {
+  //    import system.dispatcher
+  //
+  //    val p = Promise[TDAgent]
+  //    import system.dispatcher
+  //    system.scheduler.scheduleOnce(trainingTime) {
+  //      implicit val timeout = Timeout(timeLimit)
+  //      val agentFuture = for {
+  //        CurrentAgent(agent) <- (environment ask QueryAgent).mapTo[CurrentAgent]
+  //      } yield agent
+  //      agentFuture.andThen {
+  //        case result => p.complete(result)
+  //      }
+  //    }
+  //    p.future
+  //  }
 }

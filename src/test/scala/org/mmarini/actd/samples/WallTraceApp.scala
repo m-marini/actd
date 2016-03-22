@@ -29,39 +29,19 @@
 
 package org.mmarini.actd.samples
 
-import scala.concurrent.Await
-import scala.concurrent.duration.DurationInt
-import org.mmarini.actd.EnvironmentActor
-import org.mmarini.actd.Feedback
-import org.mmarini.actd.TDAgent
-import org.mmarini.actd.VectorIteratorFactory
 import com.typesafe.scalalogging.LazyLogging
-import akka.actor.ActorSystem
-import akka.pattern.ask
-import akka.util.Timeout
-import org.mmarini.actd.samples.BroadcastActor.Register
-import akka.routing.Broadcast
 
 /**
  * Tests the maze environment
  * and generates a report of episode returns as octave data file
  */
-object WallTraceApp extends App with FeedbackDump with ReturnsDump with AgentSave with LazyLogging {
-  val StepCount = 100
-  override val trainingTime = 30 seconds
+object WallTraceApp extends App with WallEnvironment with ReturnsDump with FeedbackDump with LazyLogging {
+  val StepCount = 3
 
-  val takeActor = system.actorOf(TakeActor.props(environment, StepCount))
-  val broadcastActor = system.actorOf(BroadcastActor.props(takeActor))
-  val toSeqActor = system.actorOf(ToSeqActor.props(broadcastActor))
-  val returnsActor = system.actorOf(ReturnsActor.props(broadcastActor)
-  
-      broadcastActor ! Register(toSeqActor)
-      broadcastActor ! Register(returnsActor)
+  val controllerActor = system.actorOf(TakeActor.props(environment, StepCount))
+  val processorActorSet = Set(returnsActor, feedbackActor)
 
-  dumpFeedback
-  dumpReturns
-  saveAgent
+  startSim
 
-  system stop environment
-  system.terminate
+  waitForCompletion
 }

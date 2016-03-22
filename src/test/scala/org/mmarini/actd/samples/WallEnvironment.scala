@@ -53,6 +53,7 @@ import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.Promise
 import scala.util.Success
 import scala.util.Failure
+import org.mmarini.actd.samples.BroadcastActor
 
 /**
  * Tests the maze environment
@@ -60,11 +61,27 @@ import scala.util.Failure
  */
 trait WallEnvironment extends LazyLogging {
 
-  val system = ActorSystem()
+  val system: ActorSystem = ActorSystem("Environment")
+
+  def controllerActor: ActorRef
+
+  def processorActorSet: Set[ActorRef]
 
   val environment = {
     val (initStatus, parms, critic, actor) = WallStatus.initEnvParms
     system.actorOf(
       EnvironmentActor.props(initStatus, new TDAgent(parms, critic, actor)))
+  }
+
+  def startSim {
+    val processorActor = system.actorOf(BroadcastActor.props(processorActorSet))
+    controllerActor.tell(Interact, processorActor)
+  }
+
+  def waitForCompletion {
+    Thread.sleep(10000)
+    logger.info("Completed")
+    system stop environment
+    system.terminate
   }
 }
