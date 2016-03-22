@@ -65,7 +65,7 @@ class ReturnsActor(targets: Set[ActorRef]) extends Actor with ActorLogging {
         if (count > 0) {
           for { target <- targets } { target ! (returns, count) }
           context stop self
-          log.info("Completed ReturnsActor")
+          log.debug("Completed ReturnsActor")
         }
       } else {
         context become waitingStep(reminder, returns, count, k)
@@ -75,7 +75,7 @@ class ReturnsActor(targets: Set[ActorRef]) extends Actor with ActorLogging {
       val ret = returns + reward * k
       val c = count + 1
       val newSources = if (!sources.contains(sender)) {
-        log.info(s"Watching $sender")
+        log.debug(s"Watching $sender")
         context watch sender
         sources + sender
       } else {

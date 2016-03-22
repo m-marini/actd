@@ -29,40 +29,42 @@
 
 package org.mmarini.actd.samples
 
+import scala.concurrent.Future
+import scala.concurrent.Promise
+
 import akka.actor.Actor
 import akka.actor.ActorLogging
 import akka.actor.ActorRef
+import akka.actor.ActorSystem
 import akka.actor.Props
 import akka.actor.Terminated
-import akka.actor.actorRef2Scala
 
-object BroadcastActor {
-  def props(dest: ActorRef*): Props = props(dest.toSet)
+object Reaper {
+  def future(actors: Set[ActorRef])(system: ActorSystem): Future[Any] = {
 
-  def props(dest: Set[ActorRef]): Props = Props(classOf[BroadcastActor], dest)
-}
-
-class BroadcastActor(dest: Set[ActorRef]) extends Actor with ActorLogging {
-
-  def receive: Receive = waiting(Set())
-
-  private def waiting(sources: Set[ActorRef]): Receive = {
-    case Terminated(source) =>
-      val remainder = sources - source
-      if (remainder.isEmpty) {
-        context stop self
-        log.debug("Completed BroadcastActor")
-      } else {
-        waiting(remainder)
-      }
-
-    case msg =>
-      for { to <- dest } { to ! msg }
-      if (!sources.contains(sender)) {
-        log.debug(s"Watching $sender")
-        context watch sender
-        context become waiting(sources + sender)
-      }
+    val promise = Promise[Any]
+    reaper(actors, () => { promise.success(None) })(system)
+    promise.future
   }
 
+  def reaper(actors: Set[ActorRef], done: () => Unit)(system: ActorSystem): ActorRef =
+    system.actorOf(Props(classOf[Reaper], actors, done))
+}
+
+class Reaper(actors: Set[ActorRef], done: () => Unit) extends Actor with ActorLogging {
+  for { actor <- actors } { context watch actor }
+
+  def receive: Receive = waiting(actors)
+
+  private def waiting(actors: Set[ActorRef]): Receive = {
+    case Terminated(s) =>
+      val newActors = actors - s
+      if (newActors.isEmpty) {
+        log.debug("Reaper completed")
+        context stop self
+        done()
+      } else {
+        context become waiting(newActors)
+      }
+  }
 }

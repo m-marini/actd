@@ -30,30 +30,17 @@
 package org.mmarini.actd.samples
 
 import scala.concurrent.Await
+import scala.concurrent.TimeoutException
 import scala.concurrent.duration.DurationInt
+
 import org.mmarini.actd.EnvironmentActor
-import org.mmarini.actd.Feedback
-import org.mmarini.actd.TDNeuralNet
-import com.typesafe.scalalogging.LazyLogging
-import akka.actor.ActorSystem
-import akka.pattern.ask
-import akka.util.Timeout
-import org.mmarini.actd.EnvironmentActor.Step
 import org.mmarini.actd.EnvironmentActor.Interact
-import org.mmarini.actd.ProxyActor
 import org.mmarini.actd.TDAgent
-import org.mmarini.actd.VectorIteratorFactory
-import org.mmarini.actd.TDAgentActor.QueryAgent
-import org.mmarini.actd.TDAgentActor.CurrentAgent
-import org.mmarini.actd.TDAgentActor.CurrentAgent
+
+import com.typesafe.scalalogging.LazyLogging
+
 import akka.actor.ActorRef
-import scala.concurrent.Future
-import scala.concurrent.duration.Duration
-import scala.concurrent.duration.FiniteDuration
-import scala.concurrent.Promise
-import scala.util.Success
-import scala.util.Failure
-import org.mmarini.actd.samples.BroadcastActor
+import akka.actor.ActorSystem
 
 /**
  * Tests the maze environment
@@ -65,7 +52,7 @@ trait WallEnvironment extends LazyLogging {
 
   def controllerActor: ActorRef
 
-  def processorActorSet: Set[ActorRef]
+  def processorActorsSet: Set[Seq[ActorRef]]
 
   val environment = {
     val (initStatus, parms, critic, actor) = WallStatus.initEnvParms
@@ -74,14 +61,21 @@ trait WallEnvironment extends LazyLogging {
   }
 
   def startSim {
-    val processorActor = system.actorOf(BroadcastActor.props(processorActorSet))
+    val procList = for {
+      proc <- processorActorsSet
+    } yield {
+      proc.head
+    }
+
+    val processorActor = system.actorOf(BroadcastActor.props(procList))
     controllerActor.tell(Interact, processorActor)
   }
 
   def waitForCompletion {
-    Thread.sleep(10000)
-    logger.info("Completed")
+    val future = Reaper.future(processorActorsSet.flatten)(system)
+    Await.ready(future, 10 hours)
     system stop environment
     system.terminate
+    logger.info("Completed")
   }
 }

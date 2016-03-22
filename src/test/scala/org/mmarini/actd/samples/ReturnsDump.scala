@@ -66,11 +66,11 @@ trait ReturnsDump extends LazyLogging {
 
   val returnsFilename = "data/returns.csv"
 
-  lazy val returnsActor: ActorRef = {
+  lazy val returnsActors: Seq[ActorRef] = {
     val consumeActor = system.actorOf(ConsumerActor.props(consume))
     val toSeqActor = system.actorOf(ToSeqActor.props(consumeActor))
     val retActor = system.actorOf(ReturnsActor.props(toSeqActor))
-    retActor
+    Seq(retActor, toSeqActor, consumeActor)
   }
 
   private def consume: Receive = {

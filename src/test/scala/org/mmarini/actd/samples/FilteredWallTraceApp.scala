@@ -69,7 +69,7 @@ object FilteredWallTraceApp extends App with WallEnvironment with AgentSave with
     (f, d, a) => f.s1.finalStatus
   }))
 
-  val processorActorSet = Set(saveActor)
+  val processorActorsSet = Set(saveActors)
 
   startSim
 

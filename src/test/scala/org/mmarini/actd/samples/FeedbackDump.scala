@@ -47,9 +47,10 @@ trait FeedbackDump extends LazyLogging {
 
   val feedbackFilename = "data/debug-wall.csv"
 
-  lazy val feedbackActor: ActorRef = {
+  lazy val feedbackActors: Seq[ActorRef] = {
     val consumeActor = system.actorOf(ConsumerActor.props(consume))
-    system.actorOf(ToSeqActor.props(consumeActor))
+    val toSeqActor = system.actorOf(ToSeqActor.props(consumeActor))
+    Seq(toSeqActor, consumeActor)
   }
 
   private def consume: Receive = {

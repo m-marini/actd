@@ -60,7 +60,7 @@ class ToSeqActor(targets: Set[ActorRef]) extends Actor with ActorLogging {
       if (reminder.isEmpty) {
         for { target <- targets } { target ! list }
         context stop self
-        log.info("Completed ToSeqActor")
+        log.debug("Completed ToSeqActor")
       } else {
         context become waitingStep(reminder, list)
       }
@@ -70,7 +70,7 @@ class ToSeqActor(targets: Set[ActorRef]) extends Actor with ActorLogging {
       if (sources.contains(sender)) {
         context become waitingStep(sources, l)
       } else {
-        log.info(s"Watching $sender")
+        log.debug(s"Watching $sender")
         context watch sender
         context become waitingStep(sources + sender, l)
       }

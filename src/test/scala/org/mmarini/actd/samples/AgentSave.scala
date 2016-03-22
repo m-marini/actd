@@ -29,24 +29,18 @@
 
 package org.mmarini.actd.samples
 
-import scala.concurrent.Await
-import scala.concurrent.Future
-import scala.concurrent.Promise
-import scala.concurrent.duration.DurationInt
 import scala.concurrent.duration.FiniteDuration
 
-import org.mmarini.actd.TDAgent
 import org.mmarini.actd.TDAgentActor.CurrentAgent
-import org.mmarini.actd.TDAgentActor.CurrentAgent
-import org.mmarini.actd.TDAgentActor.QueryAgent
-import org.mmarini.actd.VectorIteratorFactory
-
 import com.typesafe.scalalogging.LazyLogging
-
+import akka.actor.Actor
+import akka.actor.ActorLogging
 import akka.actor.ActorRef
-import akka.actor.ActorSystem
-import akka.pattern.ask
-import akka.util.Timeout
+import akka.actor.Terminated
+import scala.concurrent.duration.DurationInt
+import akka.actor.Props
+import org.mmarini.actd.TDAgentActor.QueryAgent
+import org.mmarini.actd.TDAgent
 
 /**
  * Tests the maze environment
@@ -55,42 +49,34 @@ import akka.util.Timeout
 trait AgentSave extends WallEnvironment with LazyLogging {
 
   val agentFilename: String = "data/agent"
+  val trainTime = 10 seconds
 
-  lazy val saveActor: ActorRef = {
-    ???
+  def controllerActor: ActorRef
+
+  lazy val saveActors: Seq[ActorRef] = {
+    val consumer = system.actorOf(ConsumerActor.props({
+      case x =>
+    }))
+    def save(agent: TDAgent) {
+      logger.info(s"Save agent in $agentFilename")
+      agent.write(agentFilename)
+    }
+    val saveActor = system.actorOf(Props(classOf[AgentSaveActor], environment, consumer, trainTime, save _))
+    Seq(consumer, saveActor)
   }
+}
 
-  //  val trainingTime = 10 seconds
-  //
-  //  private val timeLimit = 10 hours
-  //
-  //  def saveAgent {
-  //    try {
-  //      val agentFuture = trainedAgent
-  //
-  //      logger.info("Waiting for training agent ...")
-  //      val agent = Await.result(agentFuture, timeLimit)
-  //      logger.info(s"Save agent in $agentFilename")
-  //      agent.write(agentFilename)
-  //    } catch {
-  //      case x: Throwable => logger.error("Error", x)
-  //    }
-  //  }
-  //
-  //  private def trainedAgent: Future[TDAgent] = {
-  //    import system.dispatcher
-  //
-  //    val p = Promise[TDAgent]
-  //    import system.dispatcher
-  //    system.scheduler.scheduleOnce(trainingTime) {
-  //      implicit val timeout = Timeout(timeLimit)
-  //      val agentFuture = for {
-  //        CurrentAgent(agent) <- (environment ask QueryAgent).mapTo[CurrentAgent]
-  //      } yield agent
-  //      agentFuture.andThen {
-  //        case result => p.complete(result)
-  //      }
-  //    }
-  //    p.future
-  //  }
+class AgentSaveActor(environment: ActorRef, controller: ActorRef, time: FiniteDuration, onSuccess: (TDAgent) => Unit) extends Actor with ActorLogging {
+
+  context watch controller
+
+  def receive: Receive = {
+    case Terminated(`controller`) =>
+      log.info("Waiting for training")
+      context.system.scheduler.scheduleOnce(time, environment, QueryAgent)(context.system.dispatcher, self)
+
+    case CurrentAgent(agent) =>
+      onSuccess(agent)
+      context stop self
+  }
 }

@@ -64,7 +64,7 @@ object FirstEpisodeWallTraceApp extends App with WallEnvironment with AgentSave 
     (f, d, a) => f.s1.finalStatus
   }))
 
-  val processorActorSet = Set(saveActor, feedbackActor)
+  val processorActorsSet = Set(saveActors, feedbackActors)
 
   startSim
 

@@ -51,7 +51,7 @@ class ConsumerActor(consume: Receive) extends Actor with ActorLogging {
     case Terminated(source) =>
       val reminder = sources - source
       if (reminder.isEmpty) {
-        log.info("Completed ConsumerActor")
+        log.debug("Completed ConsumerActor")
         context stop self
       } else {
         context become waitingStep(reminder)
@@ -60,7 +60,7 @@ class ConsumerActor(consume: Receive) extends Actor with ActorLogging {
     case msg =>
       consume(msg)
       if (!sources.contains(sender)) {
-        log.info(s"Watching $sender")
+        log.debug(s"Watching $sender")
         context watch sender
         context become waitingStep(sources + sender)
       }
