@@ -76,8 +76,7 @@ trait ReturnsDump extends LazyLogging {
   private def consume: Receive = {
     case msg: Seq[Any] =>
       logger.info(s"Dump returns into $returnsFilename")
-      val data = for { (r, n) <- msg.asInstanceOf[Seq[(Double, Int)]] } yield DenseVector(r, n.toDouble)
-      data.
+      msg.asInstanceOf[Seq[DenseVector[Double]]].
         iterator.
         write(returnsFilename)
   }

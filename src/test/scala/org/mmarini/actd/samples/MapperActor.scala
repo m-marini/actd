@@ -29,54 +29,40 @@
 
 package org.mmarini.actd.samples
 
-import org.mmarini.actd.EnvironmentActor.Interact
-import org.mmarini.actd.EnvironmentActor.Step
-import org.mmarini.actd.TimerLogger
-import akka.actor.Actor
-import akka.actor.ActorLogging
-import akka.actor.ActorRef
 import akka.actor.Props
-import akka.actor.actorRef2Scala
-import scala.concurrent.duration.FiniteDuration
-import scala.concurrent.duration.Duration.Zero
+import akka.actor.Actor.Receive
+import akka.actor.Terminated
+import akka.actor.ActorLogging
+import akka.actor.Actor
+import akka.actor.ActorRef
 
-object TakeActor {
-  def props(
-    envActor: ActorRef,
-    count: Int,
-    delayTime: FiniteDuration): Props =
-    Props(classOf[TakeActor], envActor, count, delayTime)
+object MapperActor {
+
+  def props(dest: ActorRef, map: Any => Any): Props = Props(classOf[MapperActor], dest, map)
+
 }
 
-class TakeActor(
-    envActor: ActorRef,
-    count: Int,
-    delayTime: FiniteDuration) extends Actor with ActorLogging {
+class MapperActor(dest: ActorRef, map: Any => Any) extends Actor with ActorLogging {
 
-  val tlog: TimerLogger = new TimerLogger(log)
+  def receive: Receive = waitingStep(Set())
 
-  def receive: Receive = {
-    case _ =>
-      log.info("start")
-      envActor ! Interact
-      context.become(waitingStep(sender, 0))
-  }
+  private def waitingStep(sources: Set[ActorRef]): Receive = {
 
-  private def waitingStep(replyTo: ActorRef, counter: Int): Receive = {
-    case step: Step =>
-      val ct = counter + 1
-      tlog.info(s"counter = $ct")
-      replyTo ! step
-      if (ct >= count) {
+    case Terminated(source) =>
+      val reminder = sources - source
+      if (reminder.isEmpty) {
+        log.debug("Completed MapperActor")
         context stop self
       } else {
-        if (delayTime == Zero) {
-          envActor ! Interact
-        } else {
-          context.system.scheduler.scheduleOnce(delayTime, envActor, Interact)(context.system.dispatcher, self)
-        }
-        context become waitingStep(replyTo, ct)
+        context become waitingStep(reminder)
+      }
+
+    case msg =>
+      dest ! map(msg)
+      if (!sources.contains(sender)) {
+        log.debug(s"Watching $sender")
+        context watch sender
+        context become waitingStep(sources + sender)
       }
   }
 }
-

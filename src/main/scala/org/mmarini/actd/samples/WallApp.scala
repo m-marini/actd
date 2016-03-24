@@ -59,13 +59,14 @@ import akka.actor.Props
 import org.mmarini.actd.EnvironmentActor.Interact
 import org.mmarini.actd.EnvironmentActor.Step
 import scala.concurrent.duration.FiniteDuration
+import scala.concurrent.duration.Duration.Zero
 import org.mmarini.actd.TDAgentActor.QueryAgent
 import org.mmarini.actd.TDAgentActor.CurrentAgent
 
 /** */
 object WallApp extends SimpleSwingApplication with LazyLogging {
   val SlowTime = 200 millis
-  val FastTime = 0 nanos
+  val FastTime = Zero
 
   /** Button panel */
   val buttonPane = new BoxPanel(Orientation.Vertical) {
@@ -168,7 +169,7 @@ object WallApp extends SimpleSwingApplication with LazyLogging {
     def receive: Receive = steppingDelayed(SlowTime)
 
     private def stepping: Receive = {
-      case t: FiniteDuration if (t > (0 nanos)) =>
+      case t: FiniteDuration if (t > Zero) =>
         context become steppingDelayed(t)
 
       case filename: String =>
@@ -182,7 +183,7 @@ object WallApp extends SimpleSwingApplication with LazyLogging {
     }
 
     private def steppingSave(filename: String): Receive = {
-      case t: FiniteDuration if (t > (0 nanos)) =>
+      case t: FiniteDuration if (t > Zero) =>
         context become steppingDelayedSave(t, filename)
 
       case filename: String =>
@@ -200,7 +201,7 @@ object WallApp extends SimpleSwingApplication with LazyLogging {
     }
 
     private def steppingDelayed(delay: FiniteDuration): Receive = {
-      case t: FiniteDuration if (t == (0 nanos)) =>
+      case t: FiniteDuration if (t == Zero) =>
         context become stepping
 
       case t: FiniteDuration =>
@@ -220,7 +221,7 @@ object WallApp extends SimpleSwingApplication with LazyLogging {
     }
 
     private def steppingDelayedSave(delay: FiniteDuration, filename: String): Receive = {
-      case t: FiniteDuration if (t == (0 nanos)) =>
+      case t: FiniteDuration if (t == Zero) =>
         context become steppingSave(filename)
 
       case t: FiniteDuration =>

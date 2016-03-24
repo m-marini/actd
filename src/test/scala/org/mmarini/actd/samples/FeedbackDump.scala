@@ -31,12 +31,11 @@ package org.mmarini.actd.samples
 
 import org.mmarini.actd.EnvironmentActor.Step
 import org.mmarini.actd.VectorIteratorFactory
-
 import com.typesafe.scalalogging.LazyLogging
-
 import akka.actor.Actor.Receive
 import akka.actor.ActorRef
 import akka.actor.ActorSystem
+import breeze.linalg.DenseVector
 
 /**
  * Tests the maze environment
@@ -50,16 +49,18 @@ trait FeedbackDump extends LazyLogging {
   lazy val feedbackActors: Seq[ActorRef] = {
     val consumeActor = system.actorOf(ConsumerActor.props(consume))
     val toSeqActor = system.actorOf(ToSeqActor.props(consumeActor))
-    Seq(toSeqActor, consumeActor)
+    val mapperActor = system.actorOf(MapperActor.props(toSeqActor, map))
+    Seq(mapperActor, toSeqActor, consumeActor)
   }
 
+  private def map(msg: Any): Any = msg match {
+    case Step(feedback, delta, agent) => recordToSamplesWithStatus((feedback, delta, agent))
+  }
   private def consume: Receive = {
     case msg: Seq[Any] =>
       logger.info(s"Dump feedbacks into $feedbackFilename")
-      val data = for { Step(feedback, delta, agent) <- msg } yield (feedback, delta, agent)
-      data.
+      msg.asInstanceOf[Seq[DenseVector[Double]]].
         iterator.
-        toSamplesWithStatus.
         write(feedbackFilename)
   }
 }

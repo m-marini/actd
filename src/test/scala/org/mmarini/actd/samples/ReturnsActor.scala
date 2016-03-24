@@ -42,6 +42,7 @@ import org.mmarini.actd.TDNeuralNet
 import org.mmarini.actd.TDNeuralNetTest
 import org.mmarini.actd.TDAgent
 import akka.actor.Terminated
+import breeze.linalg.DenseVector
 
 object ReturnsActor {
   def props(actors: ActorRef*): Props = Props(classOf[ReturnsActor], actors.toSet)
@@ -63,7 +64,7 @@ class ReturnsActor(targets: Set[ActorRef]) extends Actor with ActorLogging {
       val reminder = sources - source
       if (reminder.isEmpty) {
         if (count > 0) {
-          for { target <- targets } { target ! (returns, count) }
+          for { target <- targets } { target ! DenseVector(returns, count.toDouble) }
           context stop self
           log.debug("Completed ReturnsActor")
         }
@@ -82,7 +83,7 @@ class ReturnsActor(targets: Set[ActorRef]) extends Actor with ActorLogging {
         sources
       }
       if (s0.finalStatus) {
-        for { target <- targets } { target ! (ret, c) }
+        for { target <- targets } { target ! DenseVector(returns, count.toDouble) }
         context become waitingStep(newSources, 0.0, 0, 1.0)
       } else {
         context become waitingStep(newSources, ret, c, k * agent.parms.gamma)

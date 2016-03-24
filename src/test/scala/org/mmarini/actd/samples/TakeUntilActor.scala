@@ -34,23 +34,26 @@ import org.mmarini.actd.EnvironmentActor.Step
 import org.mmarini.actd.Feedback
 import org.mmarini.actd.TDAgent
 import org.mmarini.actd.TimerLogger
-
 import akka.actor.Actor
 import akka.actor.ActorLogging
 import akka.actor.ActorRef
 import akka.actor.Props
 import akka.actor.actorRef2Scala
+import scala.concurrent.duration.FiniteDuration
+import scala.concurrent.duration.Duration.Zero
 
 object TakeUntilActor {
   def props(
     envActor: ActorRef,
-    proposition: (Feedback, Double, TDAgent) => Boolean): Props =
+    proposition: (Feedback, Double, TDAgent) => Boolean,
+    delayTime: FiniteDuration = Zero): Props =
     Props(classOf[TakeUntilActor], envActor, proposition)
 }
 
 class TakeUntilActor(
     envActor: ActorRef,
-    proposition: (Feedback, Double, TDAgent) => Boolean) extends Actor with ActorLogging {
+    proposition: (Feedback, Double, TDAgent) => Boolean,
+    delayTime: FiniteDuration) extends Actor with ActorLogging {
 
   val tlog: TimerLogger = new TimerLogger(log)
 
@@ -67,7 +70,11 @@ class TakeUntilActor(
         replyTo ! x
         context stop self
       } else {
-        envActor ! Interact
+        if (delayTime == Zero) {
+          envActor ! Interact
+        } else {
+          context.system.scheduler.scheduleOnce(delayTime, envActor, Interact)(context.system.dispatcher, self)
+        }
         context become waitingStep(replyTo)
       }
   }

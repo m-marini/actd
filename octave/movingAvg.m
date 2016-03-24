@@ -1,8 +1,9 @@
 function MA = movingAvg(X, k)
-	[n ] = size(X, 1); 
-	T = zeros(n - k + 1 , k);
-	for i = 1 : k
-		T( : , i) = X(i : end - k + i, 1);
+	[ n m ] = size(X);
+	MA = zeros(n, m);
+	for i = 1 : n
+    from = max(1, i-k+1);
+    T = X(from:i, :);
+  	MA(i,:) = mean(T, 1);
 	endfor
-	MA = mean(T, 2);
 endfunction
