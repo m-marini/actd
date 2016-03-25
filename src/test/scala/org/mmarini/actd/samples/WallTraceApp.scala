@@ -39,8 +39,8 @@ import scala.concurrent.duration.Duration.Zero
  */
 object WallTraceApp extends App with WallEnvironment with ReturnsDump with FeedbackDump with AgentSave with LazyLogging {
   val StepCount = 30000
-  val DelayTime = 200 millis
-//  val DelayTime = Zero
+//  val DelayTime = 200 millis
+  val DelayTime = Zero
 
   val controllerActor = system.actorOf(TakeActor.props(environment, StepCount, DelayTime))
 
