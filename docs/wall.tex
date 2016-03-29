@@ -2,6 +2,7 @@
 \usepackage[T1]{fontenc}
 \usepackage[utf8]{inputenc}
 \usepackage{lmodern}
+\usepackage{graphicx}
 
 \title{Neural network notes}
 \author{Marco Marini}
@@ -249,6 +250,18 @@ Supponiamo ora che la strategia porti ad una distribuzione uniforme degli stati 
 	 = \frac{16}{99}\approx0.162
 	 \]
 \end{itemize}
+
+\section{Batch critic}
+
+Per migliorare l'apprendimento della componente critic si 
+applica l'algoritmo di apprendimento in maniera iterativa su un sottoinsieme limitato delle ultime esperienze (SARS stato iniziale, azione, premio, stato finale) parallelamente all'algoritmo di apprendimento on-line.
+
+Il grafico sottostante rappresenta la lunghezza media degli episodi nel gioco del muro nei casi dell'algoritmo puramente on line e
+di quello batch dove l'interazione viene ritardata di 0, 200, 600 millisecondi per permettere l'apprendimento.
+
+\includegraphics[width=300pt]{episodes}
+
+Si può notare che dopo per un numero sufficiente di episodi l'algoritmo batch ha tende ad essere leggermente migliore di quello on line e che la differenza tra i vari tempi di ritardo non è particolarmente significativa.
 
 
 \end{document}

@@ -37,14 +37,14 @@ import scala.concurrent.duration.Duration.Zero
  * Tests the maze environment
  * and generates a report of episode returns as octave data file
  */
-object WallTraceApp extends App with WallEnvironment with ReturnsDump with FeedbackDump with AgentSave with LazyLogging {
-  val StepCount = 30000
-//  val DelayTime = 200 millis
-  val DelayTime = Zero
+object WallTraceApp extends App with WallEnvironment with ReturnsDump with AgentSave with LazyLogging {
+  val StepCount = 300000
+  val DelayTime = 200 millis
+//  val DelayTime = Zero
 
   val controllerActor = system.actorOf(TakeActor.props(environment, StepCount, DelayTime))
 
-  val processorActorsSet = Set(returnsActors, feedbackActors, saveActors)
+  val processorActorsSet = Set(returnsActors, saveActors)
 
   startSim
 
