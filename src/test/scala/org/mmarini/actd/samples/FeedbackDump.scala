@@ -30,6 +30,7 @@
 package org.mmarini.actd.samples
 
 import org.mmarini.actd.EnvironmentActor.Step
+import scala.concurrent.duration.DurationInt
 import org.mmarini.actd.VectorIteratorFactory
 import com.typesafe.scalalogging.LazyLogging
 import akka.actor.Actor.Receive
@@ -46,9 +47,11 @@ trait FeedbackDump extends LazyLogging {
 
   val feedbackFilename = "data/debug-wall.csv"
 
+  val dumpInterval = 10 minutes
+
   lazy val feedbackActors: Seq[ActorRef] = {
     val consumeActor = system.actorOf(ConsumerActor.props(consume))
-    val toSeqActor = system.actorOf(ToSeqActor.props(consumeActor))
+    val toSeqActor = system.actorOf(ToSeqActor.props(dumpInterval, consumeActor))
     val mapperActor = system.actorOf(MapperActor.props(toSeqActor, map))
     Seq(mapperActor, toSeqActor, consumeActor)
   }

@@ -1,6 +1,22 @@
-X=csvread("../docs/returns-all.csv");
-plot(movingAvg(X(:,[1 3 5 7]),size(X,1)));
-legend("on line","0 ms", "200 ms", "600 ms");
+clear all;
+movingAvgLength=1000;
+Names = {
+  "../docs/returns-online.csv"
+  "../docs/returns-0ms.csv" 
+  "../docs/returns-200ms.csv"};
+X = zeros(1,0)
+for i = 1 : size(Names,1)
+  Y = csvread(Names{i});
+  if i == 1
+    X = Y;
+    n = size(X, 1);
+  else    
+    n = min(n, size(Y, 1));
+    X = [X(1:n, :) Y(1:n, :)];
+  endif
+endfor
+plot(movingAvg(X(:,[2 4 6]),movingAvgLength));
+legend("on line","0 ms", "200 ms");
 title("Average lenght of episode");
 xlabel("Episode count");
 ylabel("Episode length");

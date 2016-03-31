@@ -259,9 +259,13 @@ applica l'algoritmo di apprendimento in maniera iterativa su un sottoinsieme lim
 Il grafico sottostante rappresenta la lunghezza media degli episodi nel gioco del muro nei casi dell'algoritmo puramente on line e
 di quello batch dove l'interazione viene ritardata di 0, 200, 600 millisecondi per permettere l'apprendimento.
 
-\includegraphics[width=300pt]{episodes}
+\includegraphics[width=300pt]{episodes-123}
 
-Si può notare che dopo per un numero sufficiente di episodi l'algoritmo batch ha tende ad essere leggermente migliore di quello on line e che la differenza tra i vari tempi di ritardo non è particolarmente significativa.
+Si può notare che nella prima fase l'algoritmo batch è leggermente migliore rispetto a quello on line ma non appena viene appresa una strategia migliore l'algoritmo on-line reagisce più velocemente rispetto a quello on-line.
+
+Si può indurre che l'algoritmo batch non porta benefici significativi a lungo termine.
+
+Sarebbe interessante capire le motivazioni e dedurne quindi un'ipotesi generale.
 
 
 \end{document}

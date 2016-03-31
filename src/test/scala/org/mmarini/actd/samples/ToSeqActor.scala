@@ -29,31 +29,28 @@
 
 package org.mmarini.actd.samples
 
-import org.mmarini.actd.EnvironmentActor.Interact
-import org.mmarini.actd.EnvironmentActor.Step
-import org.mmarini.actd.Feedback
-import org.mmarini.actd.TimerLogger
+import scala.concurrent.duration.Deadline
+import scala.concurrent.duration.FiniteDuration
+
 import akka.actor.Actor
 import akka.actor.ActorLogging
 import akka.actor.ActorRef
 import akka.actor.Props
-import akka.actor.actorRef2Scala
-import org.mmarini.actd.TDNeuralNet
-import org.mmarini.actd.TDNeuralNetTest
-import org.mmarini.actd.TDAgent
 import akka.actor.Terminated
+import akka.actor.actorRef2Scala
 
 object ToSeqActor {
-  def props(actors: ActorRef*): Props = Props(classOf[ToSeqActor], actors.toSet)
+  def props(interval: FiniteDuration, actors: ActorRef*): Props = Props(classOf[ToSeqActor], actors.toSet, interval)
 }
 
-class ToSeqActor(targets: Set[ActorRef]) extends Actor with ActorLogging {
+class ToSeqActor(targets: Set[ActorRef], interval: FiniteDuration) extends Actor with ActorLogging {
 
-  def receive: Receive = waitingStep(Set(), Seq())
+  def receive: Receive = waitingStep(Set(), Seq(), interval fromNow)
 
   private def waitingStep(
     sources: Set[ActorRef],
-    list: Seq[Any]): Receive = {
+    list: Seq[Any],
+    timeout: Deadline): Receive = {
 
     case Terminated(source) =>
       val reminder = sources - source
@@ -62,17 +59,32 @@ class ToSeqActor(targets: Set[ActorRef]) extends Actor with ActorLogging {
         context stop self
         log.debug("Completed ToSeqActor")
       } else {
-        context become waitingStep(reminder, list)
+        context become waitingStep(reminder, list, timeout)
       }
 
     case msg =>
       val l = list :+ msg
-      if (sources.contains(sender)) {
-        context become waitingStep(sources, l)
+      val overdue = timeout.isOverdue
+      val to = if (overdue) {
+        interval fromNow
+      } else {
+        timeout
+      }
+      val isOldSource = sources.contains(sender)
+      val sources1 = if (isOldSource) {
+        sources
       } else {
         log.debug(s"Watching $sender")
         context watch sender
-        context become waitingStep(sources + sender, l)
+        sources + sender
       }
+      if (overdue) {
+        for { target <- targets } { target ! list }
+      }
+      if (!isOldSource) {
+        log.debug(s"Watching $sender")
+        context watch sender
+      }
+      context become waitingStep(sources1, l, to)
   }
 }
