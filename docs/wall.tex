@@ -253,19 +253,48 @@ Supponiamo ora che la strategia porti ad una distribuzione uniforme degli stati 
 
 \section{Batch critic}
 
-Per migliorare l'apprendimento della componente critic si 
-applica l'algoritmo di apprendimento in maniera iterativa su un sottoinsieme limitato delle ultime esperienze (SARS stato iniziale, azione, premio, stato finale) parallelamente all'algoritmo di apprendimento on-line.
+Per migliorare l'apprendimento della componente critic si applica
+l'algoritmo di apprendimento in maniera iterativa su un sottoinsieme limitato
+delle ultime esperienze (SARS stato iniziale, azione, premio, stato finale)
+parallelamente all'algoritmo di apprendimento on-line.
 
-Il grafico sottostante rappresenta la lunghezza media degli episodi nel gioco del muro nei casi dell'algoritmo puramente on line e
-di quello batch dove l'interazione viene ritardata di 0, 200, 600 millisecondi per permettere l'apprendimento.
 
+Le figure (\ref{fig:seed1234},\ref{fig:seed1234},\ref{fig:seed31415})  rappresentano la lunghezza media degli episodi nel
+gioco del muro nei casi dell'algoritmo puramente on line e
+di quello batch dove l'interazione viene ritardata di 0, 200, 600 millisecondi
+per permettere l'apprendimento con differenti semi del generatore casuale.
+
+\begin{figure}
+\label{fig:seed1234}
 \includegraphics[width=300pt]{episodes-123}
+\caption{Seed 1234}
+\end{figure}
 
-Si può notare che nella prima fase l'algoritmo batch è leggermente migliore rispetto a quello on line ma non appena viene appresa una strategia migliore l'algoritmo on-line reagisce più velocemente rispetto a quello on-line.
+\begin{figure}
+\label{fig:seed4321}
+\includegraphics[width=300pt]{episodes-321}
+\caption{Seed 4321}
+\end{figure}
 
-Si può indurre che l'algoritmo batch non porta benefici significativi a lungo termine.
+\begin{figure}
+\label{fig:seed31415}
+\includegraphics[width=300pt]{episodes-314}
+\caption{Seed 31415}
+\end{figure}
 
-Sarebbe interessante capire le motivazioni e dedurne quindi un'ipotesi generale.
+Dai grafici si notano comportamenti molto diversi tra i due algoritmi.
 
+Nel primo caso (\ref{fig:seed1234}) vediamo che i due algoritmi si comportano in modo simile
+quando il tempo di reazione è nullo.
+Mentre notiamo un inerzia al cambiamento quando la reazione è ritardata di 200 ms.
+
+Nel secondo caso (\ref{fig:seed4321}) invece notiamo che l'algoritmo on-line non ha trovato alcuna
+strategia migliore.
+
+Nel terzo caso (\ref{fig:seed31415}) l'algoritmo batch ha trovato una strategia migliore prima di quello on-line.
+
+In base a queste evidenze possiamo indurre a pensare che l'algoritmo batch non si comporta peggio di quello on-line.
+
+Sarebbe interessante analizzare meglio questi comportamenti per cercare dei principi generali (es velocità di convergenza delle soluzioni o di reattività) da cui si possano dedurre delle teorie.
 
 \end{document}
