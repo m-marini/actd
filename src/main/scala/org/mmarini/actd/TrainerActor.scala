@@ -60,7 +60,7 @@ class TrainerActor extends Actor with ActorLogging {
   def receive: Receive = {
     case Train(net, trainer) =>
       val trained = trainer.train(net)
-//      log.info("Network trained")
+      //      log.info("Network trained")
       sender ! Trained(trained)
   }
 }
