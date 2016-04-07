@@ -91,8 +91,6 @@ It can be created with
 
 To have the explanations of parameters see ...
 
-
-
 	
 ## Interacting the environment
 
