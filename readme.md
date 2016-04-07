@@ -120,10 +120,10 @@ The method writes the files:
   - `myagent-critic-0.csv` with the weight of critic network for first layer
   - `myagent-critic-{i}.csv` with the weight of critic network for (i+1) layer
   - `myagent-critic-{n-1}.csv` with the weight of critic network for last layer
-  - `myagent-actor-n.csv` with the number of critic layers
-  - `myagent-actor-0.csv` with the weight of critic network for first layer
-  - `myagent-actor-{i}.csv` with the weight of critic network for (i+1) layer
-  - `myagent-actor-{n-1}.csv` with the weight of critic network for last layer
+  - `myagent-actor-n.csv` with the number of actor layers
+  - `myagent-actor-0.csv` with the weight of actor network for first layer
+  - `myagent-actor-{i}.csv` with the weight of actor network for (i+1) layer
+  - `myagent-actor-{n-1}.csv` with the weight of actor network for last layer
 
 
 ## Loading agent
