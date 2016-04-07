@@ -57,6 +57,7 @@ class TrainerActor extends Actor with ActorLogging {
 
   import TrainerActor._
 
+  /** Processes the [[Train]] message */
   def receive: Receive = {
     case Train(net, trainer) =>
       val trained = trainer.train(net)

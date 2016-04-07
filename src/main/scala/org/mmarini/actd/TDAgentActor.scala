@@ -79,6 +79,7 @@ class TDAgentActor(agent: TDAgent) extends Actor with ActorLogging {
 
   def receive: Receive = waitingFirstFeed(agent)
 
+  /** Processes messages before trainer actor started */
   private def waitingFirstFeed(agent: TDAgent): Receive = {
 
     case React(s) =>
@@ -95,6 +96,7 @@ class TDAgentActor(agent: TDAgent) extends Actor with ActorLogging {
       sender ! Trained(delta, na)
   }
 
+  /** Processes messages after the trainer actor has started */
   private def processing(agent: TDAgent, trainer: TDTrainer): Receive = {
 
     case TrainerActor.Trained(net) =>

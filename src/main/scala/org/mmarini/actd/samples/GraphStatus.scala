@@ -35,7 +35,7 @@ import org.mmarini.actd.Status
 
 import breeze.linalg.DenseVector
 
-/** */
+/** The status of a graph */
 case class GraphStatus(s: Int, size: () => Int, next: (Int, Action) => (Int, Double), isFinalStatus: Int => Boolean) extends Status {
 
   require(s >= 0 && s < size())

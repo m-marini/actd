@@ -41,7 +41,7 @@ import WallStatus.PadAction
 import breeze.linalg.DenseVector
 import breeze.stats.distributions.RandBasis
 
-/** */
+/** The status of wall game */
 case class WallStatus(ball: (Int, Int), direction: Direction.Value, pad: Int) extends Status {
 
   import PadAction._
@@ -63,7 +63,7 @@ case class WallStatus(ball: (Int, Int), direction: Direction.Value, pad: Int) ex
   require(ball._1 >= 0)
   require(ball._1 >= 1 || ball._2 == 0 && direction == SE && pad == 1, s"$ball $direction $pad")
 
-  /** */
+  /** Transforms the status nto a Vector */
   val toDenseVector: DenseVector[Double] = {
     if (finalStatus) {
       FinalVector
@@ -85,14 +85,14 @@ case class WallStatus(ball: (Int, Int), direction: Direction.Value, pad: Int) ex
   /** Returns a [[WallStatus]] with changed pad location */
   def pad(x: Int): WallStatus = WallStatus(ball, direction, x)
 
-  /** */
+  /** Moves the pad by action */
   private def movePad(action: Action) = PadAction.apply(action) match {
     case Left if pad > 0 => pad - 1
     case Right if pad < LastPad => pad + 1
     case _ => pad
   }
 
-  /** */
+  /** Produce the feedback of an applied action */
   def apply(action: Action): Feedback = {
     val pad1 = movePad(action)
     val (s1, reward) = if (finalStatus) {
@@ -113,11 +113,12 @@ case class WallStatus(ball: (Int, Int), direction: Direction.Value, pad: Int) ex
     Feedback(this, action, reward, s1)
   }
 
-  /** */
+  /** Returns true if is a final status */
   override def finalStatus: Boolean = this == endStatus
 
 }
 
+/** A factory of [[WallStatus]] */
 object WallStatus extends LazyLogging {
 
   type TransitionSource = (WallStatus, PadAction.Value)
@@ -165,6 +166,7 @@ object WallStatus extends LazyLogging {
 
   val endStatus = WallStatus((0, 0), SE, 1)
 
+  /** The state transition map */
   val StatusMap = createMap
 
   /** Creates a initial game status */
@@ -183,6 +185,7 @@ object WallStatus extends LazyLogging {
     WallStatus(b, s, pad)
   }
 
+  /** Creates a initial environment parameters */
   def initEnvParms: (WallStatus, TDParms, TDNeuralNet, TDNeuralNet) = {
 
     val initStatus = WallStatus.initial

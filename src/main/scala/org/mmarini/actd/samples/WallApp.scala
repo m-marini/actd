@@ -63,7 +63,7 @@ import scala.concurrent.duration.Duration.Zero
 import org.mmarini.actd.TDAgentActor.QueryAgent
 import org.mmarini.actd.TDAgentActor.CurrentAgent
 
-/** */
+/** The UI wall game application */
 object WallApp extends SimpleSwingApplication with LazyLogging {
   val SlowTime = 200 millis
   val FastTime = Zero

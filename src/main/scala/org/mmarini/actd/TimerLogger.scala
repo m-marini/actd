@@ -29,14 +29,17 @@
 
 package org.mmarini.actd
 
-import scala.concurrent.duration.DurationInt
 import scala.concurrent.duration.Deadline
+import scala.concurrent.duration.DurationInt
 import scala.concurrent.duration.FiniteDuration
+
 import akka.event.LoggingAdapter
 
+/** A timer logger that prints info only after specified time interval */
 case class TimerLogger(logger: LoggingAdapter, interval: FiniteDuration = 1 second) {
   var timeout = Deadline.now
 
+  /** Prints info */
   def info(msg: String) {
     if (timeout.isOverdue) {
       logger.info(msg)
