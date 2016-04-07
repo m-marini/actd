@@ -76,8 +76,10 @@ It can be created with
 		alpha = 10e-3,
 		beta = 1.0,
 		gamma = 0.99,
+		epsilon = 0.1,
 		lambda = 0.1,
-		eta = 1.0)
+		eta = 1.0,
+		maxTrainingSample = 1)
 	
 	val agent = TDAgent(
 		parms = parms,
@@ -90,39 +92,75 @@ It can be created with
 To have the explanations of parameters see ...
 
 
-## Creating the initial environment
 
-The environment models the interaction between the environment itself and the Agent.
-
-It is created with the initial status and the initial agent
-
-	val initStatus: Status = ...
 	
-	val env = Environment(
-		status = S0,
-		agent = agent)
-	
-	
-## Interacting with the environment
+## Interacting the environment
 
-You can run the interaction calling the `stepOver` method
-
-    val (env0, env1, Feedback(s0, a, r, s1)) = env.stepOver
-
-It results the starting environment itself, the next environment with the next status and the updated agent and the feedback of interaction.
-
-The feedback consists of the initial status, the performed action, the given reward and the final status.
-
-Another way to run the interaction is to convert the initial environment to a iterator
-and use the iterator functions.
-
-    val iter = env.iterator
-
-    // Gets next interaction
-    val next = iter.next
+The environment interaction consists of a cycle where the agent selects an action by the current status, the action is applied to the status to get the environment feedback and the feedback is used by current agent to train a new agent.
+The feedback contains the new status of environment.
     
-    // Gets next 10 steps
-    val next10 = iter.take(10)
+
+    val status : Status = ...
+    val agent : TDAgent = ...
     
-    // Gets next episode
-    val episode = iter.takeWhile{ case (_, env1, _) => !env1.status.finalStatus}
+    val action = agent.action(status)
+    val feedback = status(action)
+    val (agent1, error) = agent.train(feedback)
+    val Feedback(_, _, reward, status1) = feedback
+
+
+## Saving agent
+
+The agent may be saved into a set of csv files
+
+	agent.write("myagent")
+
+The method writes the files:
+
+  - `myagent-parms.csv` with the parameter set
+  - `myagent-critic-n.csv` with the number of critic layers
+  - `myagent-critic-0.csv` with the weight of critic network for first layer
+  - `myagent-critic-{i}.csv` with the weight of critic network for (i+1) layer
+  - `myagent-critic-{n-1}.csv` with the weight of critic network for last layer
+  - `myagent-actor-n.csv` with the number of critic layers
+  - `myagent-actor-0.csv` with the weight of critic network for first layer
+  - `myagent-actor-{i}.csv` with the weight of critic network for (i+1) layer
+  - `myagent-actor-{n-1}.csv` with the weight of critic network for last layer
+
+
+## Loading agent
+
+*Not yet implemented ...*
+
+
+# Akka actors implementation
+
+The environment iteration is implemented by akka actors, which allow to run concurrent training while interacting the environment.
+
+To use the akka implementation you need to create a environment actor:
+
+    val initStatus: Status = ...
+    val agent : TDAgent = ...
+
+    val environmentActor = system.actorOf(EnvironmentActor.props(initStatus, agent))
+    
+Then you send an `Interact` message to the actor
+
+	environmentActor ! Interact
+	
+The actor will reply with a `Step(feedback, error, agent)` message containing the feedback, the error and the new agent generated.
+
+
+You may query the current agent by sending a `QueryAgent` message
+
+	environmentActor ! QueryAgent
+ 
+The actor will reply with a `CurrentAgent(agent)` message containing the current agent.
+ 
+The akka implementation creates a trainer akka actor that trains in background mode the
+critic neural network.
+
+The `maxTrainingSample` of the `TDParms` sets the number of
+recent samples used in training process.
+
+If the `maxTrainingSample` is set to zero no batch trainer will be created.

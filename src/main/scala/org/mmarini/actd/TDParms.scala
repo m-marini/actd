@@ -56,7 +56,7 @@ case class TDParms(
     epsilon: Double,
     lambda: Double,
     eta: Double,
-    maxTrainingSamples: Int = 1,
+    maxTrainingSamples: Int = 0,
     random: RandBasis) {
 
   private val egreedyRand = new Bernoulli(epsilon, random)

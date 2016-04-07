@@ -35,6 +35,7 @@ import akka.actor.Actor
 import akka.actor.ActorLogging
 import akka.actor.Props
 import akka.actor.actorRef2Scala
+import akka.actor.ActorRef
 
 /** Props and messages factory for [[TDAgentActor]] */
 object TDAgentActor {
@@ -75,7 +76,11 @@ class TDAgentActor(agent: TDAgent) extends Actor with ActorLogging {
 
   import TDAgentActor._
 
-  val trainerActor = context.actorOf(TrainerActor.props)
+  val trainerActorOpt: Option[ActorRef] = if (agent.parms.maxTrainingSamples > 0) {
+    Some(context.actorOf(TrainerActor.props))
+  } else {
+    None
+  }
 
   def receive: Receive = waitingFirstFeed(agent)
 
@@ -91,7 +96,7 @@ class TDAgentActor(agent: TDAgent) extends Actor with ActorLogging {
     case Train(feedback) =>
       val (na, delta) = agent.train(feedback)
       val trainer = TDTrainer(agent.parms.maxTrainingSamples, Seq(feedback))
-      trainerActor ! TrainerActor.Train(na.critic, trainer)
+      for (trainerActor <- trainerActorOpt) { trainerActor ! TrainerActor.Train(na.critic, trainer) }
       context become processing(na, trainer)
       sender ! Trained(delta, na)
   }
@@ -101,7 +106,7 @@ class TDAgentActor(agent: TDAgent) extends Actor with ActorLogging {
 
     case TrainerActor.Trained(net) =>
       context become processing(agent.critic(net), trainer)
-      trainerActor ! TrainerActor.Train(net, trainer)
+      for (trainerActor <- trainerActorOpt) { trainerActor ! TrainerActor.Train(net, trainer) }
 
     case React(s) =>
       sender ! Reaction(agent.action(s))
