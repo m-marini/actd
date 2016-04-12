@@ -65,11 +65,17 @@ object FilteredWallTraceApp extends App with WallEnvironment with AgentSave with
   //  val filter = system.actorOf(ProxyActor.filterProps(environment, Interact)(x =>
   //    States.contains(x.asInstanceOf[Step].feedback.s0.asInstanceOf[WallStatus])))
 
+  val processorActorsSet = Set(saveActors)
+
+  val environment = {
+    val (initStatus, parms, critic, actor) = WallStatus.initEnvParms
+    system.actorOf(
+      EnvironmentActor.props(initStatus, new TDAgent(parms, critic, actor)))
+  }
+
   val controllerActor = system.actorOf(TakeUntilActor.props(environment, {
     (f, d, a) => f.s1.finalStatus
   }))
-
-  val processorActorsSet = Set(saveActors)
 
   startSim
 

@@ -34,6 +34,7 @@ import breeze.linalg.DenseVector
 import breeze.stats.distributions.Rand
 import breeze.stats.distributions.RandBasis
 import breeze.linalg.csvwrite
+import breeze.linalg.csvread
 import scalax.file.Path
 import scalax.io.Resource
 import java.io.File
@@ -107,7 +108,23 @@ case class MatrixSeq(matrices: Seq[DenseMatrix[Double]]) {
 object MatrixSeq {
 
   /**
-   * Create [[MatrixSeq]] with a hidden layer and random values
+   * Creates [[MatrixSeq]] reading file
+   */
+  def create(file: String): MatrixSeq = {
+    val nx = csvread(new File(s"$file-n.csv"))
+    val n = nx(0, 0).toInt
+    val seq = for {
+      i <- 0 until n
+    } yield {
+      val fn = s"$file-$i.csv"
+      val x = csvread(new File(fn))
+      x
+    }
+    MatrixSeq(seq)
+  }
+
+  /**
+   * Creates [[MatrixSeq]] with a hidden layer and random values
    */
   def rand(inputCount: Int, hiddenCount: Int, outputCount: Int, epsilon: Double): MatrixSeq =
     rand(Seq(inputCount, hiddenCount, outputCount), epsilon)

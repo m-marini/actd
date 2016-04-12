@@ -29,51 +29,33 @@
 
 package org.mmarini.actd.samples
 
-import scala.concurrent.Await
+import scala.concurrent.duration.Duration.Zero
 import scala.concurrent.duration.DurationInt
-import org.mmarini.actd.EnvironmentActor
-import org.mmarini.actd.Feedback
-import org.mmarini.actd.TDNeuralNet
-import com.typesafe.scalalogging.LazyLogging
-import akka.actor.ActorSystem
-import akka.pattern.ask
-import akka.util.Timeout
-import org.mmarini.actd.EnvironmentActor.Step
-import org.mmarini.actd.EnvironmentActor.Interact
-import org.mmarini.actd.ProxyActor
 import org.mmarini.actd.TDAgent
-import org.mmarini.actd.VectorIteratorFactory
-import org.mmarini.actd.TDAgentActor.QueryAgent
-import org.mmarini.actd.TDAgentActor.CurrentAgent
-import org.mmarini.actd.TDAgentActor.CurrentAgent
-import akka.actor.ActorRef
-import scala.concurrent.Future
-import scala.concurrent.duration.Duration
-import scala.concurrent.duration.FiniteDuration
-import scala.concurrent.Promise
-import scala.util.Success
-import scala.util.Failure
+import com.typesafe.scalalogging.LazyLogging
+import org.mmarini.actd.EnvironmentActor
 
 /**
  * Tests the maze environment
  * and generates a report of episode returns as octave data file
  */
-object FirstEpisodeWallTraceApp extends App with WallEnvironment with AgentSave with FeedbackDump with LazyLogging {
+object WallDeepTraceApp extends App with WallEnvironment with ReturnsDump with AgentSave with LazyLogging {
+  val StepCount = 300000
+  //  val DelayTime = 200 millis
+  val DelayTime = Zero
 
   val environment = {
-    val (initStatus, parms, critic, actor) = WallStatus.initEnvParms
+    val (initStatus, parms, critic, actor) = WallDeepStatus.initEnvParms
     system.actorOf(
-      EnvironmentActor.props(initStatus, new TDAgent(parms, critic, actor)))
+//      EnvironmentActor.props(initStatus, new TDAgent(parms, critic, actor)))
+      EnvironmentActor.props(initStatus, TDAgent(agentFilename)))
   }
 
-  val controllerActor = system.actorOf(TakeUntilActor.props(environment, {
-    (f, d, a) => f.s1.finalStatus
-  }))
+  val controllerActor = system.actorOf(TakeActor.props(environment, StepCount, DelayTime))
 
-  val processorActorsSet = Set(saveActors, feedbackActors)
+  val processorActorsSet = Set(returnsActors, saveActors)
 
   startSim
 
   waitForCompletion
-
 }

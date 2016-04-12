@@ -32,12 +32,21 @@ package org.mmarini.actd.samples
 import com.typesafe.scalalogging.LazyLogging
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.duration.Duration.Zero
+import org.mmarini.actd.EnvironmentActor
+import org.mmarini.actd.TDAgent
 
 /**
  * Tests the maze environment
  * and generates a report of episode returns as octave data file
  */
 object WallTraceApp extends App with WallEnvironment with ReturnsDump with AgentSave with LazyLogging {
+
+  val environment = {
+    val (initStatus, parms, critic, actor) = WallStatus.initEnvParms
+    system.actorOf(
+      EnvironmentActor.props(initStatus, new TDAgent(parms, critic, actor)))
+  }
+
   val StepCount = 300000
   //  val DelayTime = 200 millis
   val DelayTime = Zero

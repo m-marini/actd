@@ -29,8 +29,15 @@
 
 package org.mmarini.actd
 
+import java.io.File
+
+import scala.IndexedSeq
+
+import org.apache.commons.math3.random.MersenneTwister
+
 import breeze.linalg.DenseVector
-import breeze.io.CSVWriter
+import breeze.linalg.csvread
+import breeze.stats.distributions.RandBasis
 
 /**
  * A learning agent that replies to stimulus with actions and learns by receiving rewards
@@ -123,6 +130,10 @@ class TDAgent(
 /** Factory for [[TDAgent]] instances */
 object TDAgent {
 
+  private val LambdaIndex = 4
+  private val EtaIndex = 5
+  private val MaxTrainingSamplesIndex = 6
+
   /**
    * Creates a TDAgent with TD parameter,
    *  hidden layers networks and
@@ -138,4 +149,24 @@ object TDAgent {
       TDNeuralNet(statusSize +: hiddenLayers :+ 1, parms, sigma),
       TDNeuralNet(statusSize +: hiddenLayers :+ actionCount, parms, sigma))
 
+  /**
+   * Creates a TDAgent reading from file set
+   */
+  def apply(file: String, random: RandBasis = new RandBasis(new MersenneTwister())): TDAgent = {
+    val p = csvread(new File(s"$file-parms.csv"))
+    val parms = TDParms(
+      alpha = p(0, 0),
+      beta = p(0, 1),
+      gamma = p(0, 2),
+      epsilon = p(0, 3),
+      lambda = p(0, LambdaIndex),
+      eta = p(0, EtaIndex),
+      maxTrainingSamples = p(0, MaxTrainingSamplesIndex).toInt,
+      random)
+    val criticMtx = MatrixSeq.create(s"$file-critic")
+    val actorMtx = MatrixSeq.create(s"$file-actor")
+    val critic = new TDNeuralNet(criticMtx, criticMtx.zeros, parms)
+    val actor = new TDNeuralNet(actorMtx, actorMtx.zeros, parms)
+    new TDAgent(parms, critic, actor)
+  }
 }
