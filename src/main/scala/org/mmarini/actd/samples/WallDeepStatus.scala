@@ -158,7 +158,7 @@ object WallDeepStatus extends LazyLogging {
 
   val OutputCount = 3
   val HiddenLayer1Count = 1000
-  val HiddenLayer2Count = 10
+  val HiddenLayer2Count = 100
   val HiddenLayerCount = Seq(HiddenLayer1Count, HiddenLayer2Count)
 
   /** MazeAction */

@@ -43,11 +43,12 @@ object WallDeepTraceApp extends App with WallEnvironment with ReturnsDump with A
   val StepCount = 300000
   //  val DelayTime = 200 millis
   val DelayTime = Zero
+  override val trainTime = Zero
 
   val environment = {
     val (initStatus, parms, critic, actor) = WallDeepStatus.initEnvParms
     system.actorOf(
-//      EnvironmentActor.props(initStatus, new TDAgent(parms, critic, actor)))
+      //      EnvironmentActor.props(initStatus, new TDAgent(parms, critic, actor)))
       EnvironmentActor.props(initStatus, TDAgent(agentFilename)))
   }
 
