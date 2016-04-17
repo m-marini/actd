@@ -48,7 +48,7 @@ import org.mmarini.actd.TDAgent
  */
 trait AgentSave extends WallEnvironment with LazyLogging {
 
-  val agentFilename: String = "data/agent"
+  val agentFilename: String = "docs/agent"
   val trainTime = 10 seconds
 
   def controllerActor: ActorRef
