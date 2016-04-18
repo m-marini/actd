@@ -26,12 +26,18 @@ libraryDependencies += "io.reactivex" % "rxswing" % "0.25.0"
 
 libraryDependencies += "org.scala-lang" % "scala-swing" % "2.11.0-M7"
 
+libraryDependencies += "org.deeplearning4j" % "deeplearning4j-core" % "0.4-rc3.8"
+
+libraryDependencies += "org.nd4j" % "nd4j-x86" % "0.4-rc3.8"
+
+libraryDependencies += "org.nd4j" % "canova-api" % "0.0.0.14"
+
+libraryDependencies += "com.typesafe.akka" %% "akka-testkit" % "2.4.1" % Test
+
 libraryDependencies += "org.scalatest" %% "scalatest" % "2.2.4" % Test
 
 libraryDependencies += "org.scalamock" %% "scalamock-scalatest-support" % "3.2" % Test
 
 libraryDependencies += "org.scalacheck" %% "scalacheck" % "1.11.6" % Test
-
-libraryDependencies += "com.typesafe.akka" %% "akka-testkit" % "2.4.1" % Test
 
 lazy val root = project in file(".")
