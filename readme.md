@@ -128,7 +128,11 @@ The method writes the files:
 
 ## Loading agent
 
-*Not yet implemented ...*
+The agent may be created reading a set of csv files
+
+	val agent = TDAgent("myagent")
+
+The method read the same file used to save.
 
 
 # Akka actors implementation
