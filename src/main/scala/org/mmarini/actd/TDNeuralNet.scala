@@ -100,6 +100,6 @@ class TDNeuralNet(
 object TDNeuralNet {
 
   /** Creates a [[TDLearning]] with number of neuron layers, parameters and sigma random weights initialization s*/
-  def apply(layers: Seq[Int], parms: TDParms, sigma: Double): TDNeuralNet =
-    new TDNeuralNet(MatrixSeq.rand(layers, sigma)(parms.random), MatrixSeq.zeros(layers), parms)
+  def apply(layers: Seq[Int], parms: TDParms): TDNeuralNet =
+    new TDNeuralNet(MatrixSeq.createXavier(layers)(parms.random), MatrixSeq.zeros(layers), parms)
 }

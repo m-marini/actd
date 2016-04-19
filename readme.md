@@ -83,7 +83,6 @@ It can be created with
 	
 	val agent = TDAgent(
 		parms = parms,
-		sigma = 1.0,
 		statusSize = 10,
 		actionCount = 4,
 		10)

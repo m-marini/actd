@@ -152,14 +152,16 @@ object WallDeepStatus extends LazyLogging {
   val EpsilonGreedy = 5e-3
   val Lambda = 0e-3
   val Eta = 100e-3
-  val Sigma = 1.0
-  val Seed = 31415L
-  val MaxTrainingSamples = 1000
+  val Seed = 1234L
+  val MaxTrainingSamples = 0
 
   val OutputCount = 3
-  val HiddenLayer1Count = 1000
-  val HiddenLayer2Count = 100
+  val HiddenLayer1Count = 67
+  val HiddenLayer2Count = 67
   val HiddenLayerCount = Seq(HiddenLayer1Count, HiddenLayer2Count)
+
+//  val HiddenLayer1Count = 31
+//  val HiddenLayerCount = Seq(HiddenLayer1Count)
 
   /** MazeAction */
   object PadAction extends Enumeration {
@@ -212,8 +214,8 @@ object WallDeepStatus extends LazyLogging {
       maxTrainingSamples = MaxTrainingSamples,
       random = new RandBasis(new MersenneTwister(Seed)))
 
-    val critic = TDNeuralNet(inputCount +: HiddenLayerCount :+ 1, parms, Sigma)
-    val actor = TDNeuralNet(inputCount +: HiddenLayerCount :+ OutputCount, parms, Sigma)
+    val critic = TDNeuralNet(inputCount +: HiddenLayerCount :+ 1, parms)
+    val actor = TDNeuralNet(inputCount +: HiddenLayerCount :+ OutputCount, parms)
 
     (initStatus, parms, critic, actor)
   }

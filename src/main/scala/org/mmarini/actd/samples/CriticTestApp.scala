@@ -76,7 +76,7 @@ object CriticTestApp extends App with LazyLogging {
         lambda = x,
         eta = Eta,
         random = new RandBasis(new MersenneTwister(Seed))),
-      1.0, 2, 2))
+      2, 2))
 
   /** Computes the error of an agent */
   private def error(agent: TDAgent): Double =

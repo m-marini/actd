@@ -141,13 +141,12 @@ object TDAgent {
    */
   def apply(
     parms: TDParms,
-    sigma: Double,
     statusSize: Int,
     actionCount: Int,
     hiddenLayers: Int*): TDAgent =
     new TDAgent(parms,
-      TDNeuralNet(statusSize +: hiddenLayers :+ 1, parms, sigma),
-      TDNeuralNet(statusSize +: hiddenLayers :+ actionCount, parms, sigma))
+      TDNeuralNet(statusSize +: hiddenLayers :+ 1, parms),
+      TDNeuralNet(statusSize +: hiddenLayers :+ actionCount, parms))
 
   /**
    * Creates a TDAgent reading from file set

@@ -84,7 +84,6 @@ class TDAgentTest extends PropSpec with PropertyChecks with Matchers with GivenW
       lambda = lambda,
       eta = eta,
       random = new RandBasis(new MersenneTwister(Seed))),
-    1.0,
     2, 2)
 
   property("Traced critic state function") {

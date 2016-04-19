@@ -60,12 +60,9 @@ class TracedNetTest extends PropSpec with PropertyChecks with Matchers with Give
     eta = eta,
     random = Rand)
 
-  val epsilonGen = Gen.choose(10e-3, 100e-3)
-
   property("Traces and weights changed") {
 
     Given("td parameters")
-    And("an epsilon randomizer parameter")
     And("an input vector")
     And("an the expected vector")
 
@@ -75,12 +72,11 @@ class TracedNetTest extends PropSpec with PropertyChecks with Matchers with Give
 
     forAll(
       (tdParmsGen, "parms"),
-      (epsilonGen, "epsilon"),
       (inGen, "in"),
       (nlrOutGen, "out")) {
-        (parms, epsilon, in, out) =>
+        (parms, in, out) =>
           {
-            val net = TDNeuralNet(layers, parms, epsilon)
+            val net = TDNeuralNet(layers, parms)
             val net1 = net.learn(out, in)
 
             net1.trace should have size (net.trace.size)

@@ -41,7 +41,6 @@ import breeze.linalg.operators.DenseVector_HashVector_Ops
 import breeze.stats.distributions.Rand
 
 class TDNeuralNetTest extends PropSpec with PropertyChecks with Matchers with GivenWhenThen {
-  val Epsilon = 1e-5
   val HiddenLayer = 4
   val MinIteration = 20
   val MaxIteration = 1000
@@ -80,7 +79,7 @@ class TDNeuralNetTest extends PropSpec with PropertyChecks with Matchers with Gi
       (Gen.choose(MinIteration, MaxIteration), "n")) {
         (parms, n) =>
           {
-            val net = TDNeuralNet(layers, parms, Epsilon)
+            val net = TDNeuralNet(layers, parms)
 
             val S0 = DenseVector(1.0, 0.0, 0.0, 0.0)
             val S1 = DenseVector(0.0, 1.0, 0.0, 0.0)

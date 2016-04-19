@@ -30,6 +30,7 @@
 package org.mmarini.actd
 
 import breeze.linalg.DenseMatrix
+
 import breeze.linalg.DenseVector
 import breeze.stats.distributions.Rand
 import breeze.stats.distributions.RandBasis
@@ -38,6 +39,8 @@ import breeze.linalg.csvread
 import scalax.file.Path
 import scalax.io.Resource
 import java.io.File
+import scala.math.sqrt
+
 /**
  * A container of [[ DenseMatrix[Double] ]] that applies algebraic operation *, +, -
  *
@@ -123,12 +126,6 @@ object MatrixSeq {
     MatrixSeq(seq)
   }
 
-  /**
-   * Creates [[MatrixSeq]] with a hidden layer and random values
-   */
-  def rand(inputCount: Int, hiddenCount: Int, outputCount: Int, epsilon: Double): MatrixSeq =
-    rand(Seq(inputCount, hiddenCount, outputCount), epsilon)
-
   /** Creates [[MatrixSeq]] with in-line values */
   def create(weights: DenseMatrix[Double]*): MatrixSeq = MatrixSeq(weights.toSeq)
 
@@ -150,20 +147,13 @@ object MatrixSeq {
    *
    * @param layers the number of neurons for each layer
    */
-  def rand(layers: Seq[Int], rand: Rand[Double]): MatrixSeq =
+  def createXavier(layers: Seq[Int])(implicit randB: RandBasis = Rand): MatrixSeq =
     MatrixSeq(for {
       (n, m) <- layers.tail zip layers
     } yield {
-      DenseMatrix.rand(n, m + 1, rand)
+      val v = 2.0 / (n + m)
+      DenseMatrix.rand(n, m + 1, randB.gaussian(0.0, sqrt(v)))
     })
-
-  /**
-   * Create [[MatrixSeq]] with random values
-   *
-   * @param layers the number of neurons for each layer
-   */
-  def rand(layers: Seq[Int], sigma: Double)(implicit randB: RandBasis = Rand): MatrixSeq =
-    rand(layers, randB.gaussian(0.0, sigma))
 
   /**
    * create [[MatrixSeq]] with zero value

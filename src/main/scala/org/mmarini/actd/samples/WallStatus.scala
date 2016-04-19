@@ -144,7 +144,6 @@ object WallStatus extends LazyLogging {
   val EpsilonGreedy = 5e-3
   val Lambda = 0e-3
   val Eta = 100e-3
-  val Sigma = 1.0
   val Seed = 31415L
   val MaxTrainingSamples = 1000
 
@@ -202,8 +201,8 @@ object WallStatus extends LazyLogging {
       maxTrainingSamples = MaxTrainingSamples,
       random = new RandBasis(new MersenneTwister(Seed)))
 
-    val critic = TDNeuralNet(inputCount +: Seq() :+ 1, parms, Sigma)
-    val actor = TDNeuralNet(inputCount +: Seq() :+ OutputCount, parms, Sigma)
+    val critic = TDNeuralNet(inputCount +: Seq() :+ 1, parms)
+    val actor = TDNeuralNet(inputCount +: Seq() :+ OutputCount, parms)
 
     (initStatus, parms, critic, actor)
   }

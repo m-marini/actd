@@ -86,7 +86,7 @@ object ActorTestApp extends App with LazyLogging {
         lambda = Lambda,
         eta = Eta,
         random = new RandBasis(new MersenneTwister(Seed))),
-      1.0, 2, 2)
+      2, 2)
 
   //  val testAgent = List(0.0, 0.1, 0.2, 0.3).map(p =>
   //    TDAgent(
