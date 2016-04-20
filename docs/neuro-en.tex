@@ -1,0 +1,228 @@
+\documentclass[a4paper,11pt]{article}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+
+\title{Neural network notes}
+\author{Marco Marini}
+
+\begin{document}
+
+\maketitle
+\tableofcontents
+
+\begin{abstract}
+This document contains notes about neural network regarding the Temporal Differential reinforcement alghorithms.
+\end{abstract}
+
+\section{General}
+
+Let us have a neural network composed by $ N $ layers. Each layer $ i = 1 \dots N $ is composed by $ s_i $ neurons.
+
+The first layer
+\[ H_{1i} = x_i \]
+rappresents the input values of the network.
+We identify the input bias signals with
+\[ H_{i0} = 1 \]
+
+Each neuron processes the input signals from its layer and produces the output signal to the next layer.
+
+Let us exam a NLR (Non Linear regression) network.
+
+The transfer function of each hidden neuron $ i < N $ is
+
+\begin{equation}
+\label{hidden}
+  \begin{array}l
+    H_{(i+1)j} = \frac{1}{1 + e^{-Z_{ij}}}
+    \\
+    Z_{ij} = \sum_{k=0}^{s_i} w_{ijk} H_{ik}
+  \end{array}
+\end{equation}
+
+the transfer function of each output neuron $ N $ is
+
+\begin{equation}
+\label{nlr}
+    H_{Nj} = \sum_{k=0}^{s_{N-1}} w_{(N-1)jk} H_{(N-1)k}
+\end{equation}
+
+
+\section{Cost Function}
+
+Let $ y_j $ be the expected output for the neuron $ j $, the error of neuron is 
+
+\begin{equation}
+\label{delta}
+  \delta_{(N-1)j} = y_j - H_{Nj}
+\end{equation}
+
+The cost function of the network is
+\[
+  J=\left|
+    \begin{array}l
+      \frac{1 - \alpha}{2} \sum_{i=1}^{s_N} \delta_{(N-1)i}^2 + \frac{\alpha}{2}\sum_{i,j,k} w_{ijk}^2, \; k \ge 1
+      \\
+      \frac{1 - \alpha}{2} \sum_{i=1}^{s_N} \delta_{(N-1)i}^2,\; k=0
+    \end{array}
+  \right.
+\]
+where $ \alpha $ is the regularization factor.
+
+Let us extract $ \nabla J $
+
+\[
+	\frac{\partial}{\partial w_{ijk}} J = \left|
+    \begin{array}l
+		(1 - \alpha) \sum_{r=1}^{s_N} \delta_{(N-1)r} \frac{\partial}{\partial w_{ijk}}  \delta_{(N-1)r} + \alpha w_{ijk}, \; k \ge 1
+	      \\
+		(1 - \alpha)\sum_{r=1}^{s_N} \delta_{(N-1)r} \frac{\partial }{\partial w_{ijk}}\delta_{(N-1)r}, \; k =0
+    \end{array}
+  \right.
+\]
+
+By (\ref{delta}) we have
+\[
+	\frac{\partial}{\partial w_{ijk}} \delta_{(N-1)r} = 
+	-\frac{\partial}{\partial w_{ijk}} H_{Nr}
+\]
+therefore
+\[
+	\frac{\partial}{\partial w_{ijk}} J =\left|
+    \begin{array}l
+		-(1 - \alpha) \sum_{r=1}^{s_N} \delta_{(N-1)r} \frac{\partial}{\partial w_{ijk}} H_{Nr} + \alpha w_{ijk}, \; k \ge 1
+	      \\
+		-(1 - \alpha)\sum_{r=1}^{s_N} \delta_{(N-1)r} \frac{\partial}{\partial w_{ijk}} H_{Nr}, \; k =0
+    \end{array}
+  \right.
+\]
+
+By now we disregard the regularization effects.
+
+By (\ref{nlr}) we have
+\[
+	\frac{\partial}{\partial w_{(N-1)jk}}  H_{Nj} = H_{(N-1)k}
+\]
+\[
+	\frac{\partial}{\partial w_{(N-1)jk}}  H_{Nr} = 0, \; r \ne j
+\]
+therefore
+\[
+	\frac{\partial}{\partial w_{(N-1)jk}} J =
+		- \delta_{(N-1)j} H_{(N-1)k}
+\]
+
+By (\ref{nlr}) and $ i \le N - 2  $ we have
+\[
+	\frac{\partial J}{\partial w_{ijk}} =
+	 - \sum_r \delta_{(N-1)r} \frac{\partial}{\partial w_{ijk}} \left[ \sum_s w_{(N-1)rs} H_{(N-1)s} \right] =
+\]
+\[
+	= - \sum_{r,s} \delta_{(N-1)r} w_{(N-1)rs} \frac{\partial}{\partial w_{ijk}} H_{(N-1)s}
+\]
+
+By (\ref{hidden}) we have
+\[
+	\frac{\partial}{\partial w_{ijk}} H_{(i+1)j} =
+	\frac{\partial}{\partial Z_{ij}} H_{(i+1)j} 
+	\frac{\partial}{\partial w_{ijk}} Z_{ij} =
+	H_{(i+1)j} (1 - H_{(i+1)j}) Hik
+\]
+therefore
+\[
+	\frac{\partial}{\partial w_{(N-2)jk}} J =
+	- \sum_r \delta_{(N-1)r} w_{(N-1)rj}
+	H_{(N-1)j} (1 - H_{(N-1)j}) H_{(N-2)k}
+\]
+
+\section{Back-propagation}
+
+Let us define
+\[
+	\delta_{(N-2)j} =
+	\sum_r \delta_{(N-1)r} w_{(N-1)rj} H_{(N-1)j} (1 - H_{(N-1)j})
+\]
+
+Then we have
+\[
+	\frac{\partial}{\partial w_{(N-2)jk}} J =
+	- \delta_{(N-2)j}  H_{(N-2)k}
+\]
+
+We can induce just for $ i \le N - 2 $ 
+\[
+	\delta_{ij} =
+	\sum_k \delta_{(i+1)k} w_{(i+1)kj} H_{(i+1)j} (1 - H_{(i+1)j})
+\]
+while in general
+\[
+	\frac{\partial}{\partial w_{ijk}} J =
+	- \delta_{ij} H_{ik}
+\]
+
+Let us now define the back-propagation tensor as
+\[
+  B_{ijk} =  w_{(i+1)kj} H_{(i+1)j} (1 - H_{(i+1)j}), \; i \le N-2
+\]
+
+The errors on intermediate layers are
+\[
+  \delta_{ij} = \sum_{k=1}^{s_i} \delta_{(i+1)k} B_{ijk},\; i = 1 \dots N-2
+\]
+
+Now reintroducing the regularization effetcs we have
+\[
+	\frac{\partial}{\partial w_{ijk}} J =\left|
+    \begin{array}l
+		-(1 - \alpha) \delta_{ij} H_{ik} + \alpha \, w_{ijk}, \; k \ge 1
+	      \\
+		-(1 - \alpha) \delta_{ij} H_{ik}, \; k =0
+    \end{array}
+  \right.
+\]
+
+The weight changes to reduce the error (gradient descent) are
+
+\[
+  \Delta w_{ijk}  = -\eta \frac{\partial}{\partial w_{ijk}} J = \left|
+  \begin{array}l
+    \eta \left[ (1 - \alpha) \delta_{ij} H_{ik} - \alpha w_{ijk} \right], \; k \ge 1
+    \\
+    \eta (1 - \alpha) \delta_{ij} H_{ik}, \; k = 0
+  \end{array}
+  \right.
+\]
+where $ \eta $ is the learning rate.
+
+
+\section{Returns}
+
+Let us have a process where the best policy generates a never end episode (infinite length) and let the positive reward be $ r_+ > 0 $ every $ n $ steps, while a wrong choice ad step $ n $ generates the end of episode with a negative reward of $ r_- < 0 $.
+
+The return at step $ n $ is then
+
+\[ 
+	R_+ = \frac{r_+}{1 - \lambda ^ {2 (n -1)}}
+ \]
+if the best strategy is applied otherwise 
+\[ 
+R_- = r_-
+\]
+
+Suppose $ R_+ \gg -R_- $ we have 
+\[ 
+	\frac{r_+}{1 - \lambda ^ {2 (n -1)}} \gg -r_-
+\]
+\[ 
+	r_+ \gg -(1 - \lambda ^ {2 (n -1)}) r_-
+\]
+
+For example if $ \lambda ^ {2 (n -1)} = \frac{1}{2}, r_- = -1 $ we have 
+\[ 
+r_+ \gg \frac{1}{2}
+\]
+such as $ r_+ = 5 $
+
+
+
+\end{document}
