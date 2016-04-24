@@ -36,7 +36,9 @@ import org.mmarini.actd.Status
 import org.mmarini.actd.TDNeuralNet
 import org.mmarini.actd.TDParms
 import org.mmarini.actd.samples.WallDeepStatus.Direction
+
 import com.typesafe.scalalogging.LazyLogging
+
 import WallDeepStatus.PadAction
 import breeze.linalg.DenseVector
 import breeze.stats.distributions.RandBasis
@@ -47,13 +49,6 @@ case class WallDeepStatus(ball: (Int, Int), direction: Direction.Value, pad: Int
   import PadAction._
   import Direction._
   import WallDeepStatus._
-
-  private val BallDim = Width * Height
-  private val SpeedDim = 4
-  private val PadDim = LastPad + 1
-  private val FinalVector = DenseVector.zeros[Double](BallDim + SpeedDim + PadDim + 1)
-
-  FinalVector.update(BallDim + SpeedDim + PadDim, 1.0)
 
   require(ball._2 >= 0)
   require(ball._2 <= Width)
@@ -75,16 +70,23 @@ case class WallDeepStatus(ball: (Int, Int), direction: Direction.Value, pad: Int
       FinalVector
     } else {
 
-      val v = DenseVector.zeros[Double](BallDim + SpeedDim + PadDim + 1)
+      //      val v = DenseVector.zeros[Double](BallDim + SpeedDim + PadDim + 1)
+      //
+      //      val ballIdx = (ball._1 - 1) * Width + ball._2
+      //      v.update(ballIdx, 1.0)
+      //
+      //      val speedIdx = direction.id
+      //      v.update(BallDim + speedIdx, 1.0)
+      //
+      //      val padIdx = pad
+      //      v.update(BallDim + SpeedDim + padIdx, 1.0)
+      //
+      val v = DenseVector.zeros[Double](InputSpaceDimension)
 
-      val ballIdx = (ball._1 - 1) * Width + ball._2
-      v.update(ballIdx, 1.0)
-
-      val speedIdx = direction.id
-      v.update(BallDim + speedIdx, 1.0)
-
-      val padIdx = pad
-      v.update(BallDim + SpeedDim + padIdx, 1.0)
+      v.update(ball._1, 1.0)
+      v.update(ball._2 + Width, 1.0)
+      v.update(direction.id + Width + Height, 1.0)
+      v.update(Width + Height + SpeedDim + pad, 1.0)
 
       v
     }
@@ -129,10 +131,6 @@ case class WallDeepStatus(ball: (Int, Int), direction: Direction.Value, pad: Int
 /** A factory of [[WallStatusDeep]] */
 object WallDeepStatus extends LazyLogging {
 
-  type TransitionSource = (WallDeepStatus, PadAction.Value)
-  type TransitionTarget = (WallDeepStatus, Double)
-  type TransitionMap = Map[TransitionSource, TransitionTarget]
-
   val Height = 10
   val Width = 13
   val PadSize = 3
@@ -144,24 +142,38 @@ object WallDeepStatus extends LazyLogging {
   val LastPad = Width - PadSize
   val SecondLastPad = LastPad - 1
 
+  //  private val BallDim = Width * Height
+  private val SpeedDim = 4
+  private val PadDim = LastPad + 1
+
+  val InputSpaceDimension = Height + Width + SpeedDim + PadDim
+
+  val FinalVector = DenseVector.zeros[Double](InputSpaceDimension)
+
+  FinalVector.update(0, 1.0)
+
+  type TransitionSource = (WallDeepStatus, PadAction.Value)
+  type TransitionTarget = (WallDeepStatus, Double)
+  type TransitionMap = Map[TransitionSource, TransitionTarget]
+
   val Alpha = 100e-6
   val Beta = 0.3
   val Gamma = 0.962
   val Epsilon = 0.1
   //  val EpsilonGreedy = 0.9
   val EpsilonGreedy = 5e-3
-  val Lambda = 0e-3
+  val Lambda = 900e-3
   val Eta = 100e-3
   val Seed = 1234L
   val MaxTrainingSamples = 0
 
   val OutputCount = 3
-  val HiddenLayer1Count = 67
-  val HiddenLayer2Count = 67
-  val HiddenLayerCount = Seq(HiddenLayer1Count, HiddenLayer2Count)
+//  val HiddenLayer1Count = 1000
+//  val HiddenLayer2Count = 100
+//  val HiddenLayerCount = Seq(HiddenLayer1Count, HiddenLayer2Count)
 
-//  val HiddenLayer1Count = 31
-//  val HiddenLayerCount = Seq(HiddenLayer1Count)
+    val HiddenLayer1Count = 5000
+    val HiddenLayerCount = Seq(HiddenLayer1Count)
 
   /** MazeAction */
   object PadAction extends Enumeration {
