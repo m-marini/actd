@@ -224,5 +224,67 @@ r_+ \gg \frac{1}{2}
 such as $ r_+ = 5 $
 
 
+\section{TDLayer}
 
+A layer is a list of neurons that process a set of input signal.
+
+The output signal of this process is
+\[
+	h_i = f_i(z_i)
+\]
+\[
+	z_i = \sum_{k=0}^{m} w_{ik} x_k
+\]
+
+The cost function is
+\[
+	J
+	= \frac{1}{2} \left[ (1-\alpha) \sum_{i=0}^{n-1} (y_i - h_i)^2
+		+ \alpha \sum_{i=0}^{n-1} \sum_{k=1}^{m-1} w^2_{ik} \right]
+	= \frac{1}{2} \left[ (1-\alpha) \sum_{i=0}^{n-1} \delta_i^2
+		+ \alpha \sum_{i=0}^{n-1} \sum_{k=1}^{m-1} w^2_{ik} \right]
+\]
+$ f(x) $ is the activation function and may be
+\\
+$ f(x) = x $ for NLR layer,
+\\
+$ f(x) = sigmoid(x) = \frac{1}{1+e^{-x}} $ for logistic layer
+\\
+$ f(x) = \tanh(x) $
+
+The gradient of $ J $ is
+\[
+	\frac{\partial J}{\partial w_{ij}}
+		= -(1-\alpha) \sum_{k=0}^{n-1} \delta_k \frac{\partial h_k}{\partial z_k} \frac{\partial z_k}{\partial w_{ij}}
+			+ \alpha \sum_{i=0}^{n-1} \sum_{k=1}^{m-1} w_{ik}
+		= -(1-\alpha) \delta_i f'_i x_j 
+			+ \alpha w_{ij}
+\]
+the term $ \alpha w_{ij} $ is valid only for $ j \ne 0 $
+\\
+$ f'(x) = 1 $ for $ f(x) = x $,
+\\
+$ f'(x) = f (1 - f)  $ for $ f = sigmoid(x) $,
+\\
+$ f'(x) = (1 + f) (1 - f)  $ for $ f = \tanh(x) $
+
+The backpropagation errors are
+\[
+	\delta_i'
+		= \sum_{j} \delta_j f'_j w_{ji}
+		= \sum_{j} w^T_{ij} \delta_j f'_j
+\]
+
+The updated eligility traces are
+\[
+	e'_{ij}
+		= \gamma \lambda e_{ij} - g(\nabla J)
+\]
+$ g(x) $ is the backtrace function and may be identity $ x $ or $ sign(x) $
+
+The updated weights are
+\[
+	w'_{ik}
+		= w_{ij} + \eta e'_{ij}
+\]
 \end{document}
