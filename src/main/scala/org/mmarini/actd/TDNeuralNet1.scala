@@ -32,6 +32,8 @@ package org.mmarini.actd
 import breeze.linalg.DenseMatrix
 import breeze.linalg.DenseVector
 import breeze.numerics.sigmoid
+import breeze.stats.distributions.RandBasis
+import breeze.stats.distributions.Rand
 
 /**
  * A Temporal Difference learning algorithms that creates the network status for a given input and
@@ -44,7 +46,7 @@ import breeze.numerics.sigmoid
  *
  * @author us00852
  */
-class TDNeuralNet1(layers: Seq[TDLayer]) {
+case class TDNeuralNet1(layers: Seq[TDLayer]) {
 
   /** Applies the network to an input pattern */
   def apply(in: DenseVector[Double]): TDNetStatus = {
@@ -57,4 +59,22 @@ class TDNeuralNet1(layers: Seq[TDLayer]) {
   }
 
   def clearTraces: TDNeuralNet1 = new TDNeuralNet1(layers.map(_.clearTraces))
+}
+
+object TDNeuralNet1 {
+
+  def apply(parms: TDParms)(layerSizes: Seq[Int])(implicit randB: RandBasis = Rand): TDNeuralNet1 = {
+    require(layerSizes.size >= 2)
+
+    val layerIO = layerSizes zip layerSizes.tail
+    val hiddens = for {
+      (m, n) <- layerIO.init
+    } yield {
+      TDLayer(n, m, TDLayerParms.hidden(parms))(randB)
+    }
+    val output = layerIO.last match {
+      case (m, n) => TDLayer(n, m, TDLayerParms.nlr(parms))(randB)
+    }
+    TDNeuralNet1(hiddens :+ output)
+  }
 }

@@ -94,7 +94,7 @@ class TDLayerTest extends PropSpec with PropertyChecks with Matchers with GivenW
             val layer = TDLayer(2, 2, TDLayerParms.nlr(tdParms))
             val status = layer(in)
             val e = exp - status.output
-            val (_, _, cost0) = status.train(e)
+            val cost0 = status.cost(e)
             val alpha = tdParms.alpha
             val w = layer.weights
             val e2 = e :* e
@@ -116,7 +116,7 @@ class TDLayerTest extends PropSpec with PropertyChecks with Matchers with GivenW
             val layer = TDLayer(2, 2, TDLayerParms.nlr(tdParms))
             val status = layer(in)
             val e = exp - status.output
-            val (next, _, _) = status.train(e)
+            val (next, _) = status.train(e)
             val alpha = tdParms.alpha
             val eta = tdParms.eta
             val w = layer.weights
@@ -159,7 +159,7 @@ class TDLayerTest extends PropSpec with PropertyChecks with Matchers with GivenW
             val layer = TDLayer(2, 2, TDLayerParms.nlr(tdParms))
             val status = layer(in)
             val e = exp - status.output
-            val (_, backError, _) = status.train(e)
+            val (_, backError) = status.train(e)
             val alpha = tdParms.alpha
             val w = layer.weights
             val exp0 = e(0) * w(0, 1) + e(1) * w(1, 1)
@@ -181,11 +181,12 @@ class TDLayerTest extends PropSpec with PropertyChecks with Matchers with GivenW
             val layer = TDLayer(2, 2, TDLayerParms.nlr(tdParms))
             val status = layer(in)
             val e = exp - status.output
-            val (layer1, _, cost0) = status.train(e)
+            val (layer1, _) = status.train(e)
+            val cost0 = status.cost(e)
 
             val status1 = layer1(in)
             val e1 = exp - status1.output
-            val (_, _, cost1) = status1.train(e1)
+            val cost1 = status1.cost(e1)
 
             cost1 should be <= cost0
           }
@@ -220,7 +221,7 @@ class TDLayerTest extends PropSpec with PropertyChecks with Matchers with GivenW
             val layer = TDLayer(2, 2, TDLayerParms.hidden(tdParms))
             val status = layer(in)
             val e = exp - status.output
-            val (_, _, cost0) = status.train(e)
+            val cost0 = status.cost(e)
             val alpha = tdParms.alpha
             val w = layer.weights
             val e2 = e :* e
@@ -243,7 +244,7 @@ class TDLayerTest extends PropSpec with PropertyChecks with Matchers with GivenW
             val status = layer(in)
             val h = status.output
             val e = exp - h
-            val (next, _, _) = status.train(e)
+            val (next, _) = status.train(e)
             val alpha = tdParms.alpha
             val eta = tdParms.eta
             val w = layer.weights
@@ -287,7 +288,7 @@ class TDLayerTest extends PropSpec with PropertyChecks with Matchers with GivenW
             val status = layer(in)
             val h = status.output
             val e = exp - h
-            val (_, backError, _) = status.train(e)
+            val (_, backError) = status.train(e)
             val alpha = tdParms.alpha
             val w = layer.weights
             val exp0 = e(0) * (1 + h(0)) * (1 - h(0)) * w(0, 1) + e(1) * (1 + h(1)) * (1 - h(1)) * w(1, 1)
@@ -309,11 +310,12 @@ class TDLayerTest extends PropSpec with PropertyChecks with Matchers with GivenW
             val layer = TDLayer(2, 2, TDLayerParms.hidden(tdParms))
             val status = layer(in)
             val e = exp - status.output
-            val (layer1, _, cost0) = status.train(e)
+            val (layer1, _) = status.train(e)
+            val cost0 = status.cost(e)
 
             val status1 = layer1(in)
             val e1 = exp - status1.output
-            val (_, _, cost1) = status1.train(e1)
+            val cost1 = status1.cost(e1)
 
             cost1 should be <= cost0
           }

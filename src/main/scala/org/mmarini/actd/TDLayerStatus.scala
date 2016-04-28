@@ -35,14 +35,15 @@ import breeze.linalg.operators.DenseMatrix_OrderingOps
 
 case class TDLayerStatus(output: DenseVector[Double], input: DenseVector[Double], layer: TDLayer) {
 
-  def train(delta: DenseVector[Double]): (TDLayer, DenseVector[Double], Double) = {
+  def cost(delta: DenseVector[Double]): Double = layer.parms.cost.apply(delta, layer.weights)
+
+  def train(delta: DenseVector[Double]): (TDLayer, DenseVector[Double]) = {
     val grad = layer.parms.activation.grad(output, input)
     val grad1 = layer.parms.cost.grad(delta, grad, input, layer.weights)
     val trace = layer.parms.traceFunc(layer.traces, grad1)
     val weights = layer.weights + layer.parms.eta * trace
     val delta1 = layer.weights(::, 1 to -1).t * (delta :* grad)
     val layer1 = TDLayer(weights, trace, layer.parms)
-    val cost = layer.parms.cost.apply(delta, layer.weights)
-    (layer1, delta1, cost)
+    (layer1, delta1)
   }
 }

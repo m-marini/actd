@@ -30,18 +30,28 @@
 package org.mmarini.actd
 
 import breeze.linalg.DenseVector
+import breeze.linalg.operators.DenseVector_GenericOps
 
 class TDNetStatus(stats: Seq[TDLayerStatus]) {
 
   def output = stats.last.output
 
-  def train(delta: DenseVector[Double]): TDNeuralNet1 = {
+  def train(delta: DenseVector[Double]): (TDNeuralNet1, Double) = {
+    // Computes the trained layers
     val (layers, _) = stats.foldRight((Seq[TDLayer](), delta)) {
       case (status, (layers, delta)) =>
-        val (layer, delta1, _) = status.train(delta)
+        val (layer, delta1) = status.train(delta)
         (layers :+ layer, delta1)
     }
-    new TDNeuralNet1(layers)
+    // Computes the cost on output layer
+    val y = stats.last.cost(delta)
+    // Fold all previous layer cost
+    val yy = for {
+      layer <- stats.init
+    } yield {
+      layer.cost(DenseVector.zeros(layer.output.size))
+    }
+    (new TDNeuralNet1(layers), y + yy.sum)
   }
 
 }
