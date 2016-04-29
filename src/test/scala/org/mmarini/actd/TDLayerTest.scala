@@ -37,6 +37,7 @@ import org.scalacheck.Gen
 import breeze.stats.distributions.Rand
 import breeze.linalg.DenseVector
 import scala.math.tanh
+import scala.math.signum
 import breeze.linalg.DenseMatrix
 
 /**
@@ -55,7 +56,7 @@ class TDLayerTest extends PropSpec with PropertyChecks with Matchers with GivenW
     alpha <- Gen.choose(0.0, 1.0)
     gamma <- Gen.choose(0.0, 1.0)
     lambda <- Gen.choose(0.0, 1.0)
-    eta <- Gen.choose(0.0, 1e-5)
+    eta <- Gen.choose(0.0, 1e-6)
   } yield TDParms(
     alpha = alpha,
     beta = 0.0,
@@ -245,6 +246,9 @@ class TDLayerTest extends PropSpec with PropertyChecks with Matchers with GivenW
             val h = status.output
             val e = exp - h
             val (next, _) = status.train(e)
+
+            next.parms shouldBe layer.parms
+
             val alpha = tdParms.alpha
             val eta = tdParms.eta
             val w = layer.weights
@@ -256,23 +260,33 @@ class TDLayerTest extends PropSpec with PropertyChecks with Matchers with GivenW
             val dj11 = -(1 - alpha) * e(1) * (1 + h(1)) * (1 - h(1)) * in(0) + alpha * w(1, 1)
             val dj12 = -(1 - alpha) * e(1) * (1 + h(1)) * (1 - h(1)) * in(1) + alpha * w(1, 2)
 
-            val w00 = w(0, 0) - eta * dj00
-            val w01 = w(0, 1) - eta * dj01
-            val w02 = w(0, 2) - eta * dj02
-            val w10 = w(1, 0) - eta * dj10
-            val w11 = w(1, 1) - eta * dj11
-            val w12 = w(1, 2) - eta * dj12
+            val e00 = -signum(dj00)
+            val e01 = -signum(dj01)
+            val e02 = -signum(dj02)
+            val e10 = -signum(dj10)
+            val e11 = -signum(dj11)
+            val e12 = -signum(dj12)
 
-            val expTraces = DenseMatrix(
-              (-dj00, -dj01, -dj02),
-              (-dj10, -dj11, -dj12))
-            val expWeights = DenseMatrix(
-              (w00, w01, w02),
-              (w10, w11, w12))
+            next.traces(0, 0) shouldBe e00 +- 1e-6
+            next.traces(0, 1) shouldBe e01 +- 1e-6
+            next.traces(0, 2) shouldBe e02 +- 1e-6
+            next.traces(1, 0) shouldBe e10 +- 1e-6
+            next.traces(1, 1) shouldBe e11 +- 1e-6
+            next.traces(1, 2) shouldBe e12 +- 1e-6
 
-            next.parms shouldBe layer.parms
-            TestFuncs.matrixLike(next.traces, expTraces, 1e-6)
-            TestFuncs.matrixLike(next.weights, expWeights, 1e-6)
+            val w00 = w(0, 0) + eta * e00
+            val w01 = w(0, 1) + eta * e01
+            val w02 = w(0, 2) + eta * e02
+            val w10 = w(1, 0) + eta * e10
+            val w11 = w(1, 1) + eta * e11
+            val w12 = w(1, 2) + eta * e12
+
+            next.weights(0, 0) shouldBe w00 +- 1e-6
+            next.weights(0, 1) shouldBe w01 +- 1e-6
+            next.weights(0, 2) shouldBe w02 +- 1e-6
+            next.weights(1, 0) shouldBe w10 +- 1e-6
+            next.weights(1, 1) shouldBe w11 +- 1e-6
+            next.weights(1, 2) shouldBe w12 +- 1e-6
           }
       }
   }

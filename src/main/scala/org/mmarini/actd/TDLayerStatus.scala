@@ -40,7 +40,8 @@ case class TDLayerStatus(output: DenseVector[Double], input: DenseVector[Double]
   def train(delta: DenseVector[Double]): (TDLayer, DenseVector[Double]) = {
     val grad = layer.parms.activation.grad(output, input)
     val grad1 = layer.parms.cost.grad(delta, grad, input, layer.weights)
-    val trace = layer.parms.traceFunc(layer.traces, grad1)
+    val dtrace = layer.parms.backprop(-grad1)
+    val trace = layer.traces * layer.parms.decay + dtrace
     val weights = layer.weights + layer.parms.eta * trace
     val delta1 = layer.weights(::, 1 to -1).t * (delta :* grad)
     val layer1 = TDLayer(weights, trace, layer.parms)

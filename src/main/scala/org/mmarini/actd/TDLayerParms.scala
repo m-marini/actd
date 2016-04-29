@@ -56,7 +56,7 @@ case class TDLayerParms(
     activation: ActivationFunction,
     cost: CostFunction,
     backprop: DenseMatrix[Double] => DenseMatrix[Double],
-    traceFunc: TraceFunction,
+    decay: Double,
     eta: Double) {
 }
 
@@ -65,13 +65,13 @@ object TDLayerParms {
     Ident,
     CostFunction(p.alpha),
     x => x,
-    TraceFunction(p.lambda * p.gamma),
+    p.lambda * p.gamma,
     p.eta)
 
   def hidden(p: TDParms): TDLayerParms = TDLayerParms(
     Tanh,
     CostFunction(p.alpha),
     signum.apply[DenseMatrix[Double], DenseMatrix[Double]],
-    TraceFunction(p.lambda * p.gamma),
+    p.lambda * p.gamma,
     p.eta)
 }

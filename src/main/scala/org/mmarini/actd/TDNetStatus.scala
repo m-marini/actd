@@ -36,13 +36,17 @@ class TDNetStatus(stats: Seq[TDLayerStatus]) {
 
   def output = stats.last.output
 
-  def train(delta: DenseVector[Double]): (TDNeuralNet1, Double) = {
+  def train(delta: DenseVector[Double]): TDNeuralNet1 = {
     // Computes the trained layers
     val (layers, _) = stats.foldRight((Seq[TDLayer](), delta)) {
       case (status, (layers, delta)) =>
         val (layer, delta1) = status.train(delta)
-        (layers :+ layer, delta1)
+        (layer +: layers, delta1)
     }
+    TDNeuralNet1(layers)
+  }
+
+  def cost(delta: DenseVector[Double]): Double = {
     // Computes the cost on output layer
     val y = stats.last.cost(delta)
     // Fold all previous layer cost
@@ -51,7 +55,6 @@ class TDNetStatus(stats: Seq[TDLayerStatus]) {
     } yield {
       layer.cost(DenseVector.zeros(layer.output.size))
     }
-    (new TDNeuralNet1(layers), y + yy.sum)
+    y + yy.sum
   }
-
 }
