@@ -35,25 +35,26 @@ import breeze.linalg.DenseVector
  * A trainer that changes the networks to fit a sample set
  *
  * @constructor create a trainer for a initial network and training samples
- * @parm net the network
- * @parm samples the samples
  * @parm maxSize
+ * @parm samples the samples
+ * @parm gamma
  *
  * @author us00852
  */
-case class TDTrainer(maxSamples: Int = 1, samples: Seq[Feedback] = Seq()) {
+case class TDTrainer(maxSamples: Int = 1, samples: Seq[Feedback] = Seq(), gamma: Double) {
 
   /** Creates a new trainer with samples fed by a new feedback */
   def feed(f: Feedback): TDTrainer =
     TDTrainer(
       maxSamples = maxSamples,
-      samples = (samples :+ f) takeRight maxSamples)
+      samples = (samples :+ f) takeRight maxSamples,
+      gamma)
 
   /** Creates a new trainer with samples fed by a new feedback */
-  def train(net: TDNeuralNet): TDNeuralNet = {
+  def train(net: TDNeuralNet1): TDNeuralNet1 = {
 
     /** Returns a new [[TDNeuralNet]] by a [[TDNeuralNet]] with the a single feedback */
-    def trainSample(net: TDNeuralNet, feedback: Feedback): TDNeuralNet = {
+    def trainSample(net: TDNeuralNet1, feedback: Feedback): TDNeuralNet1 = {
 
       // Computes the state value pre and post step
       val s0Vect = feedback.s0.toDenseVector
@@ -66,13 +67,14 @@ case class TDTrainer(maxSamples: Int = 1, samples: Seq[Feedback] = Seq()) {
       val postValue = if (end1 || end0) 0.0 else net(s1Vect).output(0)
 
       // Computes the expected state value by booting the previous status value */
-      val expectedValue = postValue * net.parms.gamma + feedback.reward
+      val expectedValue = postValue * gamma + feedback.reward
 
       // Computes the error by critic
       val preValue = net(s0Vect).output(0)
 
       // Trains the critic by evidence
-      net.learn(s0Vect, DenseVector(expectedValue))
+      val netStatus = net(s0Vect)
+      netStatus.train(DenseVector(expectedValue) - netStatus.output)
     }
 
     samples.foldLeft(net)(trainSample)

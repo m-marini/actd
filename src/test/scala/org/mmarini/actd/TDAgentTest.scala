@@ -137,16 +137,16 @@ class TDAgentTest extends PropSpec with PropertyChecks with Matchers with GivenW
             def error(agent: TDAgent): Double =
               expMap.map { case (s, e) => e - agent.critic(s.toDenseVector).output(0) }.map(x => x * x).sum
 
-            val w00 = agent.critic.weights.matrices(0)(0, 0)
-            val w01 = agent.critic.weights.matrices(0)(0, 1)
-            val w02 = agent.critic.weights.matrices(0)(0, 2)
+            val w00 = agent.critic.layers(0).weights(0, 0)
+            val w01 = agent.critic.layers(0).weights(0, 1)
+            val w02 = agent.critic.layers(0).weights(0, 2)
 
-            val w10 = agent2.critic.weights.matrices(0)(0, 0)
-            val w11 = agent2.critic.weights.matrices(0)(0, 1)
-            val w12 = agent2.critic.weights.matrices(0)(0, 2)
+            val w10 = agent2.critic.layers(0).weights(0, 0)
+            val w11 = agent2.critic.layers(0).weights(0, 1)
+            val w12 = agent2.critic.layers(0).weights(0, 2)
 
-            info(s"agent0 ${agent.critic.weights}")
-            info(s"agent2 ${agent2.critic.weights}")
+//            info(s"agent0 ${agent.critic.weights}")
+//            info(s"agent2 ${agent2.critic.weights}")
 
             pow(w10 - exp0, 2) should be <= (pow(w00 - exp0, 2))
             pow(w11 - exp1, 2) should be <= (pow(w01 - exp1, 2))

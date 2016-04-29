@@ -50,8 +50,6 @@ class TDNeuralNet1Test extends PropSpec with PropertyChecks with Matchers with G
 
   val Seed = 1234l
 
-  def random = new RandBasis(new MersenneTwister(Seed))
-
   val InputRange = 1e2
   val OutputRange = 1e2
 
@@ -84,7 +82,7 @@ class TDNeuralNet1Test extends PropSpec with PropertyChecks with Matchers with G
     epsilon = 0.0,
     lambda = lambda,
     eta = eta,
-    random = Rand)
+    random = new RandBasis(new MersenneTwister(Seed)))
 
   property("net output") {
 
@@ -93,7 +91,7 @@ class TDNeuralNet1Test extends PropSpec with PropertyChecks with Matchers with G
       (inGen, "in")) {
         (tdParms, in) =>
           {
-            val net = TDNeuralNet1(tdParms)(Seq(2, 3, 2))(random)
+            val net = TDNeuralNet1(tdParms)(Seq(2, 3, 2))
             val status = net(in)
             val out = status.output
             val w0 = net.layers(0).weights
@@ -122,7 +120,7 @@ class TDNeuralNet1Test extends PropSpec with PropertyChecks with Matchers with G
       (outGen, "y")) {
         (tdParms, x, y) =>
           {
-            val net = TDNeuralNet1(tdParms)(Seq(2, 3, 2))(random)
+            val net = TDNeuralNet1(tdParms)(Seq(2, 3, 2))
             val status = net(x)
             val h = status.output
             val delta = y - h
@@ -150,7 +148,7 @@ class TDNeuralNet1Test extends PropSpec with PropertyChecks with Matchers with G
       (outGen, "y")) {
         (tdParms, x, y) =>
           {
-            val net = TDNeuralNet1(tdParms)(Seq(2, 3, 2))(random)
+            val net = TDNeuralNet1(tdParms)(Seq(2, 3, 2))
             val status = net(x)
             val h = status.output
             val delta = y - h
@@ -291,7 +289,7 @@ class TDNeuralNet1Test extends PropSpec with PropertyChecks with Matchers with G
       (outGen, "y")) {
         (tdParms, x, y) =>
           {
-            val s0 = TDNeuralNet1(tdParms)(Seq(2, 3, 2))(random)(x)
+            val s0 = TDNeuralNet1(tdParms)(Seq(2, 3, 2))(x)
             val net = s0.train(y - s0.output)
             val status = net(x)
             val h = status.output
@@ -435,7 +433,7 @@ class TDNeuralNet1Test extends PropSpec with PropertyChecks with Matchers with G
       (outGen, "y")) {
         (tdParms, x, y) =>
           {
-            val net = TDNeuralNet1(tdParms)(Seq(2, 3, 2))(random)
+            val net = TDNeuralNet1(tdParms)(Seq(2, 3, 2))
             val status = net(x)
             val h = status.output
             val delta = y - h

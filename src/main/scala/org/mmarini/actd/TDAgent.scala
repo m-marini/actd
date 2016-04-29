@@ -52,11 +52,11 @@ import breeze.stats.distributions.RandBasis
  */
 class TDAgent(
     val parms: TDParms,
-    val critic: TDNeuralNet,
-    val actor: TDNeuralNet) extends Agent {
+    val critic: TDNeuralNet1,
+    val actor: TDNeuralNet1) extends Agent {
 
   /** Creates a new agent with a new critic network */
-  def critic(c: TDNeuralNet): TDAgent = new TDAgent(
+  def critic(c: TDNeuralNet1): TDAgent = new TDAgent(
     parms = parms,
     critic = c,
     actor = actor)
@@ -87,7 +87,8 @@ class TDAgent(
     val delta = expectedValue - preValue
 
     // Teaches the critic by evidence
-    val nc = critic.learn(s0Vect, DenseVector(expectedValue))
+    val cs = critic(s0Vect)
+    val nc = cs.train(DenseVector(expectedValue) - cs.output)
 
     // Computes the expected action preferences applying the critic error to previous decision */
     val pref = actor(s0Vect).output
@@ -96,7 +97,8 @@ class TDAgent(
     expectedPref(action to action) += parms.beta * delta
 
     // Teaches the actor by evidence
-    val na = actor.learn(s0Vect, expectedPref)
+    val as = actor(s0Vect)
+    val na = as.train(expectedPref - as.output)
 
     val nag = if (end0) {
       new TDAgent(parms, nc.clearTraces, na.clearTraces)
@@ -120,10 +122,11 @@ class TDAgent(
     parm.iterator.write(s"$file-parms.csv")
 
     // Saves critic
-    critic.weights.write(s"$file-critic")
+    ???
+    //    critic.weights.write(s"$file-critic")
 
     // Saves actor
-    actor.weights.write(s"$file-actor")
+    //    actor.weights.write(s"$file-actor")
   }
 }
 
@@ -145,8 +148,8 @@ object TDAgent {
     actionCount: Int,
     hiddenLayers: Int*): TDAgent =
     new TDAgent(parms,
-      TDNeuralNet(statusSize +: hiddenLayers :+ 1, parms),
-      TDNeuralNet(statusSize +: hiddenLayers :+ actionCount, parms))
+      TDNeuralNet1(parms)(statusSize +: hiddenLayers :+ 1),
+      TDNeuralNet1(parms)(statusSize +: hiddenLayers :+ actionCount))
 
   /**
    * Creates a TDAgent reading from file set
@@ -162,10 +165,11 @@ object TDAgent {
       eta = p(0, EtaIndex),
       maxTrainingSamples = p(0, MaxTrainingSamplesIndex).toInt,
       random)
-    val criticMtx = MatrixSeq.create(s"$file-critic")
-    val actorMtx = MatrixSeq.create(s"$file-actor")
-    val critic = new TDNeuralNet(criticMtx, criticMtx.zeros, parms)
-    val actor = new TDNeuralNet(actorMtx, actorMtx.zeros, parms)
-    new TDAgent(parms, critic, actor)
+    ???
+    //    val criticMtx = MatrixSeq.create(s"$file-critic")
+    //    val actorMtx = MatrixSeq.create(s"$file-actor")
+    //    val critic = new TDNeuralNet(criticMtx, criticMtx.zeros, parms)
+    //    val actor = new TDNeuralNet(actorMtx, actorMtx.zeros, parms)
+    //    new TDAgent(parms, critic, actor)
   }
 }

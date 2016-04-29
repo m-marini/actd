@@ -40,6 +40,7 @@ import com.typesafe.scalalogging.LazyLogging
 import WallStatus.PadAction
 import breeze.linalg.DenseVector
 import breeze.stats.distributions.RandBasis
+import org.mmarini.actd.TDNeuralNet1
 
 /** The status of wall game */
 case class WallStatus(ball: (Int, Int), direction: Direction.Value, pad: Int) extends Status {
@@ -185,7 +186,7 @@ object WallStatus extends LazyLogging {
   }
 
   /** Creates a initial environment parameters */
-  def initEnvParms: (WallStatus, TDParms, TDNeuralNet, TDNeuralNet) = {
+  def initEnvParms: (WallStatus, TDParms, TDNeuralNet1, TDNeuralNet1) = {
 
     val initStatus = WallStatus.initial
 
@@ -201,8 +202,8 @@ object WallStatus extends LazyLogging {
       maxTrainingSamples = MaxTrainingSamples,
       random = new RandBasis(new MersenneTwister(Seed)))
 
-    val critic = TDNeuralNet(inputCount +: Seq() :+ 1, parms)
-    val actor = TDNeuralNet(inputCount +: Seq() :+ OutputCount, parms)
+    val critic = TDNeuralNet1(parms)(inputCount +: Seq() :+ 1)
+    val actor = TDNeuralNet1(parms)(inputCount +: Seq() :+ OutputCount)
 
     (initStatus, parms, critic, actor)
   }

@@ -42,6 +42,7 @@ import com.typesafe.scalalogging.LazyLogging
 import WallDeepStatus.PadAction
 import breeze.linalg.DenseVector
 import breeze.stats.distributions.RandBasis
+import org.mmarini.actd.TDNeuralNet1
 
 /** The status of wall game */
 case class WallDeepStatus(ball: (Int, Int), direction: Direction.Value, pad: Int) extends Status {
@@ -168,12 +169,12 @@ object WallDeepStatus extends LazyLogging {
   val MaxTrainingSamples = 0
 
   val OutputCount = 3
-//  val HiddenLayer1Count = 1000
-//  val HiddenLayer2Count = 100
-//  val HiddenLayerCount = Seq(HiddenLayer1Count, HiddenLayer2Count)
+  //  val HiddenLayer1Count = 1000
+  //  val HiddenLayer2Count = 100
+  //  val HiddenLayerCount = Seq(HiddenLayer1Count, HiddenLayer2Count)
 
-    val HiddenLayer1Count = 5000
-    val HiddenLayerCount = Seq(HiddenLayer1Count)
+  val HiddenLayer1Count = 5000
+  val HiddenLayerCount = Seq(HiddenLayer1Count)
 
   /** MazeAction */
   object PadAction extends Enumeration {
@@ -210,7 +211,7 @@ object WallDeepStatus extends LazyLogging {
   }
 
   /** Creates a initial environment parameters */
-  def initEnvParms: (WallDeepStatus, TDParms, TDNeuralNet, TDNeuralNet) = {
+  def initEnvParms: (WallDeepStatus, TDParms, TDNeuralNet1, TDNeuralNet1) = {
 
     val initStatus = WallDeepStatus.initial
 
@@ -226,8 +227,8 @@ object WallDeepStatus extends LazyLogging {
       maxTrainingSamples = MaxTrainingSamples,
       random = new RandBasis(new MersenneTwister(Seed)))
 
-    val critic = TDNeuralNet(inputCount +: HiddenLayerCount :+ 1, parms)
-    val actor = TDNeuralNet(inputCount +: HiddenLayerCount :+ OutputCount, parms)
+    val critic = TDNeuralNet1(parms)(inputCount +: HiddenLayerCount :+ 1)
+    val actor = TDNeuralNet1(parms)(inputCount +: HiddenLayerCount :+ OutputCount)
 
     (initStatus, parms, critic, actor)
   }

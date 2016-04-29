@@ -95,7 +95,7 @@ class TDAgentActor(agent: TDAgent) extends Actor with ActorLogging {
 
     case Train(feedback) =>
       val (na, delta) = agent.train(feedback)
-      val trainer = TDTrainer(agent.parms.maxTrainingSamples, Seq(feedback))
+      val trainer = TDTrainer(agent.parms.maxTrainingSamples, Seq(feedback), agent.parms.gamma)
       for (trainerActor <- trainerActorOpt) { trainerActor ! TrainerActor.Train(na.critic, trainer) }
       context become processing(na, trainer)
       sender ! Trained(delta, na)

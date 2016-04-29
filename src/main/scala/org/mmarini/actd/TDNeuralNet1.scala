@@ -63,17 +63,17 @@ case class TDNeuralNet1(layers: Seq[TDLayer]) {
 
 object TDNeuralNet1 {
 
-  def apply(parms: TDParms)(layerSizes: Seq[Int])(implicit randB: RandBasis = Rand): TDNeuralNet1 = {
+  def apply(parms: TDParms)(layerSizes: Seq[Int]): TDNeuralNet1 = {
     require(layerSizes.size >= 2)
 
     val layerIO = layerSizes zip layerSizes.tail
     val hiddens = for {
       (m, n) <- layerIO.init
     } yield {
-      TDLayer(n, m, TDLayerParms.hidden(parms))(randB)
+      TDLayer(n, m, TDLayerParms.hidden(parms))(parms.random)
     }
     val output = layerIO.last match {
-      case (m, n) => TDLayer(n, m, TDLayerParms.nlr(parms))(randB)
+      case (m, n) => TDLayer(n, m, TDLayerParms.nlr(parms))(parms.random)
     }
     TDNeuralNet1(hiddens :+ output)
   }
