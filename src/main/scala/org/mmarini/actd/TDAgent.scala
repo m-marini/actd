@@ -52,11 +52,11 @@ import breeze.stats.distributions.RandBasis
  */
 class TDAgent(
     val parms: TDParms,
-    val critic: TDNeuralNet1,
-    val actor: TDNeuralNet1) extends Agent {
+    val critic: TDNeuralNet,
+    val actor: TDNeuralNet) extends Agent {
 
   /** Creates a new agent with a new critic network */
-  def critic(c: TDNeuralNet1): TDAgent = new TDAgent(
+  def critic(c: TDNeuralNet): TDAgent = new TDAgent(
     parms = parms,
     critic = c,
     actor = actor)
@@ -148,8 +148,8 @@ object TDAgent {
     actionCount: Int,
     hiddenLayers: Int*): TDAgent =
     new TDAgent(parms,
-      TDNeuralNet1(parms)(statusSize +: hiddenLayers :+ 1),
-      TDNeuralNet1(parms)(statusSize +: hiddenLayers :+ actionCount))
+      TDNeuralNet(parms)(statusSize +: hiddenLayers :+ 1),
+      TDNeuralNet(parms)(statusSize +: hiddenLayers :+ actionCount))
 
   /**
    * Creates a TDAgent reading from file set

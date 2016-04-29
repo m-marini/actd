@@ -29,12 +29,12 @@
 
 package org.mmarini.actd
 
+import org.scalacheck.Gen
 import org.scalatest.GivenWhenThen
 import org.scalatest.Matchers
-import org.scalatest.prop.PropertyChecks
 import org.scalatest.PropSpec
-import org.scalacheck.Gen
-import breeze.linalg.DenseVector
+import org.scalatest.prop.PropertyChecks
+
 import breeze.linalg.DenseMatrix
 
 /**
@@ -123,8 +123,12 @@ class CostFunctionTest extends PropSpec with PropertyChecks with Matchers with G
             val dj = func.grad(y - h, Sigmoid.grad(h, x), x, w)
 
             val expected = DenseMatrix(
-              (-(1 - alpha) * err * h(0) * (1 - h(0)), -(1 - alpha) * err * x(0) * h(0) * (1 - h(0)) + alpha * w(0, 1), -(1 - alpha) * err * x(1) * h(0) * (1 - h(0)) + alpha * w(0, 2)),
-              (-(1 - alpha) * err * h(1) * (1 - h(1)), -(1 - alpha) * err * x(0) * h(1) * (1 - h(1)) + alpha * w(1, 1), -(1 - alpha) * err * x(1) * h(1) * (1 - h(1)) + alpha * w(1, 2)))
+              (-(1 - alpha) * err * h(0) * (1 - h(0)),
+                -(1 - alpha) * err * x(0) * h(0) * (1 - h(0)) + alpha * w(0, 1),
+                -(1 - alpha) * err * x(1) * h(0) * (1 - h(0)) + alpha * w(0, 2)),
+              (-(1 - alpha) * err * h(1) * (1 - h(1)),
+                -(1 - alpha) * err * x(0) * h(1) * (1 - h(1)) + alpha * w(1, 1),
+                -(1 - alpha) * err * x(1) * h(1) * (1 - h(1)) + alpha * w(1, 2)))
             TestFuncs.matrixLike(dj, expected, 1e-3)
           }
       }
@@ -153,8 +157,12 @@ class CostFunctionTest extends PropSpec with PropertyChecks with Matchers with G
             val dj = func.grad(y - h, Tanh.grad(h, x), x, w)
 
             val expected = DenseMatrix(
-              (-(1 - alpha) * err * (1 + h(0)) * (1 - h(0)), -(1 - alpha) * err * x(0) * (1 + h(0)) * (1 - h(0)) + alpha * w(0, 1), -(1 - alpha) * err * x(1) * (1 + h(0)) * (1 - h(0)) + alpha * w(0, 2)),
-              (-(1 - alpha) * err * (1 + h(1)) * (1 - h(1)), -(1 - alpha) * err * x(0) * (1 + h(1)) * (1 - h(1)) + alpha * w(1, 1), -(1 - alpha) * err * x(1) * (1 + h(1)) * (1 - h(1)) + alpha * w(1, 2)))
+              (-(1 - alpha) * err * (1 + h(0)) * (1 - h(0)),
+                -(1 - alpha) * err * x(0) * (1 + h(0)) * (1 - h(0)) + alpha * w(0, 1),
+                -(1 - alpha) * err * x(1) * (1 + h(0)) * (1 - h(0)) + alpha * w(0, 2)),
+              (-(1 - alpha) * err * (1 + h(1)) * (1 - h(1)),
+                -(1 - alpha) * err * x(0) * (1 + h(1)) * (1 - h(1)) + alpha * w(1, 1),
+                -(1 - alpha) * err * x(1) * (1 + h(1)) * (1 - h(1)) + alpha * w(1, 2)))
             TestFuncs.matrixLike(dj, expected, 1e-3)
           }
       }

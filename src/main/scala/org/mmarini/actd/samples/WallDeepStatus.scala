@@ -36,13 +36,13 @@ import org.mmarini.actd.Status
 import org.mmarini.actd.TDNeuralNet
 import org.mmarini.actd.TDParms
 import org.mmarini.actd.samples.WallDeepStatus.Direction
+import org.mmarini.actd.samples.WallDeepStatus.PadAction
 
 import com.typesafe.scalalogging.LazyLogging
 
 import WallDeepStatus.PadAction
 import breeze.linalg.DenseVector
 import breeze.stats.distributions.RandBasis
-import org.mmarini.actd.TDNeuralNet1
 
 /** The status of wall game */
 case class WallDeepStatus(ball: (Int, Int), direction: Direction.Value, pad: Int) extends Status {
@@ -211,7 +211,7 @@ object WallDeepStatus extends LazyLogging {
   }
 
   /** Creates a initial environment parameters */
-  def initEnvParms: (WallDeepStatus, TDParms, TDNeuralNet1, TDNeuralNet1) = {
+  def initEnvParms: (WallDeepStatus, TDParms, TDNeuralNet, TDNeuralNet) = {
 
     val initStatus = WallDeepStatus.initial
 
@@ -227,8 +227,8 @@ object WallDeepStatus extends LazyLogging {
       maxTrainingSamples = MaxTrainingSamples,
       random = new RandBasis(new MersenneTwister(Seed)))
 
-    val critic = TDNeuralNet1(parms)(inputCount +: HiddenLayerCount :+ 1)
-    val actor = TDNeuralNet1(parms)(inputCount +: HiddenLayerCount :+ OutputCount)
+    val critic = TDNeuralNet(parms)(inputCount +: HiddenLayerCount :+ 1)
+    val actor = TDNeuralNet(parms)(inputCount +: HiddenLayerCount :+ OutputCount)
 
     (initStatus, parms, critic, actor)
   }

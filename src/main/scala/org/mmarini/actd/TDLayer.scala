@@ -29,11 +29,12 @@
 
 package org.mmarini.actd
 
+import scala.math.sqrt
+
 import breeze.linalg.DenseMatrix
 import breeze.linalg.DenseVector
-import breeze.stats.distributions.RandBasis
 import breeze.stats.distributions.Rand
-import scala.math.sqrt
+import breeze.stats.distributions.RandBasis
 
 case class TDLayer(weights: DenseMatrix[Double], traces: DenseMatrix[Double], parms: TDLayerParms) {
   def apply(in: DenseVector[Double]): TDLayerStatus = {
@@ -48,7 +49,7 @@ case class TDLayer(weights: DenseMatrix[Double], traces: DenseMatrix[Double], pa
 }
 
 object TDLayer {
-  
+
   def apply(n: Int, m: Int, parms: TDLayerParms)(implicit randB: RandBasis = Rand): TDLayer = {
     val v = 2.0 / (n + m + 1)
     val weights = DenseMatrix.rand(n, m + 1, randB.gaussian(0.0, sqrt(v)))

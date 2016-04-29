@@ -51,10 +51,10 @@ case class TDTrainer(maxSamples: Int = 1, samples: Seq[Feedback] = Seq(), gamma:
       gamma)
 
   /** Creates a new trainer with samples fed by a new feedback */
-  def train(net: TDNeuralNet1): TDNeuralNet1 = {
+  def train(net: TDNeuralNet): TDNeuralNet = {
 
     /** Returns a new [[TDNeuralNet]] by a [[TDNeuralNet]] with the a single feedback */
-    def trainSample(net: TDNeuralNet1, feedback: Feedback): TDNeuralNet1 = {
+    def trainSample(net: TDNeuralNet, feedback: Feedback): TDNeuralNet = {
 
       // Computes the state value pre and post step
       val s0Vect = feedback.s0.toDenseVector

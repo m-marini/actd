@@ -29,19 +29,15 @@
 
 package org.mmarini.actd.samples
 
-import org.mmarini.actd.EnvironmentActor.Interact
 import org.mmarini.actd.EnvironmentActor.Step
 import org.mmarini.actd.Feedback
-import org.mmarini.actd.TimerLogger
+
 import akka.actor.Actor
 import akka.actor.ActorLogging
 import akka.actor.ActorRef
 import akka.actor.Props
-import akka.actor.actorRef2Scala
-import org.mmarini.actd.TDNeuralNet
-import org.mmarini.actd.TDNeuralNetTest
-import org.mmarini.actd.TDAgent
 import akka.actor.Terminated
+import akka.actor.actorRef2Scala
 import breeze.linalg.DenseVector
 
 object ReturnsActor {

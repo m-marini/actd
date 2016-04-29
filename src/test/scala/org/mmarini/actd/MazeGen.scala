@@ -29,9 +29,10 @@
 
 package org.mmarini.actd
 
-import breeze.linalg.DenseVector
-import breeze.linalg.DenseMatrix
 import org.scalacheck.Gen
+
+import breeze.linalg.DenseMatrix
+import breeze.linalg.DenseVector
 
 object MazeGen {
 
@@ -45,9 +46,4 @@ object MazeGen {
 
   def matrix(n: Int, m: Int, range: Double): Gen[DenseMatrix[Double]] =
     matrix(n, m, Gen.choose(-range, range))
-
-  def weights(w0Gen: Gen[DenseMatrix[Double]], w1Gen: Gen[DenseMatrix[Double]]): Gen[MatrixSeq] = for {
-    w0 <- w0Gen
-    w1 <- w1Gen
-  } yield MatrixSeq.create(w0, w1)
 }

@@ -48,7 +48,7 @@ import org.apache.commons.math3.random.MersenneTwister
  */
 class TDNeuralNet1Test extends PropSpec with PropertyChecks with Matchers with GivenWhenThen {
 
-  val Seed = 1234l
+  val Seed = 1234L
 
   val InputRange = 1e2
   val OutputRange = 1e2
@@ -91,7 +91,7 @@ class TDNeuralNet1Test extends PropSpec with PropertyChecks with Matchers with G
       (inGen, "in")) {
         (tdParms, in) =>
           {
-            val net = TDNeuralNet1(tdParms)(Seq(2, 3, 2))
+            val net = TDNeuralNet(tdParms)(Seq(2, 3, 2))
             val status = net(in)
             val out = status.output
             val w0 = net.layers(0).weights
@@ -120,7 +120,7 @@ class TDNeuralNet1Test extends PropSpec with PropertyChecks with Matchers with G
       (outGen, "y")) {
         (tdParms, x, y) =>
           {
-            val net = TDNeuralNet1(tdParms)(Seq(2, 3, 2))
+            val net = TDNeuralNet(tdParms)(Seq(2, 3, 2))
             val status = net(x)
             val h = status.output
             val delta = y - h
@@ -148,7 +148,7 @@ class TDNeuralNet1Test extends PropSpec with PropertyChecks with Matchers with G
       (outGen, "y")) {
         (tdParms, x, y) =>
           {
-            val net = TDNeuralNet1(tdParms)(Seq(2, 3, 2))
+            val net = TDNeuralNet(tdParms)(Seq(2, 3, 2))
             val status = net(x)
             val h = status.output
             val delta = y - h
@@ -289,7 +289,7 @@ class TDNeuralNet1Test extends PropSpec with PropertyChecks with Matchers with G
       (outGen, "y")) {
         (tdParms, x, y) =>
           {
-            val s0 = TDNeuralNet1(tdParms)(Seq(2, 3, 2))(x)
+            val s0 = TDNeuralNet(tdParms)(Seq(2, 3, 2))(x)
             val net = s0.train(y - s0.output)
             val status = net(x)
             val h = status.output
@@ -433,7 +433,7 @@ class TDNeuralNet1Test extends PropSpec with PropertyChecks with Matchers with G
       (outGen, "y")) {
         (tdParms, x, y) =>
           {
-            val net = TDNeuralNet1(tdParms)(Seq(2, 3, 2))
+            val net = TDNeuralNet(tdParms)(Seq(2, 3, 2))
             val status = net(x)
             val h = status.output
             val delta = y - h

@@ -42,10 +42,10 @@ object TrainerActor {
   def props: Props = Props(classOf[TrainerActor])
 
   /** Message sent by [[TrainerActor]] when a [[TDNeuralNet]] has been trained */
-  case class Trained(net: TDNeuralNet1)
+  case class Trained(net: TDNeuralNet)
 
   /** Message sent to [[TrainerActor]] to train a [[TDNeuralNet]] */
-  case class Train(net: TDNeuralNet1, trainer: TDTrainer)
+  case class Train(net: TDNeuralNet, trainer: TDTrainer)
 }
 
 /**

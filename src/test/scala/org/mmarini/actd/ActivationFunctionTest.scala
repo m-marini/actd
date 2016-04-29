@@ -29,21 +29,24 @@
 
 package org.mmarini.actd
 
+import org.scalacheck.Gen
 import org.scalatest.GivenWhenThen
 import org.scalatest.Matchers
-import org.scalatest.prop.PropertyChecks
 import org.scalatest.PropSpec
-import org.scalacheck.Gen
+import org.scalatest.prop.PropertyChecks
 
 /**
  * @author us00852
  */
 class ActivationFunctionTest extends PropSpec with PropertyChecks with Matchers with GivenWhenThen {
 
+  private val InputRange = 100.0
+  private val Dimensions = 10
+
   property("grad") {
     val funcGen = Gen.oneOf(Ident, Sigmoid, Tanh)
-    val xGen = MazeGen.vector(10, 100.0)
-    val dxGen = MazeGen.vector(10, Gen.choose(1e-4, 2e-4))
+    val xGen = MazeGen.vector(Dimensions, InputRange)
+    val dxGen = MazeGen.vector(Dimensions, Gen.choose(1e-4, 2e-4))
 
     forAll(
       (funcGen, "func"),
