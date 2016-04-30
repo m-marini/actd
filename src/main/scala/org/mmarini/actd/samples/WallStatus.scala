@@ -128,6 +128,13 @@ object WallStatus extends LazyLogging {
   type TransitionTarget = (WallStatus, Double)
   type TransitionMap = Map[TransitionSource, TransitionTarget]
 
+  object PadAction extends Enumeration {
+    val Rest, Left, Right = Value
+  }
+  object Direction extends Enumeration {
+    val NO, NE, SE, SO = Value
+  }
+
   val Height = 10
   val Width = 13
   val PadSize = 3
@@ -142,25 +149,16 @@ object WallStatus extends LazyLogging {
   val Alpha = 100e-6
   val Beta = 0.3
   val Gamma = 0.962
-  val Epsilon = 0.1
   //  val EpsilonGreedy = 0.9
   val EpsilonGreedy = 5e-3
-  val Lambda = 0e-3
+  val Lambda = 900e-3
   val Eta = 100e-3
   val Seed = 31415L
-  val MaxTrainingSamples = 1000
+  val MaxTrainingSamples = 0
 
-  val OutputCount = 3
   val HiddenCount = 20
+  val OutputCount = PadAction.maxId
 
-  /** MazeAction */
-  object PadAction extends Enumeration {
-    val Rest, Left, Right = Value
-  }
-
-  object Direction extends Enumeration {
-    val NO, NE, SE, SO = Value
-  }
   import PadAction._
   import Direction._
 
@@ -201,7 +199,6 @@ object WallStatus extends LazyLogging {
       epsilon = EpsilonGreedy,
       lambda = Lambda,
       eta = Eta,
-      maxTrainingSamples = MaxTrainingSamples,
       random = new RandBasis(new MersenneTwister(Seed)))
 
     val critic = TDNeuralNet(parms)(inputCount +: Seq() :+ 1)

@@ -29,11 +29,14 @@
 
 package org.mmarini.actd
 
+import java.io.File
 import breeze.linalg.DenseMatrix
 import breeze.linalg.DenseVector
-import breeze.numerics.sigmoid
+import breeze.linalg.csvread
+import breeze.linalg.csvwrite
 import breeze.stats.distributions.RandBasis
-import breeze.stats.distributions.Rand
+import scalax.file.Path
+import scala.util.Try
 
 /**
  * A Temporal Difference learning algorithms that creates the network status for a given input and
@@ -58,7 +61,22 @@ case class TDNeuralNet(layers: Seq[TDLayer]) {
     new TDNetStatus(stats)
   }
 
+  /** Clears the traces */
   def clearTraces: TDNeuralNet = new TDNeuralNet(layers.map(_.clearTraces))
+
+  /** Write the weights to a filename set */
+  def write(file: String) {
+    val fn = s"$file-n.csv"
+    Path.fromString(fn).deleteIfExists()
+    csvwrite(new File(fn), DenseMatrix(layers.size.toDouble))
+    for {
+      (layer, i) <- layers.zipWithIndex
+      fn = s"$file-$i.csv"
+    } {
+      Path.fromString(fn).deleteIfExists()
+      csvwrite(new File(fn), layer.weights)
+    }
+  }
 }
 
 object TDNeuralNet {
@@ -75,6 +93,16 @@ object TDNeuralNet {
     val output = layerIO.last match {
       case (m, n) => TDLayer(n, m, TDLayerParms.nlr(parms))(parms.random)
     }
+    TDNeuralNet(hiddens :+ output)
+  }
+
+  def read(parms: TDParms)(file: String): TDNeuralNet = {
+    val n = csvread(new File(s"$file-n.csv"))(0, 0).toInt
+    val hiddens = for {
+      i <- 0 until n - 1
+    } yield TDLayer.read(TDLayerParms.hidden(parms))(s"$file-$i.csv")
+    val output = TDLayer.read(TDLayerParms.nlr(parms))(s"$file-${n - 1}.csv")
+
     TDNeuralNet(hiddens :+ output)
   }
 }

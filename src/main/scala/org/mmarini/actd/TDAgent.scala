@@ -30,14 +30,12 @@
 package org.mmarini.actd
 
 import java.io.File
-
 import scala.IndexedSeq
-
 import org.apache.commons.math3.random.MersenneTwister
-
 import breeze.linalg.DenseVector
 import breeze.linalg.csvread
 import breeze.stats.distributions.RandBasis
+import scala.util.Try
 
 /**
  * A learning agent that replies to stimulus with actions and learns by receiving rewards
@@ -117,16 +115,14 @@ class TDAgent(
       parms.gamma,
       parms.epsilon,
       parms.lambda,
-      parms.eta,
-      parms.maxTrainingSamples.toDouble))
+      parms.eta))
     parm.iterator.write(s"$file-parms.csv")
 
     // Saves critic
-    ???
-    //    critic.weights.write(s"$file-critic")
+    critic.write(s"$file-critic")
 
     // Saves actor
-    //    actor.weights.write(s"$file-actor")
+    actor.write(s"$file-actor")
   }
 }
 
@@ -163,13 +159,10 @@ object TDAgent {
       epsilon = p(0, 3),
       lambda = p(0, LambdaIndex),
       eta = p(0, EtaIndex),
-      maxTrainingSamples = p(0, MaxTrainingSamplesIndex).toInt,
       random)
-    ???
-    //    val criticMtx = MatrixSeq.create(s"$file-critic")
-    //    val actorMtx = MatrixSeq.create(s"$file-actor")
-    //    val critic = new TDNeuralNet(criticMtx, criticMtx.zeros, parms)
-    //    val actor = new TDNeuralNet(actorMtx, actorMtx.zeros, parms)
-    //    new TDAgent(parms, critic, actor)
+
+    val critic = TDNeuralNet.read(parms)(s"$file-critic")
+    val actor = TDNeuralNet.read(parms)(s"$file-actor")
+    new TDAgent(parms, critic, actor)
   }
 }

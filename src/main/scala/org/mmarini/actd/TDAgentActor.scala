@@ -76,12 +76,6 @@ class TDAgentActor(agent: TDAgent) extends Actor with ActorLogging {
 
   import TDAgentActor._
 
-  val trainerActorOpt: Option[ActorRef] = if (agent.parms.maxTrainingSamples > 0) {
-    Some(context.actorOf(TrainerActor.props))
-  } else {
-    None
-  }
-
   def receive: Receive = waitingFirstFeed(agent)
 
   /** Processes messages before trainer actor started */
@@ -95,18 +89,12 @@ class TDAgentActor(agent: TDAgent) extends Actor with ActorLogging {
 
     case Train(feedback) =>
       val (na, delta) = agent.train(feedback)
-      val trainer = TDTrainer(agent.parms.maxTrainingSamples, Seq(feedback), agent.parms.gamma)
-      for (trainerActor <- trainerActorOpt) { trainerActor ! TrainerActor.Train(na.critic, trainer) }
-      context become processing(na, trainer)
+      context become processing(na)
       sender ! Trained(delta, na)
   }
 
   /** Processes messages after the trainer actor has started */
-  private def processing(agent: TDAgent, trainer: TDTrainer): Receive = {
-
-    case TrainerActor.Trained(net) =>
-      context become processing(agent.critic(net), trainer)
-      for (trainerActor <- trainerActorOpt) { trainerActor ! TrainerActor.Train(net, trainer) }
+  private def processing(agent: TDAgent): Receive = {
 
     case React(s) =>
       sender ! Reaction(agent.action(s))
@@ -116,7 +104,7 @@ class TDAgentActor(agent: TDAgent) extends Actor with ActorLogging {
 
     case Train(feedback) =>
       val (na, delta) = agent.train(feedback)
-      context become processing(na, trainer.feed(feedback))
+      context become processing(na)
       sender ! Trained(delta, na)
   }
 }

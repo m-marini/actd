@@ -162,8 +162,8 @@ object WallDeepApp extends SimpleSwingApplication with LazyLogging {
 
   class UIActor extends Actor {
 
-//    val environment = context.actorOf(EnvironmentActor.props(initStatus, new TDAgent(parms, critic, actor)))
-    val environment = context.actorOf(EnvironmentActor.props(initStatus,  TDAgent("data/agent")))
+    //    val environment = context.actorOf(EnvironmentActor.props(initStatus, new TDAgent(parms, critic, actor)))
+    val environment = context.actorOf(EnvironmentActor.props(initStatus, TDAgent("data/agent")))
 
     environment ! Interact
 

@@ -29,10 +29,13 @@
 
 package org.mmarini.actd
 
+import java.io.File
+
 import scala.math.sqrt
 
 import breeze.linalg.DenseMatrix
 import breeze.linalg.DenseVector
+import breeze.linalg.csvread
 import breeze.stats.distributions.Rand
 import breeze.stats.distributions.RandBasis
 
@@ -55,4 +58,12 @@ object TDLayer {
     val weights = DenseMatrix.rand(n, m + 1, randB.gaussian(0.0, sqrt(v)))
     TDLayer(weights, DenseMatrix.zeros[Double](n, m + 1), parms)
   }
+
+  def read(parms: TDLayerParms)(file: String): TDLayer = {
+    val weights = csvread(new File(file))
+    val n = weights.rows
+    val m = weights.cols
+    TDLayer(weights, DenseMatrix.zeros[Double](n, m), parms)
+  }
+
 }

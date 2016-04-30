@@ -46,7 +46,7 @@ import org.apache.commons.math3.random.MersenneTwister
 /**
  * @author us00852
  */
-class TDNeuralNet1Test extends PropSpec with PropertyChecks with Matchers with GivenWhenThen {
+class TDNeuralNetTest extends PropSpec with PropertyChecks with Matchers with GivenWhenThen {
 
   val Seed = 1234L
 

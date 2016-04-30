@@ -224,7 +224,6 @@ object WallDeepStatus extends LazyLogging {
       epsilon = EpsilonGreedy,
       lambda = Lambda,
       eta = Eta,
-      maxTrainingSamples = MaxTrainingSamples,
       random = new RandBasis(new MersenneTwister(Seed)))
 
     val critic = TDNeuralNet(parms)(inputCount +: HiddenLayerCount :+ 1)
