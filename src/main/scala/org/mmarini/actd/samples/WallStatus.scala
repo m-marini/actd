@@ -153,7 +153,7 @@ object WallStatus extends LazyLogging {
   val EpsilonGreedy = 5e-3
   val Lambda = 900e-3
   val Eta = 100e-3
-  val Seed = 31415L
+  val Seed = 1234L
   val MaxTrainingSamples = 0
 
   val HiddenCount = 20

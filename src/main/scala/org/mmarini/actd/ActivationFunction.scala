@@ -34,26 +34,38 @@ import breeze.numerics.sigmoid
 import breeze.numerics.tanh
 import breeze.numerics.cosh
 
+/** The function used to activate the outputs of a neural net layer */
 trait ActivationFunction {
+  /** Computes the outputs */
   def apply(in: DenseVector[Double]): DenseVector[Double]
 
+  /** return the gradients of functions by input and outputs*/
   def grad(out: DenseVector[Double], in: DenseVector[Double]): DenseVector[Double]
 }
 
+/** The identity function */
 object Ident extends ActivationFunction {
+  /** Returns the input values */
   def apply(in: DenseVector[Double]): DenseVector[Double] = in
 
+  /** Returns vector of 1s */
   def grad(out: DenseVector[Double], in: DenseVector[Double]): DenseVector[Double] = DenseVector.ones(out.length)
 }
 
+/** The sigmoid function */
 object Sigmoid extends ActivationFunction {
+  /** Returns the sigmoid value y = 1 / (1 + exp(-x) */
   def apply(in: DenseVector[Double]): DenseVector[Double] = sigmoid(in)
 
+  /** Returns the gradient y' = y  (1 - y) */
   def grad(out: DenseVector[Double], in: DenseVector[Double]): DenseVector[Double] = (1.0 - out) :* out
 }
 
+/** The hyperbolic tangent */
 object Tanh extends ActivationFunction {
+  /** Returns the hyperbolic tangent */
   def apply(in: DenseVector[Double]): DenseVector[Double] = tanh(in)
 
+  /** Returns the gradient y' = (1 + y) (1 - y) */
   def grad(out: DenseVector[Double], in: DenseVector[Double]): DenseVector[Double] = (1.0 - out) :* (out + 1.0)
 }

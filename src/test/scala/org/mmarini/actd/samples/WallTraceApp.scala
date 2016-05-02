@@ -44,8 +44,8 @@ object WallTraceApp extends App with WallEnvironment with ReturnsDump with Agent
   val environment = {
     val (initStatus, parms, critic, actor) = WallStatus.initEnvParms
     system.actorOf(
-//      EnvironmentActor.props(initStatus, new TDAgent(parms, critic, actor)))
-          EnvironmentActor.props(initStatus, TDAgent(agentFilename)))
+      EnvironmentActor.props(initStatus, new TDAgent(parms, critic, actor)))
+//          EnvironmentActor.props(initStatus, TDAgent(agentFilename)))
   }
 
   val StepCount = 300000
