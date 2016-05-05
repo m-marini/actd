@@ -1,7 +1,7 @@
 clear all;
 movingAvgLength=1000;
 Names = {
-  "../docs/returns-online-314.csv"
+  "../docs/returns-eta30.csv"
   "../docs/returns-0ms-314.csv"};
 X = zeros(1,0)
 for i = 1 : size(Names,1)

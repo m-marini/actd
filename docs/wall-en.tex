@@ -190,7 +190,7 @@ We have totaly
 possible states.
 
 
-\section{Miglior policy}
+\section{Best policy}
 
 The best policy is to bounce the ball once it reaches the bottom of the field
 
@@ -200,14 +200,14 @@ The ball bounces every
 \]
 steps.
 
-The expected return after $ i = (1 \dots 2(n-1) $ steps from the bounce is 
+The expected return after $ i = 1 \dots 2(n-1) $ steps from the bounce is 
 \[
 R_i = \gamma ^ {2(n-1)-i} \sum_{j=0}^{\infty} R^+ \gamma ^ {2(n-1)j} =
 R^+ \frac{ \gamma ^ {2(n-1)-i}}{1-\gamma ^ {2(n-1)}}
 \]
 
 
-\section{Considerations}
+\section{$\varepsilon$-greedy policy}
 
 Now consider the strategy $ \varepsilon $-greedy where a random action is generated with probability $ \varepsilon $.
 
@@ -233,6 +233,88 @@ E.g if $ p = 0.1 $ we have
 \[
 \varepsilon \approx 5.8363 \cdot 10^{-3}
 \]
+
+\section{Learning rate}
+Let's examine how the different parameters affects the results.
+
+
+The baseline values of parameters are:
+\begin{itemize}
+	\item $\alpha = 100 \times 10^{-6} $
+	\item $\beta = 0.3 $ $e^\beta \approx 1.43 $
+	\item $\gamma = 0.962 $
+	\item $\varepsilon = 5 \times 10^{-3} $ $ P(end) \approx 8.6 \%$
+	\item $\lambda = 0 $
+	\item $\eta = 0.1 $
+	\item $ seed = 1234 $
+\end{itemize}
+\begin{figure}
+	\label{fig:baselines}
+	\includegraphics[width=300pt]{baseline}
+	\caption{Baseline}
+\end{figure}
+
+
+\subsection{$ \alpha $ parameter}
+
+\begin{itemize}
+	\item $\alpha = 0 $
+	\item $\alpha = 1 \times 10^{-6} $
+	\item $\alpha = 10 \times 10^{-3} $
+	\item $\alpha = 1 $
+\end{itemize}
+\begin{figure}
+	\label{fig:alpha}
+	\includegraphics[width=300pt]{alpha}
+	\caption{Results by $\alpha$}
+\end{figure}
+
+
+\subsection{$ \beta $ parameter}
+
+\begin{itemize}
+	\item $\beta = 0.03 $
+	\item $\beta = 0.1 $
+	\item $\beta = 0.3 $
+	\item $\beta = 1 $
+	\item $\beta = 3 $
+\end{itemize}
+\begin{figure}
+	\label{fig:beta}
+	\includegraphics[width=300pt]{beta}
+	\caption{Results by $\beta$}
+\end{figure}
+
+\subsection{$ \lambda $ parameter}
+
+
+\begin{itemize}
+	\item $\lambda = 0 $
+	\item $\lambda = 0.3 $
+	\item $\lambda = 0.9 $
+	\item $\lambda = 0.99 $
+\end{itemize}
+\begin{figure}
+	\label{fig:lambda}
+	\includegraphics[width=300pt]{lambda}
+	\caption{Results by $\lambda$}
+\end{figure}
+
+
+\subsection{$ \eta $ parameter}
+
+\begin{itemize}
+	\item $\eta = 0.01 $
+	\item $\eta = 0.03 $
+	\item $\eta = 0.1 $
+	\item $\eta = 0.3 $
+\end{itemize}
+\begin{figure}
+	\label{fig:eta}
+	\includegraphics[width=300pt]{eta}
+	\caption{Results by $\eta$}
+\end{figure}
+
 
 \section{Batch critic}
 

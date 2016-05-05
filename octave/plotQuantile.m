@@ -20,6 +20,6 @@ function plotQuantile(filename, l=1e6, Q = [0.25,0.75])
    L(1,m+1)= "Median";
    L(1,m+2)= "Mean";
    L(1,m+3)= "Mode";
-   legend(L);
+   legend(L, "location", "northwest");
    title("Wall Game bouncing")
 endfunction

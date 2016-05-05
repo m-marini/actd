@@ -71,7 +71,8 @@ object TDLayerParms {
   def hidden(p: TDParms): TDLayerParms = TDLayerParms(
     Tanh,
     CostFunction(p.alpha),
-    signum.apply[DenseMatrix[Double], DenseMatrix[Double]],
+    x => x,
+//    signum.apply[DenseMatrix[Double], DenseMatrix[Double]],
     p.lambda * p.gamma,
     p.eta)
 }

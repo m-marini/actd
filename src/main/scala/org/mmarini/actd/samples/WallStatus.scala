@@ -146,15 +146,15 @@ object WallStatus extends LazyLogging {
   val LastPad = Width - PadSize
   val SecondLastPad = LastPad - 1
 
-  val Alpha = 100e-6
-  val Beta = 0.3
+  val Alpha = 1e-6
+  val Beta = 3
   val Gamma = 0.962
   //  val EpsilonGreedy = 0.9
   val EpsilonGreedy = 5e-3
-  val Lambda = 900e-3
-  val Eta = 100e-3
-  val Seed = 1234L
-  val MaxTrainingSamples = 0
+  val Lambda = 0.3
+  val Eta = 0.1
+  val AgentSeed = 1234L
+  val EnvSeed = 4321L
 
   val HiddenCount = 20
   val OutputCount = PadAction.maxId
@@ -162,7 +162,7 @@ object WallStatus extends LazyLogging {
   import PadAction._
   import Direction._
 
-  val random = new RandBasis(new MersenneTwister(Seed))
+  val envRandom = new RandBasis(new MersenneTwister(EnvSeed))
 
   val endStatus = WallStatus((0, 0), SE, 1)
 
@@ -171,11 +171,11 @@ object WallStatus extends LazyLogging {
 
   /** Creates a initial game status */
   def initial: WallStatus = {
-    val b = (1, random.randInt(Width).get)
+    val b = (1, envRandom.randInt(Width).get)
     val s = b match {
       case (_, 0) => NE
       case (_, LastCol) => NO
-      case _ => random.choose(Seq(Direction.NE, Direction.NO)).get
+      case _ => envRandom.choose(Seq(Direction.NE, Direction.NO)).get
     }
     val pad = b match {
       case (_, 0) => 0
@@ -199,7 +199,7 @@ object WallStatus extends LazyLogging {
       epsilon = EpsilonGreedy,
       lambda = Lambda,
       eta = Eta,
-      random = new RandBasis(new MersenneTwister(Seed)))
+      random = new RandBasis(new MersenneTwister(AgentSeed)))
 
     val critic = TDNeuralNet(parms)(inputCount +: Seq() :+ 1)
     val actor = TDNeuralNet(parms)(inputCount +: Seq() :+ OutputCount)

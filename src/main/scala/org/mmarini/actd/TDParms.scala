@@ -87,7 +87,8 @@ case class TDParms(
       case (r, x) => (x + r.head) :: r
     }
     val x = random.uniform.sample * sum(pref)
-    acc.reverse.tail.indexWhere(x < _)
+    val i = acc.init.reverse.indexWhere(x < _)
+    if (i >= 0) i else pref.length - 1
   }
 
 }
