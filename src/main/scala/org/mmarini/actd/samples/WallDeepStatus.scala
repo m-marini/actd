@@ -157,23 +157,22 @@ object WallDeepStatus extends LazyLogging {
   type TransitionTarget = (WallDeepStatus, Double)
   type TransitionMap = Map[TransitionSource, TransitionTarget]
 
-  val Alpha = 100e-6
-  val Beta = 0.3
+  val Alpha = 1e-6
+  val Beta = 3
   val Gamma = 0.962
-  val Epsilon = 0.1
   //  val EpsilonGreedy = 0.9
   val EpsilonGreedy = 5e-3
-  val Lambda = 900e-3
-  val Eta = 100e-3
+  val Lambda = 0.3
+  val Eta = 0.1
   val Seed = 1234L
-  val MaxTrainingSamples = 0
+  val EnvSeed = 4321L
 
   val OutputCount = 3
-  //  val HiddenLayer1Count = 1000
-  //  val HiddenLayer2Count = 100
-  //  val HiddenLayerCount = Seq(HiddenLayer1Count, HiddenLayer2Count)
 
-  val HiddenLayer1Count = 5000
+  //  val HiddenLayer1Count = 100
+  //  val HiddenLayerCount = Seq(HiddenLayer1Count)
+  val HiddenLayer1Count = 1000
+  val HiddenLayer2Count = 30
   val HiddenLayerCount = Seq(HiddenLayer1Count)
 
   /** MazeAction */
@@ -187,7 +186,7 @@ object WallDeepStatus extends LazyLogging {
   import PadAction._
   import Direction._
 
-  val random = new RandBasis(new MersenneTwister(Seed))
+  val random = new RandBasis(new MersenneTwister(EnvSeed))
 
   val endStatus = WallDeepStatus((0, 0), SE, 1)
 
