@@ -55,7 +55,6 @@ object ActorTestApp extends App with LazyLogging {
 
   val file = "data/actor.csv"
 
-  val Alpha = 0.0
   val Beta = 0.1
   val Gamma = 0.9
   val Epsilon = 0.1
@@ -79,12 +78,13 @@ object ActorTestApp extends App with LazyLogging {
   val testAgent =
     TDAgent(
       TDParms(
-        alpha = Alpha,
         beta = Beta,
         gamma = Gamma,
         epsilon = 0.0,
         lambda = Lambda,
         eta = Eta,
+        l1 = 0,
+        l2 = 0,
         random = new RandBasis(new MersenneTwister(Seed))),
       2, 2)
 

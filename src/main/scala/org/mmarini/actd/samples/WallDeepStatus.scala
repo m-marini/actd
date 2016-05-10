@@ -157,7 +157,8 @@ object WallDeepStatus extends LazyLogging {
   type TransitionTarget = (WallDeepStatus, Double)
   type TransitionMap = Map[TransitionSource, TransitionTarget]
 
-  val Alpha = 1e-6
+  val L1 = 0e-6
+  val L2 = 1e-6
   val Beta = 3
   val Gamma = 0.962
   //  val EpsilonGreedy = 0.9
@@ -217,12 +218,13 @@ object WallDeepStatus extends LazyLogging {
     val inputCount = initStatus.toDenseVector.length
 
     val parms = TDParms(
-      alpha = Alpha,
       beta = Beta,
       gamma = Gamma,
       epsilon = EpsilonGreedy,
       lambda = Lambda,
       eta = Eta,
+      l1 = L1,
+      l2 = L2,
       random = new RandBasis(new MersenneTwister(Seed)))
 
     val critic = TDNeuralNet(parms)(inputCount +: HiddenLayerCount :+ 1)

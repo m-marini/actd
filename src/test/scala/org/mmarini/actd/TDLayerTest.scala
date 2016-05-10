@@ -38,6 +38,7 @@ import breeze.stats.distributions.Rand
 import breeze.linalg.DenseVector
 import scala.math.tanh
 import scala.math.signum
+import scala.math.abs
 import breeze.linalg.DenseMatrix
 
 /**
@@ -53,17 +54,19 @@ class TDLayerTest extends PropSpec with PropertyChecks with Matchers with GivenW
   val hiddenOutGen = MazeGen.vector(2, 1.0)
 
   val tdParmsGen = for {
-    alpha <- Gen.choose(0.0, 1.0)
+    l1 <- Gen.choose(0.0, 100.0)
+    l2 <- Gen.choose(0.0, 100.0)
     gamma <- Gen.choose(0.0, 1.0)
     lambda <- Gen.choose(0.0, 1.0)
     eta <- Gen.choose(0.0, 1e-6)
   } yield TDParms(
-    alpha = alpha,
     beta = 0.0,
     gamma = gamma,
     epsilon = 0.0,
     lambda = lambda,
     eta = eta,
+    l1 = l1,
+    l2 = l2,
     random = Rand)
 
   property("nlr output") {
@@ -96,12 +99,12 @@ class TDLayerTest extends PropSpec with PropertyChecks with Matchers with GivenW
             val status = layer(in)
             val e = exp - status.output
             val cost0 = status.cost(e)
-            val alpha = tdParms.alpha
+            val l1 = tdParms.l1
+            val l2 = tdParms.l2
             val w = layer.weights
-            val e2 = e :* e
-            val w2 = w :* w
-            val expectedCost = ((1 - alpha) * (e2(0) + e2(1)) +
-              alpha * (w2(0, 1) + w2(0, 2) + w2(1, 1) + w2(1, 2))) / 2
+            val expectedCost = (e(0) * e(0) + e(1) * e(1)) / 2 +
+              l2 * (w(0, 1) * w(0, 1) + w(0, 2) * w(0, 2) + w(1, 1) * w(1, 1) + w(1, 2) * w(1, 2)) / 2 +
+              l1 * (abs(w(0, 1)) + abs(w(0, 2)) + abs(w(1, 1)) + abs(w(1, 2)))
             cost0 shouldBe expectedCost +- 1e-6
           }
       }
@@ -118,16 +121,17 @@ class TDLayerTest extends PropSpec with PropertyChecks with Matchers with GivenW
             val status = layer(in)
             val e = exp - status.output
             val (next, _) = status.train(e)
-            val alpha = tdParms.alpha
             val eta = tdParms.eta
+            val l1 = tdParms.l1
+            val l2 = tdParms.l2
             val w = layer.weights
 
-            val dj00 = -(1 - alpha) * e(0)
-            val dj01 = -(1 - alpha) * e(0) * in(0) + alpha * w(0, 1)
-            val dj02 = -(1 - alpha) * e(0) * in(1) + alpha * w(0, 2)
-            val dj10 = -(1 - alpha) * e(1)
-            val dj11 = -(1 - alpha) * e(1) * in(0) + alpha * w(1, 1)
-            val dj12 = -(1 - alpha) * e(1) * in(1) + alpha * w(1, 2)
+            val dj00 = -e(0)
+            val dj01 = -e(0) * in(0) + l2 * w(0, 1) + l1 * signum(w(0, 1))
+            val dj02 = -e(0) * in(1) + l2 * w(0, 2) + l1 * signum(w(0, 2))
+            val dj10 = -e(1)
+            val dj11 = -e(1) * in(0) + l2 * w(1, 1) + l1 * signum(w(1, 1))
+            val dj12 = -e(1) * in(1) + l2 * w(1, 2) + l1 * signum(w(1, 2))
 
             val w00 = w(0, 0) - eta * dj00
             val w01 = w(0, 1) - eta * dj01
@@ -161,7 +165,6 @@ class TDLayerTest extends PropSpec with PropertyChecks with Matchers with GivenW
             val status = layer(in)
             val e = exp - status.output
             val (_, backError) = status.train(e)
-            val alpha = tdParms.alpha
             val w = layer.weights
             val exp0 = e(0) * w(0, 1) + e(1) * w(1, 1)
             val exp1 = e(0) * w(0, 2) + e(1) * w(1, 2)
@@ -223,12 +226,12 @@ class TDLayerTest extends PropSpec with PropertyChecks with Matchers with GivenW
             val status = layer(in)
             val e = exp - status.output
             val cost0 = status.cost(e)
-            val alpha = tdParms.alpha
+            val l1 = tdParms.l1
+            val l2 = tdParms.l2
             val w = layer.weights
-            val e2 = e :* e
-            val w2 = w :* w
-            val expectedCost = ((1 - alpha) * (e2(0) + e2(1)) +
-              alpha * (w2(0, 1) + w2(0, 2) + w2(1, 1) + w2(1, 2))) / 2
+            val expectedCost = (e(0) * e(0) + e(1) * e(1)) / 2 +
+              l2 * (w(0, 1) * w(0, 1) + w(0, 2) * w(0, 2) + w(1, 1) * w(1, 1) + w(1, 2) * w(1, 2)) / 2 +
+              l1 * (abs(w(0, 1)) + abs(w(0, 2)) + abs(w(1, 1)) + abs(w(1, 2)))
             cost0 shouldBe expectedCost +- 1e-6
           }
       }
@@ -249,16 +252,17 @@ class TDLayerTest extends PropSpec with PropertyChecks with Matchers with GivenW
 
             next.parms shouldBe layer.parms
 
-            val alpha = tdParms.alpha
             val eta = tdParms.eta
+            val l1 = tdParms.l1
+            val l2 = tdParms.l2
             val w = layer.weights
 
-            val dj00 = -(1 - alpha) * e(0) * (1 + h(0)) * (1 - h(0))
-            val dj01 = -(1 - alpha) * e(0) * (1 + h(0)) * (1 - h(0)) * in(0) + alpha * w(0, 1)
-            val dj02 = -(1 - alpha) * e(0) * (1 + h(0)) * (1 - h(0)) * in(1) + alpha * w(0, 2)
-            val dj10 = -(1 - alpha) * e(1) * (1 + h(1)) * (1 - h(1))
-            val dj11 = -(1 - alpha) * e(1) * (1 + h(1)) * (1 - h(1)) * in(0) + alpha * w(1, 1)
-            val dj12 = -(1 - alpha) * e(1) * (1 + h(1)) * (1 - h(1)) * in(1) + alpha * w(1, 2)
+            val dj00 = -e(0) * (1 + h(0)) * (1 - h(0))
+            val dj01 = -e(0) * (1 + h(0)) * (1 - h(0)) * in(0) + l2 * w(0, 1) + l1 * signum(w(0, 1))
+            val dj02 = -e(0) * (1 + h(0)) * (1 - h(0)) * in(1) + l2 * w(0, 2) + l1 * signum(w(0, 2))
+            val dj10 = -e(1) * (1 + h(1)) * (1 - h(1))
+            val dj11 = -e(1) * (1 + h(1)) * (1 - h(1)) * in(0) + l2 * w(1, 1) + l1 * signum(w(1, 1))
+            val dj12 = -e(1) * (1 + h(1)) * (1 - h(1)) * in(1) + l2 * w(1, 2) + l1 * signum(w(1, 2))
 
             val e00 = -signum(dj00)
             val e01 = -signum(dj01)
@@ -303,7 +307,6 @@ class TDLayerTest extends PropSpec with PropertyChecks with Matchers with GivenW
             val h = status.output
             val e = exp - h
             val (_, backError) = status.train(e)
-            val alpha = tdParms.alpha
             val w = layer.weights
             val exp0 = e(0) * (1 + h(0)) * (1 - h(0)) * w(0, 1) + e(1) * (1 + h(1)) * (1 - h(1)) * w(1, 1)
             val exp1 = e(0) * (1 + h(0)) * (1 - h(0)) * w(0, 2) + e(1) * (1 + h(1)) * (1 - h(1)) * w(1, 2)

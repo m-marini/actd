@@ -36,6 +36,8 @@ import org.scalatest.PropSpec
 import org.scalatest.prop.PropertyChecks
 
 import breeze.linalg.DenseMatrix
+import scala.math.abs
+import scala.math.signum
 
 /**
  * @author us00852
@@ -43,127 +45,166 @@ import breeze.linalg.DenseMatrix
 class CostFunctionTest extends PropSpec with PropertyChecks with Matchers with GivenWhenThen {
 
   property("cost") {
-    val errGen = Gen.choose(0.0, 1e-3)
     val n = 2
     val m = 3
     val wGen = MazeGen.matrix(n, m, 10.0)
 
-    val hGen = MazeGen.vector(n, 1)
-    val alphaGen = Gen.choose(0.0, 1.0)
+    val errGen = MazeGen.vector(n, 1)
+    //    val l1Gen = Gen.const(0.0)
+    //    val l2Gen = Gen.const(0.0)
+    val l1Gen = Gen.choose(0.0, 1e3)
+    val l2Gen = Gen.choose(0.0, 1e3)
 
     forAll(
-      (alphaGen, "alpha"),
+      (l1Gen, "l1"),
+      (l2Gen, "l2"),
       (errGen, "err"),
-      (hGen, "h"),
       (wGen, "w")) {
-        (alpha, err, h, w) =>
+        (l1, l2, err, w) =>
           {
-            val func = CostFunction(alpha)
-            val y = h + err
-            val j = func(y - h, w)
-            j shouldBe (((1 - alpha) * err * err * n + alpha *
+            val func = CostFunction.elasticNet(l1, l2)
+            val j = func(err, w)
+            val exp = (err(0) * err(0) +
+              err(1) * err(1) +
+              l2 *
               (w(0, 1) * w(0, 1) +
                 w(0, 2) * w(0, 2) +
                 w(1, 1) * w(1, 1) +
-                w(1, 2) * w(1, 2))) / 2) +- 1e-6
+                w(1, 2) * w(1, 2))) / 2 +
+                l1 *
+                (abs(w(0, 1)) +
+                  abs(w(0, 2)) +
+                  abs(w(1, 1)) +
+                  abs(w(1, 2)))
+            j shouldBe exp +- 1e-6
           }
       }
   }
 
   property("gradIdent") {
-    val errGen = Gen.choose(0.0, 1e-3)
     val n = 2
     val m = 3
     val wGen = MazeGen.matrix(n, m, 10.0)
     val xGen = MazeGen.vector(m - 1, 10.0)
 
+    val errGen = MazeGen.vector(n, 1e-3)
     val hGen = MazeGen.vector(n, 1)
-    val alphaGen = Gen.choose(0.0, 1.0)
+    val l1Gen = Gen.choose(0.0, 1e3)
+    val l2Gen = Gen.choose(0.0, 1e3)
 
     forAll(
-      (alphaGen, "alpha"),
+      (l1Gen, "l1"),
+      (l2Gen, "l2"),
       (errGen, "err"),
       (hGen, "h"),
       (xGen, "x"),
       (wGen, "w")) {
-        (alpha, err, h, x, w) =>
+        (l1, l2, err, h, x, w) =>
           {
-            val func = CostFunction(alpha)
+            val func = CostFunction.elasticNet(l1, l2)
             val y = h + err
-            val dj = func.grad(y - h, Ident.grad(h, x), x, w)
+            val dj = func.grad(err, Ident.grad(h, x), x, w)
 
-            val expected = DenseMatrix(
-              (-(1 - alpha) * err, -(1 - alpha) * err * x(0) + alpha * w(0, 1), -(1 - alpha) * err * x(1) + alpha * w(0, 2)),
-              (-(1 - alpha) * err, -(1 - alpha) * err * x(0) + alpha * w(1, 1), -(1 - alpha) * err * x(1) + alpha * w(1, 2)))
-            TestFuncs.matrixLike(dj, expected, 1e-3)
+            val dj00 = -err(0)
+            val dj01 = -err(0) * x(0) + l2 * w(0, 1) + l1 * signum(w(0, 1))
+            val dj02 = -err(0) * x(1) + l2 * w(0, 2) + l1 * signum(w(0, 2))
+
+            val dj10 = -err(1)
+            val dj11 = -err(1) * x(0) + l2 * w(1, 1) + l1 * signum(w(1, 1))
+            val dj12 = -err(1) * x(1) + l2 * w(1, 2) + l1 * signum(w(1, 2))
+
+            dj(0, 0) shouldBe dj00 +- 1e-6
+            dj(0, 1) shouldBe dj01 +- 1e-6
+            dj(0, 2) shouldBe dj02 +- 1e-6
+            dj(1, 0) shouldBe dj10 +- 1e-6
+            dj(1, 1) shouldBe dj11 +- 1e-6
+            dj(1, 2) shouldBe dj12 +- 1e-6
           }
       }
   }
 
   property("gradSigmoid") {
-    val errGen = Gen.choose(0.0, 1e-3)
     val n = 2
     val m = 3
     val wGen = MazeGen.matrix(n, m, 10.0)
     val xGen = MazeGen.vector(m - 1, 10.0)
 
+    val errGen = MazeGen.vector(n, 1e-3)
     val hGen = MazeGen.vector(n, 1)
-    val alphaGen = Gen.choose(0.0, 1.0)
+    val l1Gen = Gen.choose(0.0, 1e3)
+    val l2Gen = Gen.choose(0.0, 1e3)
 
     forAll(
-      (alphaGen, "alpha"),
+      (l1Gen, "l1"),
+      (l2Gen, "l2"),
       (errGen, "err"),
       (hGen, "h"),
       (xGen, "x"),
       (wGen, "w")) {
-        (alpha, err, h, x, w) =>
+        (l1, l2, err, h, x, w) =>
           {
-            val func = CostFunction(alpha)
+            val func = CostFunction.elasticNet(l1, l2)
             val y = h + err
-            val dj = func.grad(y - h, Sigmoid.grad(h, x), x, w)
+            val dj = func.grad(err, Sigmoid.grad(h, x), x, w)
 
-            val expected = DenseMatrix(
-              (-(1 - alpha) * err * h(0) * (1 - h(0)),
-                -(1 - alpha) * err * x(0) * h(0) * (1 - h(0)) + alpha * w(0, 1),
-                -(1 - alpha) * err * x(1) * h(0) * (1 - h(0)) + alpha * w(0, 2)),
-              (-(1 - alpha) * err * h(1) * (1 - h(1)),
-                -(1 - alpha) * err * x(0) * h(1) * (1 - h(1)) + alpha * w(1, 1),
-                -(1 - alpha) * err * x(1) * h(1) * (1 - h(1)) + alpha * w(1, 2)))
-            TestFuncs.matrixLike(dj, expected, 1e-3)
+            val dj00 = -err(0) * h(0) * (1 - h(0))
+            val dj01 = -err(0) * h(0) * (1 - h(0)) * x(0) + l1 * signum(w(0, 1)) + l2 * w(0, 1)
+            val dj02 = -err(0) * h(0) * (1 - h(0)) * x(1) + l1 * signum(w(0, 2)) + l2 * w(0, 2)
+
+            val dj10 = -err(1) * h(1) * (1 - h(1))
+            val dj11 = -err(1) * h(1) * (1 - h(1)) * x(0) + l1 * signum(w(1, 1)) + l2 * w(1, 1)
+            val dj12 = -err(1) * h(1) * (1 - h(1)) * x(1) + l1 * signum(w(1, 2)) + l2 * w(1, 2)
+
+            dj(0, 0) shouldBe dj00 +- 1e-6
+            dj(0, 1) shouldBe dj01 +- 1e-6
+            dj(0, 2) shouldBe dj02 +- 1e-6
+
+            dj(1, 0) shouldBe dj10 +- 1e-6
+            dj(1, 1) shouldBe dj11 +- 1e-6
+            dj(1, 2) shouldBe dj12 +- 1e-6
           }
       }
   }
 
   property("gradTanh") {
-    val errGen = Gen.choose(0.0, 1e-3)
     val n = 2
     val m = 3
     val wGen = MazeGen.matrix(n, m, 10.0)
     val xGen = MazeGen.vector(m - 1, 10.0)
 
+    val errGen = MazeGen.vector(n, 1e-3)
     val hGen = MazeGen.vector(n, 1)
-    val alphaGen = Gen.choose(0.0, 1.0)
+    val l1Gen = Gen.choose(0.0, 1e3)
+    val l2Gen = Gen.choose(0.0, 1e3)
 
     forAll(
-      (alphaGen, "alpha"),
+      (l1Gen, "l1"),
+      (l2Gen, "l2"),
       (errGen, "err"),
       (hGen, "h"),
       (xGen, "x"),
       (wGen, "w")) {
-        (alpha, err, h, x, w) =>
+        (l1, l2, err, h, x, w) =>
           {
-            val func = CostFunction(alpha)
+            val func = CostFunction.elasticNet(l1, l2)
             val y = h + err
             val dj = func.grad(y - h, Tanh.grad(h, x), x, w)
 
-            val expected = DenseMatrix(
-              (-(1 - alpha) * err * (1 + h(0)) * (1 - h(0)),
-                -(1 - alpha) * err * x(0) * (1 + h(0)) * (1 - h(0)) + alpha * w(0, 1),
-                -(1 - alpha) * err * x(1) * (1 + h(0)) * (1 - h(0)) + alpha * w(0, 2)),
-              (-(1 - alpha) * err * (1 + h(1)) * (1 - h(1)),
-                -(1 - alpha) * err * x(0) * (1 + h(1)) * (1 - h(1)) + alpha * w(1, 1),
-                -(1 - alpha) * err * x(1) * (1 + h(1)) * (1 - h(1)) + alpha * w(1, 2)))
-            TestFuncs.matrixLike(dj, expected, 1e-3)
+            val dj00 = -err(0) * (1 + h(0)) * (1 - h(0))
+            val dj01 = -err(0) * (1 + h(0)) * (1 - h(0)) * x(0) + l1 * signum(w(0, 1)) + l2 * w(0, 1)
+            val dj02 = -err(0) * (1 + h(0)) * (1 - h(0)) * x(1) + l1 * signum(w(0, 2)) + l2 * w(0, 2)
+
+            val dj10 = -err(1) * (1 + h(1)) * (1 - h(1))
+            val dj11 = -err(1) * (1 + h(1)) * (1 - h(1)) * x(0) + l1 * signum(w(1, 1)) + l2 * w(1, 1)
+            val dj12 = -err(1) * (1 + h(1)) * (1 - h(1)) * x(1) + l1 * signum(w(1, 2)) + l2 * w(1, 2)
+
+            dj(0, 0) shouldBe dj00 +- 1e-6
+            dj(0, 1) shouldBe dj01 +- 1e-6
+            dj(0, 2) shouldBe dj02 +- 1e-6
+
+            dj(1, 0) shouldBe dj10 +- 1e-6
+            dj(1, 1) shouldBe dj11 +- 1e-6
+            dj(1, 2) shouldBe dj12 +- 1e-6
           }
       }
   }

@@ -146,15 +146,15 @@ object WallStatus extends LazyLogging {
   val LastPad = Width - PadSize
   val SecondLastPad = LastPad - 1
 
-  val Alpha = 1e-6
   val Beta = 3
   val Gamma = 0.962
-  //  val EpsilonGreedy = 0.9
   val EpsilonGreedy = 5e-3
   val Lambda = 0.3
   val Eta = 0.1
   val AgentSeed = 1234L
   val EnvSeed = 4321L
+  val L1 = 1e-6
+  val L2 = 0e-6
 
   val HiddenCount = 20
   val OutputCount = PadAction.maxId
@@ -193,12 +193,13 @@ object WallStatus extends LazyLogging {
     val inputCount = initStatus.toDenseVector.length
 
     val parms = TDParms(
-      alpha = Alpha,
       beta = Beta,
       gamma = Gamma,
       epsilon = EpsilonGreedy,
       lambda = Lambda,
       eta = Eta,
+      l1 = L1,
+      l2 = L2,
       random = new RandBasis(new MersenneTwister(AgentSeed)))
 
     val critic = TDNeuralNet(parms)(inputCount +: Seq() :+ 1)

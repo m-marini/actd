@@ -34,6 +34,8 @@ import breeze.linalg.DenseVector
 import breeze.numerics.sigmoid
 import breeze.numerics.tanh
 import breeze.numerics.cosh
+import breeze.numerics.signum
+import breeze.numerics.abs
 import breeze.linalg.DenseMatrix
 import breeze.linalg.sum
 
@@ -44,21 +46,27 @@ trait CostFunction {
 }
 
 object CostFunction {
-  def apply(alpha: Double): CostFunction = new CostFunction() {
+  def elasticNet(l1: Double, l2: Double): CostFunction = new CostFunction() {
 
+    /**
+     * Cost(delta, w) = delta^2 + l2* sum(w)) / 2 + l1 * sum(abs(w2))
+     */
     def apply(delta: DenseVector[Double], w: DenseMatrix[Double]): Double = {
       val w1 = w(::, 1 to -1)
       val w2 = w1 :* w1
-      ((1 - alpha) * (delta.t * delta) + alpha * sum(w2)) / 2
+      (delta.t * delta + l2 * sum(w2)) / 2 + l1 * sum(abs(w1))
     }
 
+    /**
+     * Grad(delta, f', x, w) = -(1-alpha) * delta * f' * x + l2 * w + l1 * signum(w)
+     */
     def grad(delta: DenseVector[Double], grad: DenseVector[Double], x: DenseVector[Double], w: DenseMatrix[Double]): DenseMatrix[Double] = {
       val k = delta :* grad
       val x1 = DenseVector.vertcat(DenseVector.ones[Double](1), x)
       val e = k * x1.t
       val n = w.rows
       val gw = DenseMatrix.horzcat(DenseMatrix.zeros[Double](n, 1), w(::, 1 to -1))
-      (alpha) * gw - (1 - alpha) * e
+      l2 * gw + l1 * signum(gw) - e
     }
   }
 }

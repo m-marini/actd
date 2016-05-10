@@ -239,10 +239,12 @@ The output signal of this process is
 The cost function is
 \[
 	J
-	= \frac{1}{2} \left[ (1-\alpha) \sum_{i=0}^{n-1} (y_i - h_i)^2
-		+ \alpha \sum_{i=0}^{n-1} \sum_{k=1}^{m-1} w^2_{ik} \right]
-	= \frac{1}{2} \left[ (1-\alpha) \sum_{i=0}^{n-1} \delta_i^2
-		+ \alpha \sum_{i=0}^{n-1} \sum_{k=1}^{m-1} w^2_{ik} \right]
+	= \frac{1}{2} \sum_{i=0}^{n-1} (y_i - h_i)^2
+		+ l_1 \sum_{i=0}^{n-1} \sum_{k=1}^{m-1} \Arrowvert w_{ik} \Arrowvert
+		+ \frac{1}{2} l_2 \sum_{i=0}^{n-1} \sum_{k=1}^{m-1} w^2_{ik}
+	= \frac{1}{2} \sum_{i=0}^{n-1} \delta_i^2
+		+ l_1 \sum_{i=0}^{n-1} \sum_{k=1}^{m-1} \Arrowvert w_{ik} \Arrowvert
+		+ \frac{1}{2} l_2 \sum_{i=0}^{n-1} \sum_{k=1}^{m-1} w^2_{ik}
 \]
 $ f(x) $ is the activation function and may be
 \\
@@ -255,12 +257,14 @@ $ f(x) = \tanh(x) $
 The gradient of $ J $ is
 \[
 	\frac{\partial J}{\partial w_{ij}}
-		= -(1-\alpha) \sum_{k=0}^{n-1} \delta_k \frac{\partial h_k}{\partial z_k} \frac{\partial z_k}{\partial w_{ij}}
-			+ \alpha \sum_{i=0}^{n-1} \sum_{k=1}^{m-1} w_{ik}
-		= -(1-\alpha) \delta_i f'_i x_j 
-			+ \alpha w_{ij}
+		= -\sum_{k=0}^{n-1} \delta_k \frac{\partial h_k}{\partial z_k} \frac{\partial z_k}{\partial w_{ij}}
+			+ l_1 \sum_{i=0}^{n-1} \sum_{k=1}^{m-1} signum(w_{ik})
+			+ l_2 \sum_{i=0}^{n-1} \sum_{k=1}^{m-1} w_{ik}
+		= -\delta_i f'_i x_j 
+			+ l_1 signum(w_{ij})
+			+ l_2 w_{ij}
 \]
-the term $ \alpha w_{ij} $ is valid only for $ j \ne 0 $
+the terms $ l_1 signum(w_{ij}) $ and $ l_2 w_{ij} $ are valid only for $ j \ne 0 $
 \\
 $ f'(x) = 1 $ for $ f(x) = x $,
 \\
@@ -280,7 +284,7 @@ The updated eligility traces are
 	e'_{ij}
 		= \gamma \lambda e_{ij} - g(\nabla J)
 \]
-$ g(x) $ is the backtrace function and may be identity $ x $ or $ sign(x) $
+$ g(x) $ is the backtrace function and may be identity $ x $ or $ signum(x) $
 
 The updated weights are
 \[

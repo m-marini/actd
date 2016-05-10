@@ -49,24 +49,26 @@ import breeze.stats.distributions.Bernoulli
  * @param random
  */
 case class TDParms(
-    alpha: Double,
     beta: Double,
     gamma: Double,
     epsilon: Double,
     lambda: Double,
     eta: Double,
+    l1: Double,
+    l2: Double,
     random: RandBasis) {
 
   private val egreedyRand = new Bernoulli(epsilon, random)
 
   /** Returns a [[TDParms]] with changed eta value */
   def setEta(value: Double): TDParms =
-    TDParms(alpha = alpha,
-      beta = beta,
+    TDParms(beta = beta,
       gamma = gamma,
       epsilon = epsilon,
       lambda = lambda,
       eta = value,
+      l1 = l1,
+      l2 = l2,
       random = random)
 
   /** Returns a index with uniform distribution with epsilon probability otherwise by softmax algorithm */

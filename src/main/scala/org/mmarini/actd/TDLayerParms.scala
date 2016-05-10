@@ -63,15 +63,15 @@ case class TDLayerParms(
 object TDLayerParms {
   def nlr(p: TDParms): TDLayerParms = TDLayerParms(
     Ident,
-    CostFunction(p.alpha),
+    CostFunction.elasticNet(p.l1, p.l2),
     x => x,
     p.lambda * p.gamma,
     p.eta)
 
   def hidden(p: TDParms): TDLayerParms = TDLayerParms(
     Tanh,
-    CostFunction(p.alpha),
-//    x => x,
+    CostFunction.elasticNet(p.l1, p.l2),
+    //    x => x,
     signum.apply[DenseMatrix[Double], DenseMatrix[Double]],
     p.lambda * p.gamma,
     p.eta)

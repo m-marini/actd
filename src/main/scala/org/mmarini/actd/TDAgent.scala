@@ -110,12 +110,13 @@ class TDAgent(
   def write(file: String) {
     // Saves parameters
     val parm = IndexedSeq(DenseVector[Double](
-      parms.alpha,
       parms.beta,
       parms.gamma,
       parms.epsilon,
       parms.lambda,
-      parms.eta))
+      parms.eta,
+      parms.l1,
+      parms.l2))
     parm.iterator.write(s"$file-parms.csv")
 
     // Saves critic
@@ -129,8 +130,10 @@ class TDAgent(
 /** Factory for [[TDAgent]] instances */
 object TDAgent {
 
-  private val LambdaIndex = 4
-  private val EtaIndex = 5
+  private val LambdaIndex = 3
+  private val EtaIndex = 4
+  private val L1Index = 5
+  private val L2Index = 6
   private val MaxTrainingSamplesIndex = 6
 
   /**
@@ -153,12 +156,13 @@ object TDAgent {
   def apply(file: String, random: RandBasis = new RandBasis(new MersenneTwister())): TDAgent = {
     val p = csvread(new File(s"$file-parms.csv"))
     val parms = TDParms(
-      alpha = p(0, 0),
-      beta = p(0, 1),
-      gamma = p(0, 2),
-      epsilon = p(0, 3),
+      beta = p(0, 0),
+      gamma = p(0, 1),
+      epsilon = p(0, 2),
       lambda = p(0, LambdaIndex),
       eta = p(0, EtaIndex),
+      l1 = p(0, L1Index),
+      l2 = p(0, L2Index),
       random)
 
     val critic = TDNeuralNet.read(parms)(s"$file-critic")

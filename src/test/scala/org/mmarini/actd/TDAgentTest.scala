@@ -69,7 +69,6 @@ class TDAgentTest extends PropSpec with PropertyChecks with Matchers with GivenW
   }
 
   val agentGen = for {
-    alpha <- Gen.const(0.0)
     beta <- Gen.const(0.1)
     gamma <- Gen.choose(0.9, 0.9)
     lambda <- Gen.choose(0.0, 0.0)
@@ -77,12 +76,13 @@ class TDAgentTest extends PropSpec with PropertyChecks with Matchers with GivenW
     hidden <- Gen.choose(MinHidden, MaxHidden)
   } yield TDAgent(
     TDParms(
-      alpha = alpha,
       beta = beta,
       gamma = gamma,
       epsilon = 0.0,
       lambda = lambda,
       eta = eta,
+      l1 = 0,
+      l2 = 0,
       random = new RandBasis(new MersenneTwister(Seed))),
     2, 2)
 
@@ -145,8 +145,8 @@ class TDAgentTest extends PropSpec with PropertyChecks with Matchers with GivenW
             val w11 = agent2.critic.layers(0).weights(0, 1)
             val w12 = agent2.critic.layers(0).weights(0, 2)
 
-//            info(s"agent0 ${agent.critic.weights}")
-//            info(s"agent2 ${agent2.critic.weights}")
+            //            info(s"agent0 ${agent.critic.weights}")
+            //            info(s"agent2 ${agent2.critic.weights}")
 
             pow(w10 - exp0, 2) should be <= (pow(w00 - exp0, 2))
             pow(w11 - exp1, 2) should be <= (pow(w01 - exp1, 2))

@@ -40,6 +40,7 @@ import scala.math.tanh
 import scala.math.signum
 import breeze.linalg.DenseMatrix
 import breeze.linalg.sum
+import breeze.numerics.abs
 import breeze.stats.distributions.RandBasis
 import org.apache.commons.math3.random.MersenneTwister
 
@@ -71,17 +72,19 @@ class TDNeuralNetTest extends PropSpec with PropertyChecks with Matchers with Gi
   //    random = Rand)
 
   val tdParmsGen = for {
-    alpha <- Gen.choose(0.0, 1.0)
+    l1 <- Gen.choose(0.0, 1.0)
+    l2 <- Gen.choose(0.0, 1.0)
     gamma <- Gen.choose(0.0, 1.0)
     lambda <- Gen.choose(0.0, 1.0)
     eta <- Gen.choose(0.0, 100e-3)
   } yield TDParms(
-    alpha = alpha,
     beta = 0.0,
     gamma = gamma,
     epsilon = 0.0,
     lambda = lambda,
     eta = eta,
+    l1 = l1,
+    l2 = l2,
     random = new RandBasis(new MersenneTwister(Seed)))
 
   property("net output") {
@@ -132,8 +135,9 @@ class TDNeuralNetTest extends PropSpec with PropertyChecks with Matchers with Gi
             val wr0 = w0(::, 1 to -1)
             val wr1 = w1(::, 1 to -1)
 
-            val expCost = (1 - tdParms.alpha) * sum(delta :* delta) / 2 +
-              tdParms.alpha * (sum(wr0 :* wr0) + sum(wr1 :* wr1)) / 2
+            val expCost = sum(delta :* delta) / 2 +
+              tdParms.l2 * (sum(wr0 :* wr0) + sum(wr1 :* wr1)) / 2 +
+              tdParms.l1 * (sum(abs(wr0)) + sum(abs(wr1)))
 
             cost shouldBe expCost +- 1e-6
           }
@@ -168,24 +172,24 @@ class TDNeuralNetTest extends PropSpec with PropertyChecks with Matchers with Gi
 
             val e0 = net1.layers(0).traces
             val e1 = net1.layers(1).traces
-            val alpha = tdParms.alpha
-
-            val e100 = (1 - alpha) * delta(0)
-            val e101 = (1 - alpha) * delta(0) * h00 - alpha * w1(0, 1)
-            val e102 = (1 - alpha) * delta(0) * h01 - alpha * w1(0, 2)
-            val e103 = (1 - alpha) * delta(0) * h02 - alpha * w1(0, 3)
-
+            val l1 = tdParms.l1
+            val l2 = tdParms.l2
             val eta = tdParms.eta
+
+            val e100 = delta(0)
+            val e101 = delta(0) * h00 - l2 * w1(0, 1) - l1 * signum(w1(0, 1))
+            val e102 = delta(0) * h01 - l2 * w1(0, 2) - l1 * signum(w1(0, 2))
+            val e103 = delta(0) * h02 - l2 * w1(0, 3) - l1 * signum(w1(0, 3))
 
             val w100 = w1(0, 0) + eta * e100
             val w101 = w1(0, 1) + eta * e101
             val w102 = w1(0, 2) + eta * e102
             val w103 = w1(0, 3) + eta * e103
 
-            val e110 = (1 - alpha) * delta(1)
-            val e111 = (1 - alpha) * delta(1) * h00 - alpha * w1(1, 1)
-            val e112 = (1 - alpha) * delta(1) * h01 - alpha * w1(1, 2)
-            val e113 = (1 - alpha) * delta(1) * h02 - alpha * w1(1, 3)
+            val e110 = delta(1)
+            val e111 = delta(1) * h00 - l2 * w1(1, 1) - l1 * signum(w1(1, 1))
+            val e112 = delta(1) * h01 - l2 * w1(1, 2) - l1 * signum(w1(1, 1))
+            val e113 = delta(1) * h02 - l2 * w1(1, 3) - l1 * signum(w1(1, 1))
 
             val w110 = w1(1, 0) + eta * e110
             val w111 = w1(1, 1) + eta * e111
@@ -196,9 +200,9 @@ class TDNeuralNetTest extends PropSpec with PropertyChecks with Matchers with Gi
             val delta1 = delta(0) * w1(0, 2) + delta(1) * w1(1, 2)
             val delta2 = delta(0) * w1(0, 3) + delta(1) * w1(1, 3)
 
-            val dj000 = -(1 - alpha) * delta0 * (1 + h00) * (1 - h00)
-            val dj001 = -(1 - alpha) * delta0 * x(0) * (1 + h00) * (1 - h00) + alpha * w0(0, 1)
-            val dj002 = -(1 - alpha) * delta0 * x(1) * (1 + h00) * (1 - h00) + alpha * w0(0, 2)
+            val dj000 = -delta0 * (1 + h00) * (1 - h00)
+            val dj001 = -delta0 * x(0) * (1 + h00) * (1 - h00) + l2 * w0(0, 1) + l1 * signum(w0(0, 1))
+            val dj002 = -delta0 * x(1) * (1 + h00) * (1 - h00) + l2 * w0(0, 2) + l1 * signum(w0(0, 2))
 
             val e000 = -signum(dj000)
             val e001 = -signum(dj001)
@@ -208,9 +212,9 @@ class TDNeuralNetTest extends PropSpec with PropertyChecks with Matchers with Gi
             val w001 = w0(0, 1) + eta * e001
             val w002 = w0(0, 2) + eta * e002
 
-            val dj010 = -(1 - alpha) * delta1 * (1 + h01) * (1 - h01)
-            val dj011 = -(1 - alpha) * delta1 * x(0) * (1 + h01) * (1 - h01) + alpha * w0(1, 1)
-            val dj012 = -(1 - alpha) * delta1 * x(1) * (1 + h01) * (1 - h01) + alpha * w0(1, 2)
+            val dj010 = -delta1 * (1 + h01) * (1 - h01)
+            val dj011 = -delta1 * x(0) * (1 + h01) * (1 - h01) + l2 * w0(1, 1) + l1 * signum(w0(1, 1))
+            val dj012 = -delta1 * x(1) * (1 + h01) * (1 - h01) + l2 * w0(1, 2) + l1 * signum(w0(1, 2))
 
             val e010 = -signum(dj010)
             val e011 = -signum(dj011)
@@ -220,9 +224,9 @@ class TDNeuralNetTest extends PropSpec with PropertyChecks with Matchers with Gi
             val w011 = w0(1, 1) + eta * e011
             val w012 = w0(1, 2) + eta * e012
 
-            val dj020 = -(1 - alpha) * delta2 * (1 + h02) * (1 - h02)
-            val dj021 = -(1 - alpha) * delta2 * x(0) * (1 + h02) * (1 - h02) + alpha * w0(2, 1)
-            val dj022 = -(1 - alpha) * delta2 * x(1) * (1 + h02) * (1 - h02) + alpha * w0(2, 2)
+            val dj020 = -delta2 * (1 + h02) * (1 - h02)
+            val dj021 = -delta2 * x(0) * (1 + h02) * (1 - h02) + l2 * w0(2, 1) + l1 * signum(w0(2, 1))
+            val dj022 = -delta2 * x(1) * (1 + h02) * (1 - h02) + l2 * w0(2, 2) + l1 * signum(w0(2, 2))
 
             val e020 = -signum(dj020)
             val e021 = -signum(dj021)
@@ -311,13 +315,14 @@ class TDNeuralNetTest extends PropSpec with PropertyChecks with Matchers with Gi
             val e0 = net1.layers(0).traces
             val e1 = net1.layers(1).traces
 
-            val alpha = tdParms.alpha
+            val l1 = tdParms.l1
+            val l2 = tdParms.l2
             val decay = tdParms.gamma * tdParms.lambda
 
-            val e100 = decay * net.layers(1).traces(0, 0) + (1 - alpha) * delta(0)
-            val e101 = decay * net.layers(1).traces(0, 1) + (1 - alpha) * delta(0) * h00 - alpha * w1(0, 1)
-            val e102 = decay * net.layers(1).traces(0, 2) + (1 - alpha) * delta(0) * h01 - alpha * w1(0, 2)
-            val e103 = decay * net.layers(1).traces(0, 3) + (1 - alpha) * delta(0) * h02 - alpha * w1(0, 3)
+            val e100 = decay * net.layers(1).traces(0, 0) + delta(0)
+            val e101 = decay * net.layers(1).traces(0, 1) + delta(0) * h00 - l2 * w1(0, 1) - l1 * signum(w1(0, 1))
+            val e102 = decay * net.layers(1).traces(0, 2) + delta(0) * h01 - l2 * w1(0, 2) - l1 * signum(w1(0, 2))
+            val e103 = decay * net.layers(1).traces(0, 3) + delta(0) * h02 - l2 * w1(0, 3) - l1 * signum(w1(0, 3))
 
             val eta = tdParms.eta
 
@@ -326,10 +331,10 @@ class TDNeuralNetTest extends PropSpec with PropertyChecks with Matchers with Gi
             val w102 = w1(0, 2) + eta * e102
             val w103 = w1(0, 3) + eta * e103
 
-            val e110 = decay * net.layers(1).traces(1, 0) + (1 - alpha) * delta(1)
-            val e111 = decay * net.layers(1).traces(1, 1) + (1 - alpha) * delta(1) * h00 - alpha * w1(1, 1)
-            val e112 = decay * net.layers(1).traces(1, 2) + (1 - alpha) * delta(1) * h01 - alpha * w1(1, 2)
-            val e113 = decay * net.layers(1).traces(1, 3) + (1 - alpha) * delta(1) * h02 - alpha * w1(1, 3)
+            val e110 = decay * net.layers(1).traces(1, 0) + delta(1)
+            val e111 = decay * net.layers(1).traces(1, 1) + delta(1) * h00 - l2 * w1(1, 1) - l1 * signum(w1(1, 1))
+            val e112 = decay * net.layers(1).traces(1, 2) + delta(1) * h01 - l2 * w1(1, 2) - l1 * signum(w1(1, 2))
+            val e113 = decay * net.layers(1).traces(1, 3) + delta(1) * h02 - l2 * w1(1, 3) - l1 * signum(w1(1, 3))
 
             val w110 = w1(1, 0) + eta * e110
             val w111 = w1(1, 1) + eta * e111
@@ -340,9 +345,9 @@ class TDNeuralNetTest extends PropSpec with PropertyChecks with Matchers with Gi
             val delta1 = delta(0) * w1(0, 2) + delta(1) * w1(1, 2)
             val delta2 = delta(0) * w1(0, 3) + delta(1) * w1(1, 3)
 
-            val dj000 = -(1 - alpha) * delta0 * (1 + h00) * (1 - h00)
-            val dj001 = -(1 - alpha) * delta0 * x(0) * (1 + h00) * (1 - h00) + alpha * w0(0, 1)
-            val dj002 = -(1 - alpha) * delta0 * x(1) * (1 + h00) * (1 - h00) + alpha * w0(0, 2)
+            val dj000 = -delta0 * (1 + h00) * (1 - h00)
+            val dj001 = -delta0 * x(0) * (1 + h00) * (1 - h00) + l2 * w0(0, 1) + l1 * signum(w0(0, 1))
+            val dj002 = -delta0 * x(1) * (1 + h00) * (1 - h00) + l2 * w0(0, 2) + l1 * signum(w0(0, 2))
 
             val e000 = decay * net.layers(0).traces(0, 0) - signum(dj000)
             val e001 = decay * net.layers(0).traces(0, 1) - signum(dj001)
@@ -352,9 +357,9 @@ class TDNeuralNetTest extends PropSpec with PropertyChecks with Matchers with Gi
             val w001 = w0(0, 1) + eta * e001
             val w002 = w0(0, 2) + eta * e002
 
-            val dj010 = -(1 - alpha) * delta1 * (1 + h01) * (1 - h01)
-            val dj011 = -(1 - alpha) * delta1 * x(0) * (1 + h01) * (1 - h01) + alpha * w0(1, 1)
-            val dj012 = -(1 - alpha) * delta1 * x(1) * (1 + h01) * (1 - h01) + alpha * w0(1, 2)
+            val dj010 = -delta1 * (1 + h01) * (1 - h01)
+            val dj011 = -delta1 * x(0) * (1 + h01) * (1 - h01) + l2 * w0(1, 1) + l1 * signum(w0(1, 1))
+            val dj012 = -delta1 * x(1) * (1 + h01) * (1 - h01) + l2 * w0(1, 2) + l1 * signum(w0(1, 2))
 
             val e010 = decay * net.layers(0).traces(1, 0) - signum(dj010)
             val e011 = decay * net.layers(0).traces(1, 1) - signum(dj011)
@@ -364,9 +369,9 @@ class TDNeuralNetTest extends PropSpec with PropertyChecks with Matchers with Gi
             val w011 = w0(1, 1) + eta * e011
             val w012 = w0(1, 2) + eta * e012
 
-            val dj020 = -(1 - alpha) * delta2 * (1 + h02) * (1 - h02)
-            val dj021 = -(1 - alpha) * delta2 * x(0) * (1 + h02) * (1 - h02) + alpha * w0(2, 1)
-            val dj022 = -(1 - alpha) * delta2 * x(1) * (1 + h02) * (1 - h02) + alpha * w0(2, 2)
+            val dj020 = -delta2 * (1 + h02) * (1 - h02)
+            val dj021 = -delta2 * x(0) * (1 + h02) * (1 - h02) + l2 * w0(2, 1) + l1 * signum(w0(2, 1))
+            val dj022 = -delta2 * x(1) * (1 + h02) * (1 - h02) + l2 * w0(2, 2) + l1 * signum(w0(2, 2))
 
             val e020 = decay * net.layers(0).traces(2, 0) - signum(dj020)
             val e021 = decay * net.layers(0).traces(2, 1) - signum(dj021)
