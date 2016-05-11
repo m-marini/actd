@@ -39,26 +39,47 @@ import breeze.linalg.csvread
 import breeze.stats.distributions.Rand
 import breeze.stats.distributions.RandBasis
 
+/**
+ * A Temporal Difference network layer that creates the layer status for a given input.
+ *
+ * @constructor create a TD learning algorithm with given weights, trace status and parameters
+ * @param weights the weight
+ * @param trace the trace status
+ * @param parms the parameters
+ *
+ * @author us00852
+ */
 case class TDLayer(weights: DenseMatrix[Double], traces: DenseMatrix[Double], parms: TDLayerParms) {
-  def apply(in: DenseVector[Double]): TDLayerStatus = {
-    val in1 = DenseVector.vertcat(DenseVector.ones[Double](1), in)
-    val z = weights * in1
-    val h = parms.activation(z)
-    new TDLayerStatus(h, in, this)
-  }
+  /** Creates the layer status by a given input */
+  def apply(in: DenseVector[Double]): TDLayerStatus = new TDLayerStatus(in, this)
 
+  /** Clears the eligibility traces */
   def clearTraces: TDLayer = TDLayer(weights, traces * 0.0, parms)
-
 }
 
+/**
+ * A factory of [[TDLayer]]
+ */
 object TDLayer {
 
+  /**
+   * Creates a TDLayer with input nodes, output nodes and layer parameters
+   * @param n the number of output node
+   * @param m the number of input node
+   * @param parms the parameters
+   * @param randB the the randomizer basis
+   */
   def apply(n: Int, m: Int, parms: TDLayerParms)(implicit randB: RandBasis = Rand): TDLayer = {
     val v = 2.0 / (n + m + 1)
     val weights = DenseMatrix.rand(n, m + 1, randB.gaussian(0.0, sqrt(v)))
     TDLayer(weights, DenseMatrix.zeros[Double](n, m + 1), parms)
   }
 
+  /**
+   * Creates a TDLayer with layer parameters by reading file set
+   * @param parms the parameters
+   * @param file the filename
+   */
   def read(parms: TDLayerParms)(file: String): TDLayer = {
     val weights = csvread(new File(file))
     val n = weights.rows

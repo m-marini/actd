@@ -30,19 +30,45 @@
 package org.mmarini.actd
 
 import org.scalacheck.Gen
+import scala.math.abs
+import scala.math.signum
 import org.scalatest.GivenWhenThen
 import org.scalatest.Matchers
 import org.scalatest.PropSpec
 import org.scalatest.prop.PropertyChecks
 
-import breeze.linalg.DenseMatrix
-import scala.math.abs
-import scala.math.signum
-
 /**
  * @author us00852
  */
-class CostFunctionTest extends PropSpec with PropertyChecks with Matchers with GivenWhenThen {
+class NetFunctionsTest extends PropSpec with PropertyChecks with Matchers with GivenWhenThen {
+
+  private val InputRange = 100.0
+  private val Dimensions = 10
+
+  property("activation functions") {
+    val funcGen = Gen.oneOf(
+      (NetFunctions.identity _, NetFunctions.gradIdentity _),
+      (NetFunctions.sigmoid _, NetFunctions.gradSigmoid _),
+      (NetFunctions.tanh _, NetFunctions.gradTanh _))
+    val xGen = MazeGen.vector(Dimensions, InputRange)
+    val dxGen = MazeGen.vector(Dimensions, Gen.choose(1e-4, 2e-4))
+
+    forAll(
+      (funcGen, "func"),
+      (xGen, "x"),
+      (dxGen, "dx")) {
+        (funcs, x, dx) =>
+          {
+            val (func, grad) = funcs
+            val y = func(x)
+            val y1 = func(x + dx)
+            val dydx = (y1 - y) :/ dx
+            val gradY = grad(y, x)
+
+            TestFuncs.vectorLike(gradY, dydx, 1e-4)
+          }
+      }
+  }
 
   property("cost") {
     val n = 2
@@ -62,7 +88,7 @@ class CostFunctionTest extends PropSpec with PropertyChecks with Matchers with G
       (wGen, "w")) {
         (l1, l2, err, w) =>
           {
-            val func = CostFunction.elasticNet(l1, l2)
+            val func = NetFunctions.elasticNet(l1, l2)_
             val j = func(err, w)
             val exp = (err(0) * err(0) +
               err(1) * err(1) +
@@ -101,9 +127,9 @@ class CostFunctionTest extends PropSpec with PropertyChecks with Matchers with G
       (wGen, "w")) {
         (l1, l2, err, h, x, w) =>
           {
-            val func = CostFunction.elasticNet(l1, l2)
+            val func = NetFunctions.gradElasticNet(l1, l2)_
             val y = h + err
-            val dj = func.grad(err, Ident.grad(h, x), x, w)
+            val dj = func(err, NetFunctions.gradIdentity(h, x), x, w)
 
             val dj00 = -err(0)
             val dj01 = -err(0) * x(0) + l2 * w(0, 1) + l1 * signum(w(0, 1))
@@ -143,9 +169,9 @@ class CostFunctionTest extends PropSpec with PropertyChecks with Matchers with G
       (wGen, "w")) {
         (l1, l2, err, h, x, w) =>
           {
-            val func = CostFunction.elasticNet(l1, l2)
+            val func = NetFunctions.gradElasticNet(l1, l2)_
             val y = h + err
-            val dj = func.grad(err, Sigmoid.grad(h, x), x, w)
+            val dj = func(err, NetFunctions.gradSigmoid(h, x), x, w)
 
             val dj00 = -err(0) * h(0) * (1 - h(0))
             val dj01 = -err(0) * h(0) * (1 - h(0)) * x(0) + l1 * signum(w(0, 1)) + l2 * w(0, 1)
@@ -186,9 +212,9 @@ class CostFunctionTest extends PropSpec with PropertyChecks with Matchers with G
       (wGen, "w")) {
         (l1, l2, err, h, x, w) =>
           {
-            val func = CostFunction.elasticNet(l1, l2)
+            val func = NetFunctions.gradElasticNet(l1, l2)_
             val y = h + err
-            val dj = func.grad(y - h, Tanh.grad(h, x), x, w)
+            val dj = func(y - h, NetFunctions.gradTanh(h, x), x, w)
 
             val dj00 = -err(0) * (1 + h(0)) * (1 - h(0))
             val dj01 = -err(0) * (1 + h(0)) * (1 - h(0)) * x(0) + l1 * signum(w(0, 1)) + l2 * w(0, 1)
@@ -208,4 +234,5 @@ class CostFunctionTest extends PropSpec with PropertyChecks with Matchers with G
           }
       }
   }
+
 }

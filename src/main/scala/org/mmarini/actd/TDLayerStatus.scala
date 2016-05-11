@@ -33,13 +33,27 @@ import breeze.linalg.DenseMatrix
 import breeze.linalg.DenseVector
 import breeze.linalg.operators.DenseMatrix_OrderingOps
 
-case class TDLayerStatus(output: DenseVector[Double], input: DenseVector[Double], layer: TDLayer) {
+/**
+ * A layer status that generates outputs and a new layer by training
+ *
+ * [[TDAgent]] extends Agent
+ */
+case class TDLayerStatus(input: DenseVector[Double], layer: TDLayer) {
 
-  def cost(delta: DenseVector[Double]): Double = layer.parms.cost.apply(delta, layer.weights)
+  /** Returns the outputs */
+  lazy val output: DenseVector[Double] = {
+    val in1 = DenseVector.vertcat(DenseVector.ones[Double](1), input)
+    val z = layer.weights * in1
+    layer.parms.activation(z)
+  }
 
+  /** Returns the cost given output errors */
+  def cost(delta: DenseVector[Double]): Double = layer.parms.cost(delta, layer.weights)
+
+  /** Returns a new trained layer and back propagated errors given output errors */
   def train(delta: DenseVector[Double]): (TDLayer, DenseVector[Double]) = {
-    val grad = layer.parms.activation.grad(output, input)
-    val grad1 = layer.parms.cost.grad(delta, grad, input, layer.weights)
+    val grad = layer.parms.gradActivation(output, input)
+    val grad1 = layer.parms.gradCost(delta, grad, input, layer.weights)
     val dtrace = layer.parms.backprop(-grad1)
     val trace = layer.traces * layer.parms.decay + dtrace
     val weights = layer.weights + layer.parms.eta * trace

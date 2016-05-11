@@ -42,37 +42,57 @@ import breeze.linalg.DenseMatrix
 import breeze.linalg.operators.DenseMatrix_OrderingOps
 
 /**
- * A set of TD parameter
+ * A set of TD layer parameter
  *
- * @param alpha regularization network parameter, 0 no regularization, 1 no learning
- * @param beta action update rate parameter
- * @param gamma reward discount parameter
- * @param lambda tracebilty parameter of TD(lambda) algorithm
- * @param eta learning rate parameter of neural network
- * @param maxTrainingSample maximum number of training samples
- * @param random
+ * @param activation activation function
+ * @param gradActivation the gradient of activation function
+ * @param cost the cost function
+ * @param gradCost the gradient of cost function
+ * @param backprop the back propagation function
+ * @param decay decay parameter of eligibility trace
+ * @param eta learning rate parameter
  */
 case class TDLayerParms(
-    activation: ActivationFunction,
-    cost: CostFunction,
+    activation: DenseVector[Double] => DenseVector[Double],
+    gradActivation: (DenseVector[Double], DenseVector[Double]) => DenseVector[Double],
+    cost: (DenseVector[Double], DenseMatrix[Double]) => Double,
+    gradCost: (DenseVector[Double], DenseVector[Double], DenseVector[Double], DenseMatrix[Double]) => DenseMatrix[Double],
     backprop: DenseMatrix[Double] => DenseMatrix[Double],
     decay: Double,
     eta: Double) {
 }
 
+/**
+ * A factory of [[TDLayerParms]]
+ */
 object TDLayerParms {
+  /**
+   * Creates non linear regression layer parameters
+   * Both activation function and back propagation function are the identity functions
+   *
+   * @param p the network parameter set
+   */
   def nlr(p: TDParms): TDLayerParms = TDLayerParms(
-    Ident,
-    CostFunction.elasticNet(p.l1, p.l2),
-    x => x,
+    NetFunctions.identity,
+    NetFunctions.gradIdentity,
+    NetFunctions.elasticNet(p.l1, p.l2),
+    NetFunctions.gradElasticNet(p.l1, p.l2),
+    NetFunctions.matrixIdentity,
     p.lambda * p.gamma,
     p.eta)
 
+  /**
+   * Creates hidden layer parameters
+   * Activation function is tanh
+   * and back propagation function is signum
+   * @param p the network parameter set
+   */
   def hidden(p: TDParms): TDLayerParms = TDLayerParms(
-    Tanh,
-    CostFunction.elasticNet(p.l1, p.l2),
-    //    x => x,
-    signum.apply[DenseMatrix[Double], DenseMatrix[Double]],
+    NetFunctions.tanh,
+    NetFunctions.gradTanh,
+    NetFunctions.elasticNet(p.l1, p.l2),
+    NetFunctions.gradElasticNet(p.l1, p.l2),
+    NetFunctions.signum,
     p.lambda * p.gamma,
     p.eta)
 }

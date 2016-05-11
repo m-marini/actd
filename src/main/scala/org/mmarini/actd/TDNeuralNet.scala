@@ -39,13 +39,10 @@ import scalax.file.Path
 import scala.util.Try
 
 /**
- * A Temporal Difference learning algorithms that creates the network status for a given input and
- * creates new [[TDNeuralNet]] by learning from an input vector and and expected output vector.
+ * A Temporal Difference neural network that creates the network status for a given input
  *
  * @constructor create a TD learning algorithm with given weights, trace status and parameters
- * @param weights the weight
- * @param trace the trace status
- * @param parms the parameters
+ * @param layers the layers
  *
  * @author us00852
  */
@@ -79,8 +76,17 @@ case class TDNeuralNet(layers: Seq[TDLayer]) {
   }
 }
 
+/**
+ * A factory of [[TDNeuralNet]]
+ */
 object TDNeuralNet {
 
+  /**
+   * Creates a [[TDNeuralNet]] with parameters and hidden layers
+   *
+   * @param p parameters
+   * @param layerSize size of each hidden layer
+   */
   def apply(parms: TDParms)(layerSizes: Seq[Int]): TDNeuralNet = {
     require(layerSizes.size >= 2)
 
@@ -96,6 +102,13 @@ object TDNeuralNet {
     TDNeuralNet(hiddens :+ output)
   }
 
+
+  /**
+   * Creates a [[TDNeuralNet]] with parameters by reading file set
+   *
+   * @param p parameters
+   * @param file filename
+   */
   def read(parms: TDParms)(file: String): TDNeuralNet = {
     val n = csvread(new File(s"$file-n.csv"))(0, 0).toInt
     val hiddens = for {

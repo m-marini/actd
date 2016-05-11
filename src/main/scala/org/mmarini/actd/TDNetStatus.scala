@@ -31,10 +31,21 @@ package org.mmarini.actd
 
 import breeze.linalg.DenseVector
 
+/**
+ * A Temporal Difference neural network status that creates the output for a given input and a new
+ * neural network by training from the output errors
+ *
+ * @constructor create a TD learning algorithm with given weights, trace status and parameters
+ * @param stats the layer states
+ *
+ * @author us00852
+ */
 class TDNetStatus(stats: Seq[TDLayerStatus]) {
 
+  /** Returns the output of network */
   def output: DenseVector[Double] = stats.last.output
 
+  /** Create a new network by training from output errors */
   def train(delta: DenseVector[Double]): TDNeuralNet = {
     // Computes the trained layers
     val (layers, _) = stats.foldRight((Seq[TDLayer](), delta)) {
@@ -45,6 +56,7 @@ class TDNetStatus(stats: Seq[TDLayerStatus]) {
     TDNeuralNet(layers)
   }
 
+  /** Returns the cost of output by output errors */
   def cost(delta: DenseVector[Double]): Double = {
     // Computes the cost on output layer
     val y = stats.last.cost(delta)

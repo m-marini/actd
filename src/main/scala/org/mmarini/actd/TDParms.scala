@@ -41,11 +41,12 @@ import breeze.stats.distributions.Bernoulli
 /**
  * A set of TD parameter
  *
- * @param alpha regularization network parameter, 0 no regularization, 1 no learning
  * @param beta action update rate parameter
  * @param gamma reward discount parameter
- * @param lambda tracebilty parameter of TD(lambda) algorithm
+ * @param lambda eligibility parameter of TD(lambda) algorithm
  * @param eta learning rate parameter of neural network
+ * @param l1 regularization network parameter abs(w), 0 no regularization
+ * @param l2 regularization network parameter w^2, 0 no regularization
  * @param random
  */
 case class TDParms(
