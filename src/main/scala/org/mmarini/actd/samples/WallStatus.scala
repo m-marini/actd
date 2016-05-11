@@ -59,14 +59,14 @@ case class WallStatus(ball: (Int, Int), direction: Direction.Value, pad: Int) ex
   FinalVector.update(BallDim * SpeedDim * PadDim, 1.0)
 
   require(ball._2 >= 0)
-  require(ball._2 <= Width)
+  require(ball._2 < Width)
   require(pad >= 0)
   require(pad <= LastPad)
   require(ball._1 <= Height)
   require(ball._1 >= 0)
   require(ball._1 >= 1 || ball._2 == 0 && direction == SE && pad == 1, s"$ball $direction $pad")
 
-  /** Transforms the status nto a Vector */
+  /** Transforms the status to a Vector */
   val toDenseVector: DenseVector[Double] = {
     if (finalStatus) {
       FinalVector
@@ -136,7 +136,7 @@ object WallStatus extends LazyLogging {
   }
 
   val Height = 10
-  val Width = 13
+  val Width = 14
   val PadSize = 3
   val SecondLastRow = Height - 1
   val PositiveReward = 5.0

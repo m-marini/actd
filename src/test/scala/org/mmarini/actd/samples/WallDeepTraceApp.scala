@@ -40,7 +40,7 @@ import org.mmarini.actd.EnvironmentActor
  * and generates a report of episode returns as octave data file
  */
 object WallDeepTraceApp extends App with WallEnvironment with ReturnsDump with AgentSave with LazyLogging {
-  val StepCount = 1000000
+  val StepCount = 300000
   //  val DelayTime = 200 millis
   val DelayTime = Zero
   override val trainTime = Zero

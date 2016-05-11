@@ -44,6 +44,8 @@ import WallDeepStatus.PadAction
 import breeze.linalg.DenseVector
 import breeze.stats.distributions.RandBasis
 
+import scala.math.sqrt
+
 /** The status of wall game */
 case class WallDeepStatus(ball: (Int, Int), direction: Direction.Value, pad: Int) extends Status {
 
@@ -70,26 +72,12 @@ case class WallDeepStatus(ball: (Int, Int), direction: Direction.Value, pad: Int
     if (finalStatus) {
       FinalVector
     } else {
-
-      //      val v = DenseVector.zeros[Double](BallDim + SpeedDim + PadDim + 1)
-      //
-      //      val ballIdx = (ball._1 - 1) * Width + ball._2
-      //      v.update(ballIdx, 1.0)
-      //
-      //      val speedIdx = direction.id
-      //      v.update(BallDim + speedIdx, 1.0)
-      //
-      //      val padIdx = pad
-      //      v.update(BallDim + SpeedDim + padIdx, 1.0)
-      //
-      val v = DenseVector.zeros[Double](InputSpaceDimension)
-
-      v.update(ball._1, 1.0)
-      v.update(ball._2 + Width, 1.0)
-      v.update(direction.id + Width + Height, 1.0)
-      v.update(Width + Height + SpeedDim + pad, 1.0)
-
-      v
+      normalizeStatus(DenseVector[Double](
+        ball._1,
+        ball._2,
+        direction.id,
+        pad,
+        -1))
     }
   }
 
@@ -129,7 +117,7 @@ case class WallDeepStatus(ball: (Int, Int), direction: Direction.Value, pad: Int
 
 }
 
-/** A factory of [[WallStatusDeep]] */
+/** Factory of [[WallStatusDeep]] */
 object WallDeepStatus extends LazyLogging {
 
   val Height = 10
@@ -147,9 +135,22 @@ object WallDeepStatus extends LazyLogging {
   private val SpeedDim = 4
   private val PadDim = LastPad + 1
 
-  val InputSpaceDimension = Height + Width + SpeedDim + PadDim
+  object StatusIndex extends Enumeration {
+    val BallColumIdx, BallRowIdx, BallDrectionIdx, PadIdx, FinalIdx = Value
+  }
+  val InputSpaceDimension = StatusIndex.maxId
 
-  val FinalVector = DenseVector.zeros[Double](InputSpaceDimension)
+  private val MinValues = DenseVector[Double](0, 0, 0, 0, -1)
+  private val MaxValues = DenseVector[Double](Height + 1, Width, Direction.maxId, LastPad, 1)
+  private val Scale = sqrt(3) * 2 * DenseVector.ones[Double](InputSpaceDimension) :/ (MaxValues - MinValues)
+  private val Mean = (MaxValues - MinValues) / 2.0
+
+  val FinalVector = normalizeStatus(DenseVector[Double](
+    0,
+    0,
+    0,
+    0,
+    1))
 
   FinalVector.update(0, 1.0)
 
@@ -521,4 +522,6 @@ object WallDeepStatus extends LazyLogging {
     require(map.size == lm.map(_.size).sum, s"${map.size} != ${lm.map(_.size).sum}")
     map
   }
+
+  def normalizeStatus(x: DenseVector[Double]): DenseVector[Double] = Scale :* (x - Mean)
 }
