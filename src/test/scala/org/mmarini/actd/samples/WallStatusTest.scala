@@ -29,7 +29,6 @@
 
 package org.mmarini.actd.samples
 
-import org.mmarini.actd.Feedback
 import org.mmarini.actd.samples.WallStatus.Direction
 import org.mmarini.actd.samples.WallStatus.PadAction
 import org.scalacheck.Gen
@@ -39,7 +38,7 @@ import org.scalatest.PropSpec
 import org.scalatest.prop.PropertyChecks
 import com.sun.org.apache.xalan.internal.xsltc.compiler.LastCall
 
-class WallStatusTest extends PropSpec with PropertyChecks with Matchers with GivenWhenThen {
+class WallStatus1Test extends PropSpec with PropertyChecks with Matchers with GivenWhenThen {
   import WallStatus.PadAction._
   import WallStatus.Direction._
   import WallStatus._
@@ -60,7 +59,7 @@ class WallStatusTest extends PropSpec with PropertyChecks with Matchers with Giv
       (Gen.oneOf(PadAction.values.toSeq), "act")) {
         (s0, act) =>
           {
-            val Feedback(_, _, r, s1) = s0.apply(act.id)
+            val (_, _, r, s1) = s0.apply(act.id)
             r should be(0.0)
             s1 should matchPattern {
               case WallStatus((SecondLastRow, 1), SE, _) =>
@@ -85,7 +84,7 @@ class WallStatusTest extends PropSpec with PropertyChecks with Matchers with Giv
       (Gen.oneOf(PadAction.values.toSeq), "act")) {
         (s0, act) =>
           {
-            val Feedback(_, _, r, s1) = s0.apply(act.id)
+            val (_, _, r, s1) = s0.apply(act.id)
             s1 should matchPattern {
               case WallStatus((SecondLastRow, SecondLastCol), SO, _) =>
             }
@@ -110,7 +109,7 @@ class WallStatusTest extends PropSpec with PropertyChecks with Matchers with Giv
       (Gen.oneOf(PadAction.values.toSeq), "act")) {
         (s0, act) =>
           {
-            val Feedback(_, _, r, s1) = s0.apply(act.id)
+            val (_, _, r, s1) = s0.apply(act.id)
             s1 should matchPattern {
               case WallStatus((SecondLastRow, c), SO, _) if (c == s0.ball._2 - 1) =>
             }
@@ -135,7 +134,7 @@ class WallStatusTest extends PropSpec with PropertyChecks with Matchers with Giv
       (Gen.oneOf(PadAction.values.toSeq), "act")) {
         (s0, act) =>
           {
-            val Feedback(_, _, r, s1) = s0.apply(act.id)
+            val (_, _, r, s1) = s0.apply(act.id)
             s1 should matchPattern {
               case WallStatus((SecondLastRow, c), SE, _) if (c == s0.ball._2 + 1) =>
             }
@@ -164,7 +163,7 @@ class WallStatusTest extends PropSpec with PropertyChecks with Matchers with Giv
       (Gen.oneOf(PadAction.values.toSeq), "act")) {
         (s0, act) =>
           {
-            val Feedback(_, _, r, s1) = s0.apply(act.id)
+            val (_, _, r, s1) = s0.apply(act.id)
             s1 should matchPattern {
               case WallStatus((row, 1), SE, _) if (row == s0.ball._1 - 1) =>
             }
@@ -193,7 +192,7 @@ class WallStatusTest extends PropSpec with PropertyChecks with Matchers with Giv
       (Gen.oneOf(PadAction.values.toSeq), "act")) {
         (s0, act) =>
           {
-            val Feedback(_, _, r, s1) = s0.apply(act.id)
+            val (_, _, r, s1) = s0.apply(act.id)
             s1 should matchPattern {
               case WallStatus((row, 1), NE, _) if (row == s0.ball._1 + 1) =>
             }
@@ -223,7 +222,7 @@ class WallStatusTest extends PropSpec with PropertyChecks with Matchers with Giv
       (Gen.oneOf(PadAction.values.toSeq), "act")) {
         (s0, act) =>
           {
-            val Feedback(_, _, r, s1) = s0.apply(act.id)
+            val (_, _, r, s1) = s0.apply(act.id)
             s1 should matchPattern {
               case WallStatus((row, SecondLastCol), SO, _) if (row == s0.ball._1 - 1) =>
             }
@@ -253,7 +252,7 @@ class WallStatusTest extends PropSpec with PropertyChecks with Matchers with Giv
       (Gen.oneOf(PadAction.values.toSeq), "act")) {
         (s0, act) =>
           {
-            val Feedback(_, _, r, s1) = s0.apply(act.id)
+            val (_, _, r, s1) = s0.apply(act.id)
             s1 should matchPattern {
               case WallStatus((row, SecondLastCol), NO, _) if (row == s0.ball._1 + 1) =>
             }
@@ -277,7 +276,7 @@ class WallStatusTest extends PropSpec with PropertyChecks with Matchers with Giv
       (Gen.const(Rest), "act")) {
         (s0, act) =>
           {
-            val Feedback(_, _, r, s1) = s0.apply(act.id)
+            val (_, _, r, s1) = s0.apply(act.id)
             s1 should matchPattern {
               case WallStatus((2, c), NO, p) if (c == s0.ball._2 - 1 && p == s0.pad) =>
             }
@@ -301,7 +300,7 @@ class WallStatusTest extends PropSpec with PropertyChecks with Matchers with Giv
       (Gen.const(Rest), "act")) {
         (s0, act) =>
           {
-            val Feedback(_, _, r, s1) = s0.apply(act.id)
+            val (_, _, r, s1) = s0.apply(act.id)
             s1 should matchPattern {
               case WallStatus((2, c), NE, p) if (c == s0.ball._2 + 1 && p == s0.pad) =>
             }
@@ -325,7 +324,7 @@ class WallStatusTest extends PropSpec with PropertyChecks with Matchers with Giv
       (Gen.const(Right), "act")) {
         (s0, act) =>
           {
-            val Feedback(_, _, r, s1) = s0.apply(act.id)
+            val (_, _, r, s1) = s0.apply(act.id)
             s1 should matchPattern {
               case WallStatus((2, c), NO, p) if (c == s0.ball._2 - 1 && p == s0.pad + 1) =>
             }
@@ -349,7 +348,7 @@ class WallStatusTest extends PropSpec with PropertyChecks with Matchers with Giv
       (Gen.const(Left), "act")) {
         (s0, act) =>
           {
-            val Feedback(_, _, r, s1) = s0.apply(act.id)
+            val (_, _, r, s1) = s0.apply(act.id)
             s1 should matchPattern {
               case WallStatus((2, c), NE, p) if (c == s0.ball._2 + 1 && p == s0.pad - 1) =>
             }
@@ -373,7 +372,7 @@ class WallStatusTest extends PropSpec with PropertyChecks with Matchers with Giv
       (Gen.const(Rest), "act")) {
         (s0, act) =>
           {
-            val Feedback(_, _, r, s1) = s0.apply(act.id)
+            val (_, _, r, s1) = s0.apply(act.id)
             s1 should matchPattern {
               case WallStatus((2, 1), NE, p) if (p == s0.pad) =>
             }
@@ -396,7 +395,7 @@ class WallStatusTest extends PropSpec with PropertyChecks with Matchers with Giv
       (Gen.const(Right), "act")) {
         (s0, act) =>
           {
-            val Feedback(_, _, r, s1) = s0.apply(act.id)
+            val (_, _, r, s1) = s0.apply(act.id)
             s1 should matchPattern {
               case WallStatus((2, 1), NE, 1) =>
             }
@@ -420,7 +419,7 @@ class WallStatusTest extends PropSpec with PropertyChecks with Matchers with Giv
       (Gen.const(Left), "act")) {
         (s0, act) =>
           {
-            val Feedback(_, _, r, s1) = s0.apply(act.id)
+            val (_, _, r, s1) = s0.apply(act.id)
             s1 should matchPattern {
               case WallStatus((2, 1), NE, p) if (p == s0.pad - 1) =>
             }
@@ -444,7 +443,7 @@ class WallStatusTest extends PropSpec with PropertyChecks with Matchers with Giv
       (Gen.const(Rest), "act")) {
         (s0, act) =>
           {
-            val Feedback(_, _, r, s1) = s0.apply(act.id)
+            val (_, _, r, s1) = s0.apply(act.id)
             s1 should matchPattern {
               case WallStatus((2, SecondLastCol), NO, p) if (p == s0.pad) =>
             }
@@ -467,7 +466,7 @@ class WallStatusTest extends PropSpec with PropertyChecks with Matchers with Giv
       (Gen.const(Left), "act")) {
         (s0, act) =>
           {
-            val Feedback(_, _, r, s1) = s0.apply(act.id)
+            val (_, _, r, s1) = s0.apply(act.id)
             s1 should matchPattern {
               case WallStatus((2, SecondLastCol), NO, SecondLastPad) =>
             }
@@ -491,7 +490,7 @@ class WallStatusTest extends PropSpec with PropertyChecks with Matchers with Giv
       (Gen.const(Right), "act")) {
         (s0, act) =>
           {
-            val Feedback(_, _, r, s1) = s0.apply(act.id)
+            val (_, _, r, s1) = s0.apply(act.id)
             s1 should matchPattern {
               case WallStatus((2, SecondLastCol), NO, p) if (p == s0.pad + 1) =>
             }
@@ -514,7 +513,7 @@ class WallStatusTest extends PropSpec with PropertyChecks with Matchers with Giv
       (Gen.const(Rest), "act")) {
         (s0, act) =>
           {
-            val Feedback(_, _, r, s1) = s0.apply(act.id)
+            val (_, _, r, s1) = s0.apply(act.id)
             s1 should matchPattern {
               case WallStatus((2, c), NO, p) if (p == s0.pad && c == s0.ball._2 - 1) =>
             }
@@ -537,7 +536,7 @@ class WallStatusTest extends PropSpec with PropertyChecks with Matchers with Giv
       (Gen.const(Left), "act")) {
         (s0, act) =>
           {
-            val Feedback(_, _, r, s1) = s0.apply(act.id)
+            val (_, _, r, s1) = s0.apply(act.id)
             s1 should matchPattern {
               case WallStatus((2, c), NO, p) if (p == s0.pad - 1 && c == s0.ball._2 - 1) =>
             }
@@ -560,7 +559,7 @@ class WallStatusTest extends PropSpec with PropertyChecks with Matchers with Giv
       (Gen.const(Right), "act")) {
         (s0, act) =>
           {
-            val Feedback(_, _, r, s1) = s0.apply(act.id)
+            val (_, _, r, s1) = s0.apply(act.id)
             s1 should matchPattern {
               case WallStatus((2, c), NE, p) if (p == s0.pad + 1 && c == s0.ball._2 + 1) =>
             }
@@ -583,7 +582,7 @@ class WallStatusTest extends PropSpec with PropertyChecks with Matchers with Giv
       (Gen.const(Rest), "act")) {
         (s0, act) =>
           {
-            val Feedback(_, _, r, s1) = s0.apply(act.id)
+            val (_, _, r, s1) = s0.apply(act.id)
             s1 should matchPattern {
               case WallStatus((2, c), NE, p) if (p == s0.pad && c == s0.ball._2 + 1) =>
             }
@@ -606,7 +605,7 @@ class WallStatusTest extends PropSpec with PropertyChecks with Matchers with Giv
       (Gen.const(Right), "act")) {
         (s0, act) =>
           {
-            val Feedback(_, _, r, s1) = s0.apply(act.id)
+            val (_, _, r, s1) = s0.apply(act.id)
             s1 should matchPattern {
               case WallStatus((2, c), NE, p) if (p == s0.pad + 1 && c == s0.ball._2 + 1) =>
             }
@@ -629,7 +628,7 @@ class WallStatusTest extends PropSpec with PropertyChecks with Matchers with Giv
       (Gen.const(Left), "act")) {
         (s0, act) =>
           {
-            val Feedback(_, _, r, s1) = s0.apply(act.id)
+            val (_, _, r, s1) = s0.apply(act.id)
             s1 should matchPattern {
               case WallStatus((2, c), NO, p) if (p == s0.pad - 1 && c == s0.ball._2 - 1) =>
             }
@@ -653,7 +652,7 @@ class WallStatusTest extends PropSpec with PropertyChecks with Matchers with Giv
       (Gen.const(Rest), "act")) {
         (s0, act) =>
           {
-            val Feedback(_, _, r, s1) = s0.apply(act.id)
+            val (_, _, r, s1) = s0.apply(act.id)
             s1 should have('finalStatus(true))
             r should be(NegativeReward)
           }
@@ -675,7 +674,7 @@ class WallStatusTest extends PropSpec with PropertyChecks with Matchers with Giv
       (Gen.const(Left), "act")) {
         (s0, act) =>
           {
-            val Feedback(_, _, r, s1) = s0.apply(act.id)
+            val (_, _, r, s1) = s0.apply(act.id)
             s1 should have('finalStatus(true))
             r should be(NegativeReward)
           }
@@ -697,7 +696,7 @@ class WallStatusTest extends PropSpec with PropertyChecks with Matchers with Giv
       (Gen.const(Right), "act")) {
         (s0, act) =>
           {
-            val Feedback(_, _, r, s1) = s0.apply(act.id)
+            val (_, _, r, s1) = s0.apply(act.id)
             s1 should have('finalStatus(true))
             r should be(NegativeReward)
           }
@@ -719,7 +718,7 @@ class WallStatusTest extends PropSpec with PropertyChecks with Matchers with Giv
       (Gen.const(Rest), "act")) {
         (s0, act) =>
           {
-            val Feedback(_, _, r, s1) = s0.apply(act.id)
+            val (_, _, r, s1) = s0.apply(act.id)
             s1 should have('finalStatus(true))
             r should be(NegativeReward)
           }
@@ -741,7 +740,7 @@ class WallStatusTest extends PropSpec with PropertyChecks with Matchers with Giv
       (Gen.const(Left), "act")) {
         (s0, act) =>
           {
-            val Feedback(_, _, r, s1) = s0.apply(act.id)
+            val (_, _, r, s1) = s0.apply(act.id)
             s1 should have('finalStatus(true))
             r should be(NegativeReward)
           }
@@ -763,7 +762,7 @@ class WallStatusTest extends PropSpec with PropertyChecks with Matchers with Giv
       (Gen.const(Right), "act")) {
         (s0, act) =>
           {
-            val Feedback(_, _, r, s1) = s0.apply(act.id)
+            val (_, _, r, s1) = s0.apply(act.id)
             s1 should have('finalStatus(true))
             r should be(NegativeReward)
           }

@@ -40,7 +40,7 @@ import com.typesafe.scalalogging.LazyLogging
  */
 object FilteredWallTraceApp extends App with WallEnvironment with AgentSave with LazyLogging {
 
-  val States = Set[WallStatus]()
+  val States = Set[FlatWallStatus]()
 
   //  val filter = system.actorOf(ProxyActor.filterProps(environment, Interact)(x =>
   //    States.contains(x.asInstanceOf[Step].feedback.s0.asInstanceOf[WallStatus])))
@@ -48,7 +48,7 @@ object FilteredWallTraceApp extends App with WallEnvironment with AgentSave with
   val processorActorsSet = Set(saveActors)
 
   val environment = {
-    val (initStatus, parms, critic, actor) = WallStatus.initEnvParms
+    val (initStatus, parms, critic, actor) = FlatWallStatus.initEnvParms
     system.actorOf(
       EnvironmentActor.props(initStatus, new TDAgent(parms, critic, actor)))
   }

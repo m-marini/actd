@@ -40,13 +40,14 @@ import org.mmarini.actd.EnvironmentActor
  * and generates a report of episode returns as octave data file
  */
 object WallDeepTraceApp extends App with WallEnvironment with ReturnsDump with AgentSave with LazyLogging {
-  val StepCount = 300000
+  val StepCount = 30000000
   //  val DelayTime = 200 millis
   val DelayTime = Zero
   override val trainTime = Zero
+  override val windowSize = 1000
 
   val environment = {
-    val (initStatus, parms, critic, actor) = WallDeepStatus.initEnvParms
+    val (initStatus, parms, critic, actor) = CondensedWallStatus.initEnvParms
     system.actorOf(
       EnvironmentActor.props(initStatus, new TDAgent(parms, critic, actor)))
     //      EnvironmentActor.props(initStatus, TDAgent(agentFilename)))

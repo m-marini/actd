@@ -54,7 +54,7 @@ trait WallEnvironment extends LazyLogging {
 
   def processorActorsSet: Set[Seq[ActorRef]]
 
-  def environment:ActorRef
+  def environment: ActorRef
 
   def startSim {
     val procList = for {

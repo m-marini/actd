@@ -31,32 +31,18 @@ package org.mmarini.actd.samples
 
 import org.apache.commons.math3.random.MersenneTwister
 import org.mmarini.actd.Action
-import org.mmarini.actd.Feedback
-import org.mmarini.actd.Status
-import org.mmarini.actd.TDNeuralNet
-import org.mmarini.actd.TDParms
 import org.mmarini.actd.samples.WallStatus.Direction
-import org.mmarini.actd.samples.WallStatus.PadAction
 
 import com.typesafe.scalalogging.LazyLogging
 
-import WallStatus.PadAction
-import breeze.linalg.DenseVector
 import breeze.stats.distributions.RandBasis
 
 /** The status of wall game */
-case class WallStatus(ball: (Int, Int), direction: Direction.Value, pad: Int) extends Status {
+case class WallStatus(ball: (Int, Int), direction: Direction.Value, pad: Int) {
 
-  import PadAction._
-  import Direction._
   import WallStatus._
-
-  private val BallDim = Width * Height
-  private val SpeedDim = 4
-  private val PadDim = LastPad + 1
-  private val FinalVector = DenseVector.zeros[Double](BallDim * SpeedDim * PadDim + 1)
-
-  FinalVector.update(BallDim * SpeedDim * PadDim, 1.0)
+  import Direction._
+  import PadAction._
 
   require(ball._2 >= 0)
   require(ball._2 < Width)
@@ -66,26 +52,7 @@ case class WallStatus(ball: (Int, Int), direction: Direction.Value, pad: Int) ex
   require(ball._1 >= 0)
   require(ball._1 >= 1 || ball._2 == 0 && direction == SE && pad == 1, s"$ball $direction $pad")
 
-  /** Transforms the status to a Vector */
-  val toDenseVector: DenseVector[Double] = {
-    if (finalStatus) {
-      FinalVector
-    } else {
-
-      val v = DenseVector.zeros[Double](BallDim * SpeedDim * PadDim + 1)
-
-      val ballIdx = (ball._1 - 1) * Width + ball._2
-      val speedIdx = direction.id
-
-      val idx = ballIdx + speedIdx * BallDim + pad * (BallDim * SpeedDim)
-
-      v.update(idx, 1.0)
-
-      v
-    }
-  }
-
-  /** Returns a [[WallStatus]] with changed pad location */
+  /** Returns a [[WallStatus1]] with changed pad location */
   def pad(x: Int): WallStatus = WallStatus(ball, direction, x)
 
   /** Moves the pad by action */
@@ -96,7 +63,7 @@ case class WallStatus(ball: (Int, Int), direction: Direction.Value, pad: Int) ex
   }
 
   /** Produce the feedback of an applied action */
-  def apply(action: Action): Feedback = {
+  def apply(action: Action): (WallStatus, Action, Double, WallStatus) = {
     val pad1 = movePad(action)
     val (s1, reward) = if (finalStatus) {
       // Restarts because ball is out of field
@@ -113,15 +80,15 @@ case class WallStatus(ball: (Int, Int), direction: Direction.Value, pad: Int) ex
           case SE => (WallStatus((ball._1 - 1, ball._2 + 1), direction, pad1), 0.0)
         })
     }
-    Feedback(this, action, reward, s1)
+    (this, action, reward, s1)
   }
 
   /** Returns true if is a final status */
-  override def finalStatus: Boolean = this == endStatus
+  def finalStatus: Boolean = this == endStatus
 
 }
 
-/** A factory of [[WallStatus]] */
+/** A factory of [[WallStatus1]] */
 object WallStatus extends LazyLogging {
 
   type TransitionSource = (WallStatus, PadAction.Value)
@@ -146,21 +113,10 @@ object WallStatus extends LazyLogging {
   val LastPad = Width - PadSize
   val SecondLastPad = LastPad - 1
 
-  val Beta = 3
-  val Gamma = 0.962
-  val EpsilonGreedy = 5e-3
-  val Lambda = 0.3
-  val Eta = 0.1
-  val AgentSeed = 1234L
   val EnvSeed = 4321L
-  val L1 = 1e-6
-  val L2 = 0e-6
 
-  val HiddenCount = 20
-  val OutputCount = PadAction.maxId
-
-  import PadAction._
   import Direction._
+  import PadAction._
 
   val envRandom = new RandBasis(new MersenneTwister(EnvSeed))
 
@@ -185,28 +141,28 @@ object WallStatus extends LazyLogging {
     WallStatus(b, s, pad)
   }
 
-  /** Creates a initial environment parameters */
-  def initEnvParms: (WallStatus, TDParms, TDNeuralNet, TDNeuralNet) = {
-
-    val initStatus = WallStatus.initial
-
-    val inputCount = initStatus.toDenseVector.length
-
-    val parms = TDParms(
-      beta = Beta,
-      gamma = Gamma,
-      epsilon = EpsilonGreedy,
-      lambda = Lambda,
-      eta = Eta,
-      l1 = L1,
-      l2 = L2,
-      random = new RandBasis(new MersenneTwister(AgentSeed)))
-
-    val critic = TDNeuralNet(parms)(inputCount +: Seq() :+ 1)
-    val actor = TDNeuralNet(parms)(inputCount +: Seq() :+ OutputCount)
-
-    (initStatus, parms, critic, actor)
-  }
+  //  /** Creates a initial environment parameters */
+  //  def initEnvParms: (WallStatus1, TDParms, TDNeuralNet, TDNeuralNet) = {
+  //
+  //    val initStatus = WallStatus1.initial
+  //
+  //    val inputCount = initStatus.toDenseVector.length
+  //
+  //    val parms = TDParms(
+  //      beta = Beta,
+  //      gamma = Gamma,
+  //      epsilon = EpsilonGreedy,
+  //      lambda = Lambda,
+  //      eta = Eta,
+  //      l1 = L1,
+  //      l2 = L2,
+  //      random = new RandBasis(new MersenneTwister(AgentSeed)))
+  //
+  //    val critic = TDNeuralNet(parms)(inputCount +: Seq() :+ 1)
+  //    val actor = TDNeuralNet(parms)(inputCount +: Seq() :+ OutputCount)
+  //
+  //    (initStatus, parms, critic, actor)
+  //  }
 
   private def validateTx(s: Seq[(TransitionSource, TransitionTarget)]) = {
     require(s.size == s.toMap.size, s)

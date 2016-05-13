@@ -102,7 +102,6 @@ object TDNeuralNet {
     TDNeuralNet(hiddens :+ output)
   }
 
-
   /**
    * Creates a [[TDNeuralNet]] with parameters by reading file set
    *

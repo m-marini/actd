@@ -99,7 +99,7 @@ object WallApp extends SimpleSwingApplication with LazyLogging {
   /** Game panel */
   val gamePane = new Component() {
 
-    var sOpt: Option[WallStatus] = None;
+    var sOpt: Option[FlatWallStatus] = None;
 
     private var bfOpt: Option[BufferedImage] = None
 
@@ -113,7 +113,10 @@ object WallApp extends SimpleSwingApplication with LazyLogging {
         val g = bf.createGraphics
         g.setColor(Color.BLACK)
         g.fillRect(0, 0, cw, ch)
-        for { s <- sOpt } {
+        for {
+          sx <- sOpt;
+          s = sx.status
+        } {
           val (br, bc) = s.ball
 
           val ball = new Ellipse2D.Float(bc * cw / WallStatus.Width,
@@ -156,7 +159,7 @@ object WallApp extends SimpleSwingApplication with LazyLogging {
   }
 
   /** Creates the initial environment */
-  val (initStatus, parms, critic, actor) = WallStatus.initEnvParms
+  val (initStatus, parms, critic, actor) = FlatWallStatus.initEnvParms
 
   val system = ActorSystem("WallApp")
 
@@ -177,7 +180,7 @@ object WallApp extends SimpleSwingApplication with LazyLogging {
         context become steppingSave(filename)
 
       case Step(f, d, _) =>
-        gamePane.sOpt = Some(f.s1.asInstanceOf[WallStatus])
+        gamePane.sOpt = Some(f.s1.asInstanceOf[FlatWallStatus])
         gamePane.repaint
         environment ! Interact
     }
@@ -190,7 +193,7 @@ object WallApp extends SimpleSwingApplication with LazyLogging {
         context become steppingSave(filename)
 
       case Step(f, d, _) =>
-        gamePane.sOpt = Some(f.s1.asInstanceOf[WallStatus])
+        gamePane.sOpt = Some(f.s1.asInstanceOf[FlatWallStatus])
         gamePane.repaint
         environment ! Interact
 
@@ -212,7 +215,7 @@ object WallApp extends SimpleSwingApplication with LazyLogging {
         context become steppingDelayedSave(delay, filename)
 
       case Step(f, d, _) =>
-        gamePane.sOpt = Some(f.s1.asInstanceOf[WallStatus])
+        gamePane.sOpt = Some(f.s1.asInstanceOf[FlatWallStatus])
         gamePane.repaint
 
         import system.dispatcher
@@ -231,7 +234,7 @@ object WallApp extends SimpleSwingApplication with LazyLogging {
         context become steppingDelayedSave(delay, filename)
 
       case Step(f, d, _) =>
-        gamePane.sOpt = Some(f.s1.asInstanceOf[WallStatus])
+        gamePane.sOpt = Some(f.s1.asInstanceOf[FlatWallStatus])
         gamePane.repaint
 
         import system.dispatcher

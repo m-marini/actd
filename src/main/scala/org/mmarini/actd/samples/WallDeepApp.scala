@@ -34,34 +34,33 @@ import java.awt.Dimension
 import java.awt.Graphics2D
 import java.awt.geom.Ellipse2D
 import java.awt.geom.Rectangle2D
+import java.awt.image.BufferedImage
+
+import scala.concurrent.duration.Duration.Zero
 import scala.concurrent.duration.DurationInt
+import scala.concurrent.duration.FiniteDuration
 import scala.swing.BoxPanel
+import scala.swing.Button
 import scala.swing.Component
 import scala.swing.MainFrame
 import scala.swing.Orientation
 import scala.swing.SimpleSwingApplication
-import org.apache.commons.math3.random.MersenneTwister
-import org.mmarini.actd.Feedback
-import org.mmarini.actd.TDAgent
-import org.mmarini.actd.TDParms
-import com.typesafe.scalalogging.LazyLogging
-import breeze.stats.distributions.RandBasis
-import rx.lang.scala.Observable
-import java.awt.image.BufferedImage
-import scala.swing.Button
-import rx.lang.scala.Subject
 import scala.swing.event.ButtonClicked
-import scala.swing.AbstractButton
-import akka.actor.ActorSystem
+
 import org.mmarini.actd.EnvironmentActor
-import akka.actor.Actor
-import akka.actor.Props
 import org.mmarini.actd.EnvironmentActor.Interact
 import org.mmarini.actd.EnvironmentActor.Step
-import scala.concurrent.duration.FiniteDuration
-import scala.concurrent.duration.Duration.Zero
-import org.mmarini.actd.TDAgentActor.QueryAgent
+import org.mmarini.actd.TDAgent
 import org.mmarini.actd.TDAgentActor.CurrentAgent
+import org.mmarini.actd.TDAgentActor.QueryAgent
+import org.mmarini.actd.samples.WallDeepApp.UIActor
+
+import com.typesafe.scalalogging.LazyLogging
+
+import akka.actor.Actor
+import akka.actor.ActorSystem
+import akka.actor.Props
+import akka.actor.actorRef2Scala
 
 /** The UI wall game application */
 object WallDeepApp extends SimpleSwingApplication with LazyLogging {
@@ -99,7 +98,7 @@ object WallDeepApp extends SimpleSwingApplication with LazyLogging {
   /** Game panel */
   val gamePane = new Component() {
 
-    var sOpt: Option[WallDeepStatus] = None;
+    var sOpt: Option[CondensedWallStatus] = None;
 
     private var bfOpt: Option[BufferedImage] = None
 
@@ -113,20 +112,23 @@ object WallDeepApp extends SimpleSwingApplication with LazyLogging {
         val g = bf.createGraphics
         g.setColor(Color.BLACK)
         g.fillRect(0, 0, cw, ch)
-        for { s <- sOpt } {
+        for {
+          sx <- sOpt
+          s = sx.status
+        } {
           val (br, bc) = s.ball
 
-          val ball = new Ellipse2D.Float(bc * cw / WallDeepStatus.Width,
-            (WallDeepStatus.Height - br) * ch / (WallDeepStatus.Height + 1),
-            cw / WallDeepStatus.Width,
-            ch / (WallDeepStatus.Height + 1))
+          val ball = new Ellipse2D.Float(bc * cw / WallStatus.Width,
+            (WallStatus.Height - br) * ch / (WallStatus.Height + 1),
+            cw / WallStatus.Width,
+            ch / (WallStatus.Height + 1))
           g.setColor(Color.YELLOW)
           g.fill(ball)
 
-          val pad = new Rectangle2D.Float(s.pad * cw / WallDeepStatus.Width,
-            WallDeepStatus.Height * ch / (WallDeepStatus.Height + 1),
-            3 * cw / WallDeepStatus.Width,
-            ch / (WallDeepStatus.Height + 1))
+          val pad = new Rectangle2D.Float(s.pad * cw / WallStatus.Width,
+            WallStatus.Height * ch / (WallStatus.Height + 1),
+            3 * cw / WallStatus.Width,
+            ch / (WallStatus.Height + 1))
 
           g.setColor(Color.GREEN)
           g.fill(pad)
@@ -156,7 +158,7 @@ object WallDeepApp extends SimpleSwingApplication with LazyLogging {
   }
 
   /** Creates the initial environment */
-  val (initStatus, parms, critic, actor) = WallDeepStatus.initEnvParms
+  val (initStatus, parms, critic, actor) = CondensedWallStatus.initEnvParms
 
   val system = ActorSystem("WallDeepApp")
 
@@ -178,7 +180,7 @@ object WallDeepApp extends SimpleSwingApplication with LazyLogging {
         context become steppingSave(filename)
 
       case Step(f, d, _) =>
-        gamePane.sOpt = Some(f.s1.asInstanceOf[WallDeepStatus])
+        gamePane.sOpt = Some(f.s1.asInstanceOf[CondensedWallStatus])
         gamePane.repaint
         environment ! Interact
     }
@@ -191,7 +193,7 @@ object WallDeepApp extends SimpleSwingApplication with LazyLogging {
         context become steppingSave(filename)
 
       case Step(f, d, _) =>
-        gamePane.sOpt = Some(f.s1.asInstanceOf[WallDeepStatus])
+        gamePane.sOpt = Some(f.s1.asInstanceOf[CondensedWallStatus])
         gamePane.repaint
         environment ! Interact
 
@@ -213,7 +215,7 @@ object WallDeepApp extends SimpleSwingApplication with LazyLogging {
         context become steppingDelayedSave(delay, filename)
 
       case Step(f, d, _) =>
-        gamePane.sOpt = Some(f.s1.asInstanceOf[WallDeepStatus])
+        gamePane.sOpt = Some(f.s1.asInstanceOf[CondensedWallStatus])
         gamePane.repaint
 
         import system.dispatcher
@@ -232,7 +234,7 @@ object WallDeepApp extends SimpleSwingApplication with LazyLogging {
         context become steppingDelayedSave(delay, filename)
 
       case Step(f, d, _) =>
-        gamePane.sOpt = Some(f.s1.asInstanceOf[WallDeepStatus])
+        gamePane.sOpt = Some(f.s1.asInstanceOf[CondensedWallStatus])
         gamePane.repaint
 
         import system.dispatcher

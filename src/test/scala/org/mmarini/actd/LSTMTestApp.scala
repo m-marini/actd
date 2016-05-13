@@ -29,21 +29,21 @@
 
 package org.mmarini.actd
 
-import org.deeplearning4j.nn.conf.NeuralNetConfiguration
 import org.deeplearning4j.nn.api.OptimizationAlgorithm
-import org.deeplearning4j.nn.weights.WeightInit
+import org.deeplearning4j.nn.conf.BackpropType
+import org.deeplearning4j.nn.conf.NeuralNetConfiguration
 import org.deeplearning4j.nn.conf.Updater
 import org.deeplearning4j.nn.conf.layers.GravesLSTM
-import org.nd4j.linalg.lossfunctions.LossFunctions.LossFunction
 import org.deeplearning4j.nn.conf.layers.RnnOutputLayer
-import org.deeplearning4j.nn.conf.BackpropType
 import org.deeplearning4j.nn.multilayer.MultiLayerNetwork
+import org.deeplearning4j.nn.weights.WeightInit
 import org.deeplearning4j.optimize.listeners.ScoreIterationListener
-import com.typesafe.scalalogging.LazyLogging
 import org.nd4j.linalg.api.ndarray.INDArray
 import org.nd4j.linalg.factory.Nd4j
 import org.nd4j.linalg.indexing.NDArrayIndex
 import org.nd4j.linalg.lossfunctions.LossFunctions
+
+import com.typesafe.scalalogging.LazyLogging
 
 object LSTMTestApp extends App with LazyLogging {
   private val InputLayer = 2
@@ -101,6 +101,8 @@ object LSTMTestApp extends App with LazyLogging {
   logger.info("Completed")
 
   private def loadTrainSet: (INDArray, INDArray) = {
+    // Simulates a MDP with
+
     val in = Nd4j.zeros(3, 2, 4)
     val out = Nd4j.zeros(3, 2, 4)
     for {

@@ -50,12 +50,19 @@ trait ReturnsDump extends LazyLogging {
 
   val returnsFilename = "data/returns.csv"
   val dumpInterval = 10 minutes
+  val windowSize = 1
 
   lazy val returnsActors: Seq[ActorRef] = {
     val consumeActor = system.actorOf(ConsumerActor.props(consume))
     val toSeqActor = system.actorOf(ToSeqActor.props(dumpInterval, consumeActor))
-    val retActor = system.actorOf(ReturnsActor.props(toSeqActor))
-    Seq(retActor, toSeqActor, consumeActor)
+    val meanActor = system.actorOf(MapperActor.props(toSeqActor, mean))
+    val windowActor = system.actorOf(WindowActor.props(meanActor, windowSize))
+    val returnsActor = system.actorOf(ReturnsActor.props(windowActor))
+    Seq(returnsActor, windowActor, meanActor, toSeqActor, consumeActor)
+  }
+
+  private def mean(x: Any): Any = x match {
+    case buffer: Seq[DenseVector[Double]] => buffer.reduce((a, b) => a + b) / buffer.length.toDouble
   }
 
   private def consume: Receive = {

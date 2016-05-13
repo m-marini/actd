@@ -29,31 +29,49 @@
 
 package org.mmarini.actd.samples
 
-import org.mmarini.actd.EnvironmentActor
-import org.mmarini.actd.TDAgent
+import akka.actor.Props
+import akka.actor.Actor.Receive
+import akka.actor.Terminated
+import akka.actor.ActorLogging
+import akka.actor.Actor
+import akka.actor.ActorRef
 
-import com.typesafe.scalalogging.LazyLogging
+object WindowActor {
 
-/**
- * Tests the maze environment
- * and generates a report of episode returns as octave data file
- */
-object FirstEpisodeWallTraceApp extends App with WallEnvironment with AgentSave with FeedbackDump with LazyLogging {
+  def props(dest: ActorRef, size: Int): Props = Props(classOf[WindowActor], dest, size)
 
-  val environment = {
-    val (initStatus, parms, critic, actor) = FlatWallStatus.initEnvParms
-    system.actorOf(
-      EnvironmentActor.props(initStatus, new TDAgent(parms, critic, actor)))
+}
+
+class WindowActor(dest: ActorRef, size: Int) extends Actor with ActorLogging {
+
+  def receive: Receive = waitingStep(Set(), Seq())
+
+  private def waitingStep(sources: Set[ActorRef], buffer: Seq[Any]): Receive = {
+
+    case Terminated(source) =>
+      val reminder = sources - source
+      if (reminder.isEmpty) {
+        log.debug("Completed MapperActor")
+        if (!buffer.isEmpty) dest ! buffer
+        context stop self
+      } else {
+        context become waitingStep(reminder, buffer)
+      }
+
+    case msg =>
+      val newBuffer = buffer :+ msg
+      val nextBuffer = if (newBuffer.length >= size) {
+        dest ! newBuffer
+        Seq()
+      } else {
+        newBuffer
+      }
+      if (!sources.contains(sender)) {
+        log.debug(s"Watching $sender")
+        context watch sender
+        context become waitingStep(sources + sender, nextBuffer)
+      } else {
+        context become waitingStep(sources, nextBuffer)
+      }
   }
-
-  val controllerActor = system.actorOf(TakeUntilActor.props(environment, {
-    (f, d, a) => f.s1.finalStatus
-  }))
-
-  val processorActorsSet = Set(saveActors, feedbackActors)
-
-  startSim
-
-  waitForCompletion
-
 }

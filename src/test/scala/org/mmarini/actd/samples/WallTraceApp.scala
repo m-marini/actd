@@ -42,7 +42,7 @@ import org.mmarini.actd.TDAgent
 object WallTraceApp extends App with WallEnvironment with ReturnsDump with AgentSave with LazyLogging {
 
   val environment = {
-    val (initStatus, parms, critic, actor) = WallStatus.initEnvParms
+    val (initStatus, parms, critic, actor) = FlatWallStatus.initEnvParms
     system.actorOf(
       EnvironmentActor.props(initStatus, new TDAgent(parms, critic, actor)))
     //          EnvironmentActor.props(initStatus, TDAgent(agentFilename)))

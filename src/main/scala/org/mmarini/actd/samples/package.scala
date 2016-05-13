@@ -34,17 +34,15 @@ import scala.concurrent.duration.DurationInt
 import scala.concurrent.duration.FiniteDuration
 import scala.util.Random
 
+import org.mmarini.actd.samples.FlatWallStatus
 import org.mmarini.actd.samples.WallStatus
 
 import com.typesafe.scalalogging.LazyLogging
 
-import breeze.io.CSVWriter
 import breeze.linalg.DenseVector
 import rx.lang.scala.Observable
 import rx.lang.scala.Subject
 import rx.lang.scala.Subscription
-import scalax.file.Path
-import scalax.io.Resource
 
 /** */
 package object samples extends LazyLogging {
@@ -235,8 +233,8 @@ package object samples extends LazyLogging {
     def toSamples: Iterator[DenseVector[Double]] =
       iter.map {
         case (Feedback(s0, action, reward, s1), err, _) =>
-          val WallStatus((r0, c0), dir0, pad0) = s0.asInstanceOf[WallStatus]
-          val WallStatus((r1, c1), dir1, pad1) = s1.asInstanceOf[WallStatus]
+          val WallStatus((r0, c0), dir0, pad0) = s0.asInstanceOf[FlatWallStatus].status
+          val WallStatus((r1, c1), dir1, pad1) = s1.asInstanceOf[FlatWallStatus].status
           DenseVector.vertcat(DenseVector(r0, c0, dir0.id, pad0,
             action.toDouble, reward,
             r1, c1, dir1.id, pad1, err))
@@ -286,8 +284,8 @@ package object samples extends LazyLogging {
    */
   def recordToSamplesWithStatus(record: (Feedback, Double, TDAgent)): DenseVector[Double] = record match {
     case (Feedback(s0, action, reward, s1), err, agent) =>
-      val WallStatus((r0, c0), dir0, pad0) = s0.asInstanceOf[WallStatus]
-      val WallStatus((r1, c1), dir1, pad1) = s1.asInstanceOf[WallStatus]
+      val WallStatus((r0, c0), dir0, pad0) = s0.asInstanceOf[FlatWallStatus].status
+      val WallStatus((r1, c1), dir1, pad1) = s1.asInstanceOf[FlatWallStatus].status
       val sv0 = agent.critic(s0.toDenseVector).output
       val sv1 = agent.critic(s1.toDenseVector).output
       DenseVector.vertcat(DenseVector(r0, c0, dir0.id, pad0,
