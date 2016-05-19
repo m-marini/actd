@@ -30,30 +30,43 @@
 package org.mmarini.actd.samples
 
 import scala.concurrent.duration.Duration.Zero
-import scala.concurrent.duration.DurationInt
-import org.mmarini.actd.TDAgent
-import com.typesafe.scalalogging.LazyLogging
+
 import org.mmarini.actd.EnvironmentActor
+import org.mmarini.actd.TDAgent
+
+import com.typesafe.scalalogging.LazyLogging
 
 /**
  * Tests the maze environment
  * and generates a report of episode returns as octave data file
  */
 object WallDeepTraceApp extends App with WallEnvironment with ReturnsDump with AgentSave with LazyLogging {
-  val StepCount = 30000000
+  val StepCount = "300000"
   //  val DelayTime = 200 millis
   val DelayTime = Zero
   override val trainTime = Zero
-  override val windowSize = 1000
+  override val windowSize = 10
+  private val wArgs = WallArguments(args)
 
   val environment = {
-    val (initStatus, parms, critic, actor) = CondensedWallStatus.initEnvParms
+    val (initStatus, parms, critic, actor) = CondensedWallStatus.initEnvParms(wArgs)
+    logger.info(f"Beta=${parms.beta}%g")
+    logger.info(f"Gamma=${parms.gamma}%g")
+    logger.info(f"Epsilon=${parms.epsilon}%g")
+    logger.info(f"Lambda=${parms.lambda}%g")
+    logger.info(f"Eta=${parms.eta}%g")
+    logger.info(f"L1=${parms.l1}%g")
+    logger.info(f"L2=${parms.l2}%g")
+    logger.info(f"hiddens=${critic.layers.map(_.weights.rows).init.mkString(",")}%s")
     system.actorOf(
       EnvironmentActor.props(initStatus, new TDAgent(parms, critic, actor)))
     //      EnvironmentActor.props(initStatus, TDAgent(agentFilename)))
   }
 
-  val controllerActor = system.actorOf(TakeActor.props(environment, StepCount, DelayTime))
+  val controllerActor = system.actorOf(TakeActor.props(
+    environment,
+    wArgs.kvArgs.getOrElse("steps", StepCount).toInt,
+    DelayTime))
 
   val processorActorsSet = Set(returnsActors, saveActors)
 

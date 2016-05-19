@@ -30,7 +30,6 @@
 package org.mmarini.actd
 
 import org.canova.api.records.reader.impl.CSVSequenceRecordReader
-
 import org.canova.api.split.NumberedFileInputSplit
 import org.deeplearning4j.nn.api.OptimizationAlgorithm
 import org.deeplearning4j.nn.conf.BackpropType
@@ -45,21 +44,20 @@ import org.nd4j.linalg.api.ndarray.INDArray
 import org.nd4j.linalg.factory.Nd4j
 import org.nd4j.linalg.indexing.NDArrayIndex
 import org.nd4j.linalg.lossfunctions.LossFunctions
-import collection.JavaConversions._
 
 import com.typesafe.scalalogging.LazyLogging
 import org.deeplearning4j.datasets.canova.SequenceRecordReaderDataSetIterator
 
-object LSTMTestApp extends App with LazyLogging {
+object LSTMTrainApp extends App with LazyLogging {
   private val InputLayer = 2
   private val HiddenLayer = 2
   private val OutputLayer = 2
   private val Seed = 12345
   private val TBPTTLength = 4
   private val EpochCount = 100
-  private val TrainCount = 1
-  private val TrainInputFile = "./data/lstm/train/in/data-%d.csv"
-  private val TrainOutputFile = "./data/lstm/train/out/data-%d.csv"
+  private val TrainCount = 200
+  private val TrainInputFile = "./data/lstm-train-in-%d.csv"
+  private val TrainOutputFile = "./data/lstm-train-out-%d.csv"
   private val MiniBatchSize = 5
   private val NumPossibleLabels = OutputLayer
 
@@ -97,37 +95,10 @@ object LSTMTestApp extends App with LazyLogging {
   logger.info("Network init")
   net.setListeners(new ScoreIterationListener(1))
 
-  val trainSet = loadTrainSet
-  logger.info("Train set loaded")
-  logger.info(f"batch=${trainSet.batch}%d")
-  while (trainSet.hasNext) {
-    val s = trainSet.next
-    val features = s.getFeatures
-    for { i <- 0 until features.rank } {
-      logger.info(s" features.size(${i})=${features.size(i)}")
-    }
-    val labels = s.getLabels
-    for { i <- 0 until labels.rank } {
-      logger.info(s" labels.size(${i})=${labels.size(i)}")
-    }
-
-    //    for { d <- s } {
-    //      logger.info(f" d.size=${d.size}%d")
-    //      for { r <- d } {
-    //        logger.info(f"  r.size=${r.size}%d")
-    //        for { c <- r } {
-    //          logger.info(f"   c.size=${c.size}%d")
-    //        }
-    //      }
-    //    }
+  val data = LSTMGenApp.createDataSet(100)
+  for { i <- 1 to EpochCount } {
+//    net.fit(trainSet)
   }
-  //    logger.info(f"totalExamples=${trainSet.totalExamples}%d")
-  //  logger.info(f"inputColumns=${trainSet.inputColumns}%d")
-
-  //
-  //  for { i <- 1 to EpochCount } {
-  //    net.fit(trainSet)
-  //  }
 
   //  net.rnnClearPreviousState();
   //  for { i <- 0 until in.size(2) } {
@@ -136,17 +107,4 @@ object LSTMTestApp extends App with LazyLogging {
   //    logger.info(s"output = ${output}")
   //  }
   logger.info("Completed")
-
-  private def loadTrainSet = {
-    val featureReader = new CSVSequenceRecordReader(0, ",")
-    val labelReader = new CSVSequenceRecordReader(0, ",")
-    featureReader.initialize(new NumberedFileInputSplit(TrainInputFile, 0, TrainCount - 1))
-    labelReader.initialize(new NumberedFileInputSplit(TrainOutputFile, 0, TrainCount - 1))
-
-    new SequenceRecordReaderDataSetIterator(featureReader,
-      labelReader,
-      MiniBatchSize,
-      NumPossibleLabels,
-      true);
-  }
 }

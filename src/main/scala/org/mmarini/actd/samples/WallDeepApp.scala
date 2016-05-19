@@ -53,7 +53,7 @@ import org.mmarini.actd.EnvironmentActor.Step
 import org.mmarini.actd.TDAgent
 import org.mmarini.actd.TDAgentActor.CurrentAgent
 import org.mmarini.actd.TDAgentActor.QueryAgent
-import org.mmarini.actd.samples.WallDeepApp.UIActor
+//import org.mmarini.actd.samples.WallDeepApp.UIActor
 
 import com.typesafe.scalalogging.LazyLogging
 
@@ -158,7 +158,7 @@ object WallDeepApp extends SimpleSwingApplication with LazyLogging {
   }
 
   /** Creates the initial environment */
-  val (initStatus, parms, critic, actor) = CondensedWallStatus.initEnvParms
+  val (initStatus, parms, critic, actor) = CondensedWallStatus.initEnvParms(WallArguments())
 
   val system = ActorSystem("WallDeepApp")
 

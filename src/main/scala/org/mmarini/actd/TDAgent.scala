@@ -30,12 +30,16 @@
 package org.mmarini.actd
 
 import java.io.File
+
 import scala.IndexedSeq
+
 import org.apache.commons.math3.random.MersenneTwister
+
 import breeze.linalg.DenseVector
 import breeze.linalg.csvread
+import breeze.linalg.sum
+import breeze.numerics.exp
 import breeze.stats.distributions.RandBasis
-import scala.util.Try
 
 /**
  * A learning agent that replies to stimulus with actions and learns by receiving rewards
@@ -89,14 +93,21 @@ class TDAgent(
     val nc = cs.train(DenseVector(expectedValue) - cs.output)
 
     // Computes the expected action preferences applying the critic error to previous decision */
-    val pref = actor(s0Vect).output
-    val expectedPref = pref.copy
+    val as = actor(s0Vect)
+    val pref = as.output
+    val pexp = exp(pref)
+    val prob = pexp / sum(pexp)
     val action = feedback.action
-    expectedPref(action to action) += parms.beta * delta
+    //    val expectedPref = pref.copy
+    ////    expectedPref.update(action, expectedPref(action) + parms.beta * delta * (1 - prob(action)))
+    //    expectedPref.update(action, prefs + parms.beta * delta ))
+
+    val errs = DenseVector.zeros[Double](pref.length)
+    //    errs.update(action, parms.beta * delta)
+    errs.update(action, parms.beta * delta * (1 - prob(action)))
 
     // Teaches the actor by evidence
-    val as = actor(s0Vect)
-    val na = as.train(expectedPref - as.output)
+    val na = as.train(errs)
 
     val nag = if (end0) {
       new TDAgent(parms, nc.clearTraces, na.clearTraces)

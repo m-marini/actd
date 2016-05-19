@@ -31,7 +31,6 @@ package org.mmarini.actd.samples
 
 import scala.math.sqrt
 
-import org.apache.commons.math3.random.MersenneTwister
 import org.mmarini.actd.Action
 import org.mmarini.actd.Feedback
 import org.mmarini.actd.Status
@@ -42,7 +41,6 @@ import com.typesafe.scalalogging.LazyLogging
 
 import breeze.linalg.DenseVector
 import breeze.linalg.InjectNumericOps
-import breeze.stats.distributions.RandBasis
 
 /** The status of wall game */
 case class CondensedWallStatus(status: WallStatus) extends Status {
@@ -72,6 +70,10 @@ case class CondensedWallStatus(status: WallStatus) extends Status {
   def apply(action: Action): Feedback = status(action) match {
     case (_, action, reward, s1) => Feedback(this, action, reward, CondensedWallStatus(s1))
   }
+
+  /** Returns true if is a final status */
+  override def finalStatus: Boolean = status.finalStatus
+
 }
 
 /** Factory of [[WallStatusDeep]] */
@@ -98,46 +100,21 @@ object CondensedWallStatus extends LazyLogging {
 
   FinalVector.update(0, 1.0)
 
-  val L1 = 0e-6
-  val L2 = 0e-6
-  val Beta = 3
-  val Gamma = 0.962
-  //  val EpsilonGreedy = 0.9
-  val EpsilonGreedy = 5e-3
-  val Lambda = 0.3
-  val Eta = 0.3
-  val Seed = 1234L
   val EnvSeed = 4321L
 
   val OutputCount = 3
 
-  //  val HiddenLayer1Count = 100
-  //  val HiddenLayerCount = Seq(HiddenLayer1Count)
-  val HiddenLayer1Count = 10
-  val HiddenLayer2Count = 100
-  val HiddenLayerCount = Seq(HiddenLayer1Count, HiddenLayer1Count)
-
   /** Creates a initial environment parameters */
-  def initEnvParms: (CondensedWallStatus, TDParms, TDNeuralNet, TDNeuralNet) = {
+  def initEnvParms(args: WallArguments): (CondensedWallStatus, TDParms, TDNeuralNet, TDNeuralNet) = {
 
     val initStatus = CondensedWallStatus(WallStatus.initial)
 
     val inputCount = initStatus.toDenseVector.length
 
-    val parms = TDParms(
-      beta = Beta,
-      gamma = Gamma,
-      epsilon = EpsilonGreedy,
-      lambda = Lambda,
-      eta = Eta,
-      l1 = L1,
-      l2 = L2,
-      random = new RandBasis(new MersenneTwister(Seed)))
+    val critic = TDNeuralNet(args.tdParms)(inputCount +: args.hiddens :+ 1)
+    val actor = TDNeuralNet(args.tdParms)(inputCount +: args.hiddens :+ OutputCount)
 
-    val critic = TDNeuralNet(parms)(inputCount +: HiddenLayerCount :+ 1)
-    val actor = TDNeuralNet(parms)(inputCount +: HiddenLayerCount :+ OutputCount)
-
-    (initStatus, parms, critic, actor)
+    (initStatus, args.tdParms, critic, actor)
   }
 
   def normalizeStatus(x: DenseVector[Double]): DenseVector[Double] = Scale :* (x - Mean)

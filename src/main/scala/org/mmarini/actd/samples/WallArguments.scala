@@ -29,49 +29,59 @@
 
 package org.mmarini.actd.samples
 
-import scala.concurrent.Await
-import scala.concurrent.duration.DurationInt
-
 import org.apache.commons.math3.random.MersenneTwister
-import org.mmarini.actd.EnvironmentActor.Interact
 import org.mmarini.actd.TDParms
 
 import com.typesafe.scalalogging.LazyLogging
 
-import akka.actor.ActorRef
-import akka.actor.ActorSystem
 import breeze.stats.distributions.RandBasis
 
 /**
- * Tests the maze environment
- * and generates a report of episode returns as octave data file
+ * Set of object build by command line argumenst with default values
  */
-trait WallEnvironment extends LazyLogging {
+class WallArguments(args: Array[String]) extends LazyLogging {
 
-  val system: ActorSystem = ActorSystem("Environment")
-
-  def controllerActor: ActorRef
-
-  def processorActorsSet: Set[Seq[ActorRef]]
-
-  def environment: ActorRef
-
-  def startSim {
-    val procList = for {
-      proc <- processorActorsSet
+  lazy val kvArgs: Map[String, String] = {
+    val regex = "--(.*)=(.*)".r
+    (for {
+      arg <- args
     } yield {
-      proc.head
-    }
-
-    val processorActor = system.actorOf(BroadcastActor.props(procList))
-    controllerActor.tell(Interact, processorActor)
+      arg match {
+        case regex(key, value) => Some(key -> value)
+        case _ => None
+      }
+    }).filterNot(_.isEmpty).map(_.get).toMap
   }
 
-  def waitForCompletion {
-    val future = Reaper.future(processorActorsSet.flatten)(system)
-    Await.ready(future, 10 hours)
-    system stop environment
-    system.terminate
-    logger.info("Completed")
+  private val Beta = "3"
+  private val Gamma = "0.962"
+  private val EpsilonGreedy = "5e-3"
+  private val Lambda = "0.3"
+  private val Eta = "0.1"
+  private val AgentSeed = "1234"
+  private val L1 = "1e-6"
+  private val L2 = "0e-6"
+  private val Hiddens = ""
+
+  lazy val tdParms: TDParms = {
+    val p = kvArgs
+    TDParms(
+      beta = p.getOrElse("beta", Beta).toDouble,
+      gamma = p.getOrElse("gamma", Gamma).toDouble,
+      epsilon = p.getOrElse("epsilon", EpsilonGreedy).toDouble,
+      lambda = p.getOrElse("lambda", Lambda).toDouble,
+      eta = p.getOrElse("eta", Eta).toDouble,
+      l1 = p.getOrElse("l1", L1).toDouble,
+      l2 = p.getOrElse("l2", L2).toDouble,
+      random = new RandBasis(new MersenneTwister(p.getOrElse("seed", AgentSeed).toLong)))
   }
+
+  lazy val hiddens: Seq[Int] = {
+    val s = kvArgs.getOrElse("hiddens", Hiddens)
+    if (s.isEmpty) Seq() else s.split(",").map(_.toInt)
+  }
+}
+
+object WallArguments {
+  def apply(args: Array[String] = Array()): WallArguments = new WallArguments(args)
 }

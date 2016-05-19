@@ -55,10 +55,15 @@ trait ReturnsDump extends LazyLogging {
   lazy val returnsActors: Seq[ActorRef] = {
     val consumeActor = system.actorOf(ConsumerActor.props(consume))
     val toSeqActor = system.actorOf(ToSeqActor.props(dumpInterval, consumeActor))
-    val meanActor = system.actorOf(MapperActor.props(toSeqActor, mean))
-    val windowActor = system.actorOf(WindowActor.props(meanActor, windowSize))
-    val returnsActor = system.actorOf(ReturnsActor.props(windowActor))
-    Seq(returnsActor, windowActor, meanActor, toSeqActor, consumeActor)
+    val list = if (windowSize == 1) {
+      Seq(toSeqActor)
+    } else {
+      val meanActor = system.actorOf(MapperActor.props(toSeqActor, mean))
+      val windowActor = system.actorOf(WindowActor.props(meanActor, windowSize))
+      Seq(windowActor, meanActor, toSeqActor)
+    }
+    val returnsActor = system.actorOf(ReturnsActor.props(list.head))
+    returnsActor +: list :+ consumeActor
   }
 
   private def mean(x: Any): Any = x match {

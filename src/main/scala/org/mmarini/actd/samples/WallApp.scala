@@ -159,7 +159,7 @@ object WallApp extends SimpleSwingApplication with LazyLogging {
   }
 
   /** Creates the initial environment */
-  val (initStatus, parms, critic, actor) = FlatWallStatus.initEnvParms
+  val (initStatus, parms, critic, actor) = FlatWallStatus.initEnvParms(WallArguments())
 
   val system = ActorSystem("WallApp")
 

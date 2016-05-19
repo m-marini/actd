@@ -40,9 +40,10 @@ import org.mmarini.actd.TDAgent
  * and generates a report of episode returns as octave data file
  */
 object WallTraceApp extends App with WallEnvironment with ReturnsDump with AgentSave with LazyLogging {
+  private val wArgs = WallArguments(args)
 
   val environment = {
-    val (initStatus, parms, critic, actor) = FlatWallStatus.initEnvParms
+    val (initStatus, parms, critic, actor) = FlatWallStatus.initEnvParms(wArgs)
     system.actorOf(
       EnvironmentActor.props(initStatus, new TDAgent(parms, critic, actor)))
     //          EnvironmentActor.props(initStatus, TDAgent(agentFilename)))
