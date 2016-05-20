@@ -50,10 +50,10 @@ import scala.swing.event.ButtonClicked
 import org.mmarini.actd.EnvironmentActor
 import org.mmarini.actd.EnvironmentActor.Interact
 import org.mmarini.actd.EnvironmentActor.Step
-import org.mmarini.actd.TDAgent
+import org.mmarini.actd.ACAgent
 import org.mmarini.actd.TDAgentActor.CurrentAgent
 import org.mmarini.actd.TDAgentActor.QueryAgent
-//import org.mmarini.actd.samples.WallDeepApp.UIActor
+import org.mmarini.actd.samples.WallDeepApp.UIActor
 
 import com.typesafe.scalalogging.LazyLogging
 
@@ -158,14 +158,14 @@ object WallDeepApp extends SimpleSwingApplication with LazyLogging {
   }
 
   /** Creates the initial environment */
-  val (initStatus, parms, critic, actor) = CondensedWallStatus.initEnvParms(WallArguments())
+  val initStatus = CondensedWallStatus.initStatus
 
   val system = ActorSystem("WallDeepApp")
 
   class UIActor extends Actor {
 
     //    val environment = context.actorOf(EnvironmentActor.props(initStatus, new TDAgent(parms, critic, actor)))
-    val environment = context.actorOf(EnvironmentActor.props(initStatus, TDAgent("data/agent")))
+    val environment = context.actorOf(EnvironmentActor.props(initStatus, ACAgent("data/agent")))
 
     environment ! Interact
 

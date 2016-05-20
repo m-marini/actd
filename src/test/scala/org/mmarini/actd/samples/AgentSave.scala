@@ -40,7 +40,10 @@ import akka.actor.Terminated
 import scala.concurrent.duration.DurationInt
 import akka.actor.Props
 import org.mmarini.actd.TDAgentActor.QueryAgent
-import org.mmarini.actd.TDAgent
+import org.mmarini.actd.ACAgent
+import org.mmarini.actd.ACAgent
+import org.mmarini.actd.Agent
+import org.mmarini.actd.ACAgent
 
 /**
  * Tests the maze environment
@@ -57,7 +60,7 @@ trait AgentSave extends WallEnvironment with LazyLogging {
     val consumer = system.actorOf(ConsumerActor.props({
       case x =>
     }))
-    def save(agent: TDAgent) {
+    def save(agent: Agent) {
       logger.info(s"Save agent in $agentFilename")
       agent.write(agentFilename)
     }
@@ -66,7 +69,7 @@ trait AgentSave extends WallEnvironment with LazyLogging {
   }
 }
 
-class AgentSaveActor(environment: ActorRef, controller: ActorRef, time: FiniteDuration, onSuccess: (TDAgent) => Unit) extends Actor with ActorLogging {
+class AgentSaveActor(environment: ActorRef, controller: ActorRef, time: FiniteDuration, onSuccess: (Agent) => Unit) extends Actor with ActorLogging {
 
   context watch controller
 

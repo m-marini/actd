@@ -97,7 +97,7 @@ object LSTMTrainApp extends App with LazyLogging {
 
   val data = LSTMGenApp.createDataSet(100)
   for { i <- 1 to EpochCount } {
-//    net.fit(trainSet)
+    //    net.fit(trainSet)
   }
 
   //  net.rnnClearPreviousState();

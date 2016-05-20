@@ -203,7 +203,7 @@ package object samples extends LazyLogging {
     val ActionIdx = 5
   }
 
-  implicit class WallIteratorFactory(iter: Iterator[(Feedback, Double, TDAgent)]) {
+  implicit class WallIteratorFactory(iter: Iterator[(Feedback, Double, ACAgent)]) {
     val RowIdx = 0
     val ColIdx = 1
     val RowSpeedIdx = 2
@@ -282,7 +282,7 @@ package object samples extends LazyLogging {
    *  -  pad location  columns of status 1
    *  -  error from critic
    */
-  def recordToSamplesWithStatus(record: (Feedback, Double, TDAgent)): DenseVector[Double] = record match {
+  def recordToSamplesWithStatus(record: (Feedback, Double, ACAgent)): DenseVector[Double] = record match {
     case (Feedback(s0, action, reward, s1), err, agent) =>
       val WallStatus((r0, c0), dir0, pad0) = s0.asInstanceOf[FlatWallStatus].status
       val WallStatus((r1, c1), dir1, pad1) = s1.asInstanceOf[FlatWallStatus].status

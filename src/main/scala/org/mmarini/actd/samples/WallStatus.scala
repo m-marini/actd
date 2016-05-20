@@ -141,29 +141,6 @@ object WallStatus extends LazyLogging {
     WallStatus(b, s, pad)
   }
 
-  //  /** Creates a initial environment parameters */
-  //  def initEnvParms: (WallStatus1, TDParms, TDNeuralNet, TDNeuralNet) = {
-  //
-  //    val initStatus = WallStatus1.initial
-  //
-  //    val inputCount = initStatus.toDenseVector.length
-  //
-  //    val parms = TDParms(
-  //      beta = Beta,
-  //      gamma = Gamma,
-  //      epsilon = EpsilonGreedy,
-  //      lambda = Lambda,
-  //      eta = Eta,
-  //      l1 = L1,
-  //      l2 = L2,
-  //      random = new RandBasis(new MersenneTwister(AgentSeed)))
-  //
-  //    val critic = TDNeuralNet(parms)(inputCount +: Seq() :+ 1)
-  //    val actor = TDNeuralNet(parms)(inputCount +: Seq() :+ OutputCount)
-  //
-  //    (initStatus, parms, critic, actor)
-  //  }
-
   private def validateTx(s: Seq[(TransitionSource, TransitionTarget)]) = {
     require(s.size == s.toMap.size, s)
     s.toMap

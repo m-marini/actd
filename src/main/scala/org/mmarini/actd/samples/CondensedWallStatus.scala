@@ -31,11 +31,14 @@ package org.mmarini.actd.samples
 
 import scala.math.sqrt
 
-import org.mmarini.actd.Action
+import org.mmarini.actd.Agent
 import org.mmarini.actd.Feedback
+import org.mmarini.actd.QAgent
 import org.mmarini.actd.Status
+import org.mmarini.actd.ACAgent
 import org.mmarini.actd.TDNeuralNet
 import org.mmarini.actd.TDParms
+import org.mmarini.actd.Action
 
 import com.typesafe.scalalogging.LazyLogging
 
@@ -104,10 +107,10 @@ object CondensedWallStatus extends LazyLogging {
 
   val OutputCount = 3
 
-  /** Creates a initial environment parameters */
-  def initEnvParms(args: WallArguments): (CondensedWallStatus, TDParms, TDNeuralNet, TDNeuralNet) = {
+  val initStatus = CondensedWallStatus(WallStatus.initial)
 
-    val initStatus = CondensedWallStatus(WallStatus.initial)
+  /** Creates a initial environment parameters */
+  private def initEnvParms(args: WallArguments): (CondensedWallStatus, TDParms, TDNeuralNet, TDNeuralNet) = {
 
     val inputCount = initStatus.toDenseVector.length
 
@@ -116,6 +119,24 @@ object CondensedWallStatus extends LazyLogging {
 
     (initStatus, args.tdParms, critic, actor)
   }
+
+  /** Creates a initial environment parameters */
+  private def initACAgent(args: WallArguments): ACAgent =
+    new ACAgent(args.tdParms,
+      TDNeuralNet(args.tdParms)(InputSpaceDimension +: args.hiddens :+ 1),
+      TDNeuralNet(args.tdParms)(InputSpaceDimension +: args.hiddens :+ OutputCount))
+
+  /** Creates a initial environment parameters */
+  private def initQAgent(args: WallArguments): QAgent =
+    new QAgent(args.tdParms,
+      TDNeuralNet(args.tdParms)(InputSpaceDimension +: args.hiddens :+ OutputCount))
+
+  /** */
+  def initAgent(args: WallArguments): Agent =
+    args.agent match {
+      case "QAgent" => initQAgent(args)
+      case _ => initACAgent(args)
+    }
 
   def normalizeStatus(x: DenseVector[Double]): DenseVector[Double] = Scale :* (x - Mean)
 }

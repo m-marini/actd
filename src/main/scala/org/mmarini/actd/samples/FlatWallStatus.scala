@@ -44,6 +44,10 @@ import org.mmarini.actd.TDParms
 import org.mmarini.actd.samples.WallStatus.PadAction
 import breeze.stats.distributions.RandBasis
 import org.apache.commons.math3.random.MersenneTwister
+import org.mmarini.actd.ACAgent
+import org.mmarini.actd.QAgent
+import org.mmarini.actd.Agent
+import breeze.macros.expand.args
 
 /** The status of wall game */
 case class FlatWallStatus(status: WallStatus) extends Status {
@@ -83,21 +87,29 @@ object FlatWallStatus extends LazyLogging {
   private val BallDim = Width * Height
   private val SpeedDim = 4
   private val PadDim = LastPad + 1
-  private val FinalVector = DenseVector.zeros[Double](BallDim * SpeedDim * PadDim + 1)
+  private val StatusDim = BallDim * SpeedDim * PadDim + 1
+  private val FinalVector = DenseVector.zeros[Double](StatusDim)
 
   val OutputCount = PadAction.maxId
 
   /** Creates a initial environment parameters */
-  def initEnvParms(args: WallArguments): (FlatWallStatus, TDParms, TDNeuralNet, TDNeuralNet) = {
+  val initStatus = FlatWallStatus(WallStatus.initial)
 
-    val initStatus = FlatWallStatus(WallStatus.initial)
+  /** Creates a initial environment parameters */
+  private def initACAgent(args: WallArguments): ACAgent =
+    new ACAgent(args.tdParms,
+      TDNeuralNet(args.tdParms)(StatusDim +: args.hiddens :+ 1),
+      TDNeuralNet(args.tdParms)(StatusDim +: args.hiddens :+ OutputCount))
 
-    val inputCount = initStatus.toDenseVector.length
+  /** Creates a initial environment parameters */
+  private def initQAgent(args: WallArguments): QAgent =
+    new QAgent(args.tdParms,
+      TDNeuralNet(args.tdParms)(StatusDim +: args.hiddens :+ OutputCount))
 
-    val critic = TDNeuralNet(args.tdParms)(inputCount +: args.hiddens :+ 1)
-    val actor = TDNeuralNet(args.tdParms)(inputCount +: args.hiddens :+ OutputCount)
-
-    (initStatus, args.tdParms, critic, actor)
-  }
-
+  /** Creates a initial environment parameters */
+  def initAgent(args: WallArguments): Agent =
+    args.agent match {
+      case "QAgent" => initQAgent(args)
+      case _ => initACAgent(args)
+    }
 }

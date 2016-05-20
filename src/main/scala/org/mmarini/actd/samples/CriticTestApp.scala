@@ -36,7 +36,7 @@ import breeze.linalg.DenseMatrix
 import breeze.linalg.DenseVector
 import breeze.linalg.csvwrite
 import breeze.stats.distributions.RandBasis
-import org.mmarini.actd.TDAgent
+import org.mmarini.actd.ACAgent
 import org.mmarini.actd.TDParms
 import MDP3Status._
 import MDP3Status.MDP3Action._
@@ -66,7 +66,7 @@ object CriticTestApp extends App with LazyLogging {
     (S1, SV1))
 
   val testAgent = List(0.0, 0.01, 0.03, 0.1, 0.3).map(x =>
-    TDAgent(
+    ACAgent(
       TDParms(
         beta = Beta,
         gamma = Gamma,
@@ -79,7 +79,7 @@ object CriticTestApp extends App with LazyLogging {
       2, 2))
 
   /** Computes the error of an agent */
-  private def error(agent: TDAgent): Double =
+  private def error(agent: ACAgent): Double =
     svMap.map { case (s, e) => e - agent.critic(s.toDenseVector).output(0) }.map(x => x * x).sum
 
   /**
@@ -88,7 +88,7 @@ object CriticTestApp extends App with LazyLogging {
    * @param agent the initial agent
    * @return the list of errors
    */
-  private def learn(agent: TDAgent): DenseVector[Double] = {
+  private def learn(agent: ACAgent): DenseVector[Double] = {
     val (_, errors) = (1 to Iteration).foldLeft((agent, List(error(agent)))) {
       case ((agent, errs), _) =>
         val (ag, err) = learnEpisode(agent)
@@ -106,7 +106,7 @@ object CriticTestApp extends App with LazyLogging {
    *  @agent the initial agent
    *  @return the trained agent and the error value
    */
-  private def learnEpisode(agent: TDAgent): (TDAgent, Double) = {
+  private def learnEpisode(agent: ACAgent): (ACAgent, Double) = {
     val ag = episodes.foldLeft(agent)((agent, step) => {
       val (ag1, _) = agent.train(step)
       ag1

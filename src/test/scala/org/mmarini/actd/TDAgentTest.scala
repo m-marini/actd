@@ -74,7 +74,7 @@ class TDAgentTest extends PropSpec with PropertyChecks with Matchers with GivenW
     lambda <- Gen.choose(0.0, 0.0)
     eta <- Gen.const(1e-1)
     hidden <- Gen.choose(MinHidden, MaxHidden)
-  } yield TDAgent(
+  } yield ACAgent(
     TDParms(
       beta = beta,
       gamma = gamma,
@@ -110,7 +110,7 @@ class TDAgentTest extends PropSpec with PropertyChecks with Matchers with GivenW
 
             val iter = (1 to n)
 
-            def learnEpisode(ag: TDAgent): TDAgent = {
+            def learnEpisode(ag: ACAgent): ACAgent = {
 
               val ag1 = episode.foldLeft(ag) {
                 case (ag, feedback) =>
@@ -119,7 +119,7 @@ class TDAgentTest extends PropSpec with PropertyChecks with Matchers with GivenW
               ag1
             }
 
-            def learn1(ag: TDAgent): TDAgent = {
+            def learn1(ag: ACAgent): ACAgent = {
               iter.foldLeft(ag)((ag0, i) => {
                 learnEpisode(ag0)
               })
@@ -134,7 +134,7 @@ class TDAgentTest extends PropSpec with PropertyChecks with Matchers with GivenW
             val exp0 = -1.0 + exp1 * gamma
             val expMap = Map((s0 -> exp0), (s1 -> exp1), (s2 -> exp2))
 
-            def error(agent: TDAgent): Double =
+            def error(agent: ACAgent): Double =
               expMap.map { case (s, e) => e - agent.critic(s.toDenseVector).output(0) }.map(x => x * x).sum
 
             val w00 = agent.critic.layers(0).weights(0, 0)

@@ -45,7 +45,7 @@ object TDAgentActor {
    *
    * @param agent initial agent
    */
-  def props(agent: TDAgent): Props = Props(classOf[TDAgentActor], agent)
+  def props(agent: Agent): Props = Props(classOf[TDAgentActor], agent)
 
   /** Message to [[TDAgentActor]] to process a single step interaction */
   object QueryAgent
@@ -54,7 +54,7 @@ object TDAgentActor {
   case class React(status: Status)
 
   /** Message sent to [[TDAgentActor]] to reply to a QueryAgent */
-  case class CurrentAgent(agent: TDAgent)
+  case class CurrentAgent(agent: Agent)
 
   /** Message sent by [[TDAgentActor]] to reply a [[React]] */
   case class Reaction(action: Action)
@@ -63,7 +63,7 @@ object TDAgentActor {
   case class Train(feedback: Feedback)
 
   /** Message sent by [[TDAgentActor]] to reply a [[Feed]] */
-  case class Trained(delta: Double, agent: TDAgent)
+  case class Trained(delta: Double, agent: Agent)
 }
 
 /**
@@ -72,14 +72,14 @@ object TDAgentActor {
  * @constructor create the actor
  * @param agent the initial agent
  */
-class TDAgentActor(agent: TDAgent) extends Actor with ActorLogging {
+class TDAgentActor(agent: Agent) extends Actor with ActorLogging {
 
   import TDAgentActor._
 
   def receive: Receive = waitingFirstFeed(agent)
 
   /** Processes messages before trainer actor started */
-  private def waitingFirstFeed(agent: TDAgent): Receive = {
+  private def waitingFirstFeed(agent: Agent): Receive = {
 
     case React(s) =>
       sender ! Reaction(agent.action(s))
@@ -94,7 +94,7 @@ class TDAgentActor(agent: TDAgent) extends Actor with ActorLogging {
   }
 
   /** Processes messages after the trainer actor has started */
-  private def processing(agent: TDAgent): Receive = {
+  private def processing(agent: Agent): Receive = {
 
     case React(s) =>
       sender ! Reaction(agent.action(s))

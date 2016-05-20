@@ -37,6 +37,7 @@ import akka.actor.Actor.Receive
 import akka.actor.ActorRef
 import akka.actor.ActorSystem
 import breeze.linalg.DenseVector
+import org.mmarini.actd.ACAgent
 
 /**
  * Tests the maze environment
@@ -57,7 +58,7 @@ trait FeedbackDump extends LazyLogging {
   }
 
   private def map(msg: Any): Any = msg match {
-    case Step(feedback, delta, agent) => recordToSamplesWithStatus((feedback, delta, agent))
+    case Step(feedback, delta, agent) => recordToSamplesWithStatus((feedback, delta, agent.asInstanceOf[ACAgent]))
   }
   private def consume: Receive = {
     case msg: Seq[Any] =>

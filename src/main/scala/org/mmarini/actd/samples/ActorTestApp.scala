@@ -36,7 +36,7 @@ import scala.annotation.tailrec
 import org.apache.commons.math3.random.MersenneTwister
 import org.mmarini.actd.Feedback
 import org.mmarini.actd.Status
-import org.mmarini.actd.TDAgent
+import org.mmarini.actd.ACAgent
 import org.mmarini.actd.TDParms
 
 import com.typesafe.scalalogging.LazyLogging
@@ -76,7 +76,7 @@ object ActorTestApp extends App with LazyLogging {
     (S2, SV2))
 
   val testAgent =
-    TDAgent(
+    ACAgent(
       TDParms(
         beta = Beta,
         gamma = Gamma,
@@ -99,7 +99,7 @@ object ActorTestApp extends App with LazyLogging {
    * @param agent the initial agent
    * @return the list of errors
    */
-  private def learn(agent: TDAgent): List[TDAgent] =
+  private def learn(agent: ACAgent): List[ACAgent] =
     (1 to Iteration).foldLeft(List(agent))((list, _) => {
       createEpisode(list)
     }).reverse
@@ -110,9 +110,9 @@ object ActorTestApp extends App with LazyLogging {
    *  @agent the initial agent
    *  @return the trained agent and the error value
    */
-  private def createEpisode(list: List[TDAgent]): List[TDAgent] = {
+  private def createEpisode(list: List[ACAgent]): List[ACAgent] = {
     @tailrec
-    def generateEpisode(list: List[TDAgent], status: Status): List[TDAgent] = {
+    def generateEpisode(list: List[ACAgent], status: Status): List[ACAgent] = {
       val (next, feedback) = learnStep(list.head, status)
       val list1 = next :: list
       if (feedback.s1.finalStatus) {
@@ -132,7 +132,7 @@ object ActorTestApp extends App with LazyLogging {
    *  @s0 the initial status
    *  @return the trained agent and the next status and reward
    */
-  private def learnStep(agent: TDAgent, s0: Status): (TDAgent, Feedback) = {
+  private def learnStep(agent: ACAgent, s0: Status): (ACAgent, Feedback) = {
     val a = agent.action(s0)
     val feedback = s0.apply(a)
     val (ag1, _) = agent.train(feedback)
@@ -152,7 +152,7 @@ object ActorTestApp extends App with LazyLogging {
     z
   }
 
-  private def preference(ag: TDAgent): DenseMatrix[Double] = {
+  private def preference(ag: ACAgent): DenseMatrix[Double] = {
     val x = for {
       s <- Array(S0, S1, S2)
     } yield {

@@ -37,9 +37,17 @@ import breeze.linalg.DenseVector
  * [[TDAgent]] extends Agent
  */
 trait Agent {
+
+  /** Returns the parameters */
+  def parms: TDParms
+
   /** Returns the action to be taken in a state */
   def action(status: Status): Int
 
   /** Returns a new agent that learns by the feedback */
   def train(feedback: Feedback): (Agent, Double)
+
+  /** Writes the status into a fileset */
+  def write(file: String)
+
 }

@@ -30,7 +30,7 @@
 package org.mmarini.actd.samples
 
 import org.mmarini.actd.EnvironmentActor
-import org.mmarini.actd.TDAgent
+import org.mmarini.actd.ACAgent
 
 import com.typesafe.scalalogging.LazyLogging
 
@@ -40,11 +40,9 @@ import com.typesafe.scalalogging.LazyLogging
  */
 object FirstEpisodeWallTraceApp extends App with WallEnvironment with AgentSave with FeedbackDump with LazyLogging {
 
-  val environment = {
-    val (initStatus, parms, critic, actor) = FlatWallStatus.initEnvParms(WallArguments(args))
+  val environment =
     system.actorOf(
-      EnvironmentActor.props(initStatus, new TDAgent(parms, critic, actor)))
-  }
+      EnvironmentActor.props(FlatWallStatus.initStatus, FlatWallStatus.initAgent(WallArguments(args))))
 
   val controllerActor = system.actorOf(TakeUntilActor.props(environment, {
     (f, d, a) => f.s1.finalStatus

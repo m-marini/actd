@@ -47,12 +47,15 @@ import breeze.stats.distributions.Rand
  */
 class DummyAgent(actionRand: Rand[Action]) extends Agent {
 
+  def parms: TDParms = throw new IllegalArgumentException
+
   /** Returns a random action from the available actions */
   def action(status: Status): Action = actionRand.sample
 
   /** Returns this agent (no learning algorithm is implemented for dummy agent) */
   def train(feedback: Feedback): (Agent, Double) = (this, 0.0)
 
+  def write(file: String) {}
 }
 
 /** Factory for [[DummyAgent]] instances */

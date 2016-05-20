@@ -37,84 +37,66 @@ import org.apache.commons.math3.random.MersenneTwister
 
 import breeze.linalg.DenseVector
 import breeze.linalg.csvread
-import breeze.linalg.sum
-import breeze.numerics.exp
+import breeze.linalg.max
 import breeze.stats.distributions.RandBasis
 
 /**
  * A learning agent that replies to stimulus with actions and learns by receiving rewards
  * applying TD algorithm.
  *
- * @constructor create a learning agent with parameters, critic network and actor network
+ * @constructor create a learning agent with parameters, q function network
  * @parm parms the parameters
- * @parm critic the critic network
- * @parm actor the actor network
+ * @parm qFunction the q function network
  *
  * @author us00852
  */
-class TDAgent(
-    val parms: TDParms,
-    val critic: TDNeuralNet,
-    val actor: TDNeuralNet) extends Agent {
-
-  /** Creates a new agent with a new critic network */
-  def critic(c: TDNeuralNet): TDAgent = new TDAgent(
-    parms = parms,
-    critic = c,
-    actor = actor)
+class QAgent(
+    override val parms: TDParms,
+    val qFunction: TDNeuralNet) extends Agent {
 
   /** Returns the action to be taken in a state */
-  def action(status: Status): Action =
-    parms.indexEGreedyBySoftmax(actor(status.toDenseVector).output)
+  def action(status: Status): Action = {
+    parms.indexEGreedy(qFunction(status.toDenseVector).output)
+  }
+
+  private def qf(s: Status): DenseVector[Double] =
+    if (s.finalStatus) {
+      DenseVector.zeros[Double](qFunction(s.toDenseVector).output.length)
+    } else {
+      qFunction(s.toDenseVector).output
+    }
 
   /** Returns a new agent that has learned by reward and the error */
-  def train(feedback: Feedback): (TDAgent, Double) = {
+  def train(feedback: Feedback): (Agent, Double) = {
 
-    // Computes the state value pre and post step
+    // Computes the action value pre and post step
     val s0Vect = feedback.s0.toDenseVector
     val s1Vect = feedback.s1.toDenseVector
 
-    val end0 = feedback.s0.finalStatus
-    val end1 = feedback.s1.finalStatus
+    val qs0 = qf(feedback.s0)
+    val qs0a = max(qs0)
 
-    // The status value of post state is 0 if final episode else bootstraps from critic
-    val postValue = if (end1 || end0) 0.0 else critic(s1Vect).output(0)
+    val qs1 = qf(feedback.s1)
+    val qs1a = max(qs1)
 
-    // Computes the expected state value by booting the previous status value */
-    val expectedValue = postValue * parms.gamma + feedback.reward
-
-    // Computes the error by critic
-    val preValue = critic(s0Vect).output(0)
-
-    val delta = expectedValue - preValue
-
-    // Teaches the critic by evidence
-    val cs = critic(s0Vect)
-    val nc = cs.train(DenseVector(expectedValue) - cs.output)
-
-    // Computes the expected action preferences applying the critic error to previous decision */
-    val as = actor(s0Vect)
-    val pref = as.output
-    val pexp = exp(pref)
-    val prob = pexp / sum(pexp)
     val action = feedback.action
-    //    val expectedPref = pref.copy
-    ////    expectedPref.update(action, expectedPref(action) + parms.beta * delta * (1 - prob(action)))
-    //    expectedPref.update(action, prefs + parms.beta * delta ))
 
-    val errs = DenseVector.zeros[Double](pref.length)
-    //    errs.update(action, parms.beta * delta)
-    errs.update(action, parms.beta * delta * (1 - prob(action)))
+    val q1s0a = feedback.reward + parms.gamma * qs1a
 
-    // Teaches the actor by evidence
-    val na = as.train(errs)
+    val q1s0 = qs0.copy
+    q1s0.update(action, q1s0a)
 
-    val nag = if (end0) {
-      new TDAgent(parms, nc.clearTraces, na.clearTraces)
+    val delta = q1s0 - qs0
+    val qf1 = if (qs0(action) == qs0a) qFunction else qFunction.clearTraces
+    val qf2 = qf1(s0Vect).train(delta)
+
+    val nag = if (feedback.s0.finalStatus) {
+      new QAgent(parms, qf2.clearTraces)
     } else {
-      new TDAgent(parms, nc, na)
+      new QAgent(parms, qf2)
     }
-    (nag, delta)
+    (nag, q1s0a - qs0a)
+
   }
 
   /** Writes a file with agent data */
@@ -130,16 +112,13 @@ class TDAgent(
       parms.l2))
     parm.iterator.write(s"$file-parms.csv")
 
-    // Saves critic
-    critic.write(s"$file-critic")
-
-    // Saves actor
-    actor.write(s"$file-actor")
+    // Saves qFunction
+    qFunction.write(s"$file-q")
   }
 }
 
-/** Factory for [[TDAgent]] instances */
-object TDAgent {
+/** Factory for [[QAgent]] instances */
+object QAgent {
 
   private val LambdaIndex = 3
   private val EtaIndex = 4
@@ -156,15 +135,14 @@ object TDAgent {
     parms: TDParms,
     statusSize: Int,
     actionCount: Int,
-    hiddenLayers: Int*): TDAgent =
-    new TDAgent(parms,
-      TDNeuralNet(parms)(statusSize +: hiddenLayers :+ 1),
+    hiddenLayers: Int*): QAgent =
+    new QAgent(parms,
       TDNeuralNet(parms)(statusSize +: hiddenLayers :+ actionCount))
 
   /**
    * Creates a TDAgent reading from file set
    */
-  def apply(file: String, random: RandBasis = new RandBasis(new MersenneTwister())): TDAgent = {
+  def apply(file: String, random: RandBasis = new RandBasis(new MersenneTwister())): QAgent = {
     val p = csvread(new File(s"$file-parms.csv"))
     val parms = TDParms(
       beta = p(0, 0),
@@ -176,8 +154,7 @@ object TDAgent {
       l2 = p(0, L2Index),
       random)
 
-    val critic = TDNeuralNet.read(parms)(s"$file-critic")
-    val actor = TDNeuralNet.read(parms)(s"$file-actor")
-    new TDAgent(parms, critic, actor)
+    val qFunc = TDNeuralNet.read(parms)(s"$file-q")
+    new QAgent(parms, qFunc)
   }
 }

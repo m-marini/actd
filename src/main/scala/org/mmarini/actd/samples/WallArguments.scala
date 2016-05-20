@@ -80,6 +80,10 @@ class WallArguments(args: Array[String]) extends LazyLogging {
     val s = kvArgs.getOrElse("hiddens", Hiddens)
     if (s.isEmpty) Seq() else s.split(",").map(_.toInt)
   }
+
+  lazy val agent: String = kvArgs.getOrElse("agent", "TDAgent")
+
+  lazy val stepCount: Int = kvArgs.getOrElse("stepCount", "300000").toInt
 }
 
 object WallArguments {

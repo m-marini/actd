@@ -51,14 +51,14 @@ object EnvironmentActor {
    * @param initAgent the initial agent
    */
   def props(initStatus: Status,
-    initAgent: TDAgent): Props =
+    initAgent: Agent): Props =
     Props(classOf[EnvironmentActor], initStatus, initAgent)
 
   /** Message to [[EnvironmentActor]] to process a single step interaction */
   object Interact
 
   /** Message by [[EnvironmentActor]] to reply a [[Next]] */
-  case class Step(feedback: Feedback, delta: Double, agent: TDAgent)
+  case class Step(feedback: Feedback, delta: Double, agent: Agent)
 }
 
 /**
@@ -69,7 +69,7 @@ object EnvironmentActor {
  * @param initAgent the initial agent
  */
 class EnvironmentActor(initStatus: Status,
-    initAgent: TDAgent) extends Actor with ActorLogging {
+    initAgent: Agent) extends Actor with ActorLogging {
 
   import EnvironmentActor._
 

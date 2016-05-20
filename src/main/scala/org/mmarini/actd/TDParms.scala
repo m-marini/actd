@@ -29,14 +29,12 @@
 
 package org.mmarini.actd
 
-import scala.util.Random
 import breeze.linalg.DenseVector
-import breeze.linalg.DenseVector
-import breeze.numerics.exp
-import breeze.linalg.argmax
+import breeze.linalg.max
 import breeze.linalg.sum
-import breeze.stats.distributions.RandBasis
+import breeze.numerics.exp
 import breeze.stats.distributions.Bernoulli
+import breeze.stats.distributions.RandBasis
 
 /**
  * A set of TD parameter
@@ -59,7 +57,7 @@ case class TDParms(
     l2: Double,
     random: RandBasis) {
 
-  private val egreedyRand = new Bernoulli(epsilon, random)
+  private val epsilonRand = new Bernoulli(epsilon, random)
 
   /** Returns a [[TDParms]] with changed eta value */
   def setEta(value: Double): TDParms =
@@ -73,19 +71,32 @@ case class TDParms(
       random = random)
 
   /** Returns a index with uniform distribution with epsilon probability otherwise by softmax algorithm */
-  def indexEGreedyBySoftmax(pref: DenseVector[Double]): Int =
-    if (egreedyRand.sample) {
+  def indexESoftmax(pref: DenseVector[Double]): Int =
+    if (epsilonRand.sample) {
       random.randInt(pref.length).sample
     } else {
-      indexByWeights(exp(pref))
+      indexWeights(exp(pref))
+    }
+
+  /** Returns a index with uniform distribution with epsilon probability otherwise by greedy algorithm */
+  def indexEGreedy(pref: DenseVector[Double]): Int =
+    if (epsilonRand.sample) {
+      random.randInt(pref.length).sample
+    } else {
+      val mx = max(pref)
+      val mxv = pref.findAll(_ == mx)
+      if (mxv.isEmpty) {
+        throw new IllegalArgumentException
+      }
+      mxv(0)
     }
 
   /** Returns a random index with by softmax algorithm */
-  def indexBySoftmax(pref: DenseVector[Double]): Int =
-    indexByWeights(exp(pref))
+  def indexSoftmax(pref: DenseVector[Double]): Int =
+    indexWeights(exp(pref))
 
   /** Returns a random index by weights */
-  def indexByWeights(pref: DenseVector[Double]): Int = {
+  def indexWeights(pref: DenseVector[Double]): Int = {
     val acc = pref.toArray.foldLeft(List(0.0)) {
       case (r, x) => (x + r.head) :: r
     }

@@ -32,16 +32,17 @@ package org.mmarini.actd.samples
 import scala.concurrent.duration.Duration.Zero
 
 import org.mmarini.actd.EnvironmentActor
-import org.mmarini.actd.TDAgent
+import org.mmarini.actd.ACAgent
 
 import com.typesafe.scalalogging.LazyLogging
+import breeze.linalg.DenseVector
+import org.mmarini.actd.ACAgent
 
 /**
  * Tests the maze environment
  * and generates a report of episode returns as octave data file
  */
 object WallDeepTraceApp extends App with WallEnvironment with ReturnsDump with AgentSave with LazyLogging {
-  val StepCount = "300000"
   //  val DelayTime = 200 millis
   val DelayTime = Zero
   override val trainTime = Zero
@@ -49,7 +50,8 @@ object WallDeepTraceApp extends App with WallEnvironment with ReturnsDump with A
   private val wArgs = WallArguments(args)
 
   val environment = {
-    val (initStatus, parms, critic, actor) = CondensedWallStatus.initEnvParms(wArgs)
+    val agent = CondensedWallStatus.initAgent(wArgs)
+    val parms = agent.parms
     logger.info(f"Beta=${parms.beta}%g")
     logger.info(f"Gamma=${parms.gamma}%g")
     logger.info(f"Epsilon=${parms.epsilon}%g")
@@ -57,15 +59,16 @@ object WallDeepTraceApp extends App with WallEnvironment with ReturnsDump with A
     logger.info(f"Eta=${parms.eta}%g")
     logger.info(f"L1=${parms.l1}%g")
     logger.info(f"L2=${parms.l2}%g")
-    logger.info(f"hiddens=${critic.layers.map(_.weights.rows).init.mkString(",")}%s")
+    logger.info(s"Hiddens=${wArgs.hiddens.mkString(",")}")
+    logger.info(s"Agent=${agent.getClass.getName}")
     system.actorOf(
-      EnvironmentActor.props(initStatus, new TDAgent(parms, critic, actor)))
+      EnvironmentActor.props(CondensedWallStatus.initStatus, agent))
     //      EnvironmentActor.props(initStatus, TDAgent(agentFilename)))
   }
 
   val controllerActor = system.actorOf(TakeActor.props(
     environment,
-    wArgs.kvArgs.getOrElse("steps", StepCount).toInt,
+    wArgs.stepCount,
     DelayTime))
 
   val processorActorsSet = Set(returnsActors, saveActors)

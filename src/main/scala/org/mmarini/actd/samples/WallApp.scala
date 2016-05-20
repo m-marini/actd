@@ -42,7 +42,7 @@ import scala.swing.Orientation
 import scala.swing.SimpleSwingApplication
 import org.apache.commons.math3.random.MersenneTwister
 import org.mmarini.actd.Feedback
-import org.mmarini.actd.TDAgent
+import org.mmarini.actd.ACAgent
 import org.mmarini.actd.TDParms
 import com.typesafe.scalalogging.LazyLogging
 import breeze.stats.distributions.RandBasis
@@ -159,13 +159,14 @@ object WallApp extends SimpleSwingApplication with LazyLogging {
   }
 
   /** Creates the initial environment */
-  val (initStatus, parms, critic, actor) = FlatWallStatus.initEnvParms(WallArguments())
+  val initStatus = FlatWallStatus.initStatus
 
   val system = ActorSystem("WallApp")
 
   class UIActor extends Actor {
 
-    val environment = context.actorOf(EnvironmentActor.props(initStatus, new TDAgent(parms, critic, actor)))
+    val environment =
+      context.actorOf(EnvironmentActor.props(initStatus, FlatWallStatus.initAgent(WallArguments())))
 
     environment ! Interact
 
