@@ -31,53 +31,14 @@ package org.mmarini.actd.samples
 
 import scala.math.sqrt
 
-import org.mmarini.actd.Agent
-import org.mmarini.actd.Feedback
-import org.mmarini.actd.QAgent
-import org.mmarini.actd.Status
-import org.mmarini.actd.ACAgent
-import org.mmarini.actd.TDNeuralNet
-import org.mmarini.actd.TDParms
 import org.mmarini.actd.Action
+import org.mmarini.actd.Feedback
+import org.mmarini.actd.Status
 
 import com.typesafe.scalalogging.LazyLogging
 
 import breeze.linalg.DenseVector
 import breeze.linalg.InjectNumericOps
-
-/** The status of wall game */
-case class CondensedWallStatus(status: WallStatus) extends Status {
-
-  import CondensedWallStatus._
-  /**
-   * Transforms the status into a Vector
-   * The resulting vector consists of (rows x columns) signals for the ball position,
-   * 4 signals for the ball direction,
-   * (columns - padsize + 1) signals for pad location
-   * and a signal for final status
-   */
-  val toDenseVector: DenseVector[Double] = {
-    if (status.finalStatus) {
-      FinalVector
-    } else {
-      normalizeStatus(DenseVector[Double](
-        status.ball._1,
-        status.ball._2,
-        status.direction.id,
-        status.pad,
-        -1))
-    }
-  }
-
-  /** Produce the feedback of an applied action */
-  def apply(action: Action): Feedback = status(action) match {
-    case (_, action, reward, s1) => Feedback(this, action, reward, CondensedWallStatus(s1))
-  }
-
-  /** Returns true if is a final status */
-  override def finalStatus: Boolean = status.finalStatus
-
-}
 
 /** Factory of [[WallStatusDeep]] */
 object CondensedWallStatus extends LazyLogging {
@@ -103,40 +64,25 @@ object CondensedWallStatus extends LazyLogging {
 
   FinalVector.update(0, 1.0)
 
-  val EnvSeed = 4321L
+  private def normalizeStatus(x: DenseVector[Double]): DenseVector[Double] = Scale :* (x - Mean)
 
-  val OutputCount = 3
-
-  val initStatus = CondensedWallStatus(WallStatus.initial)
-
-  /** Creates a initial environment parameters */
-  private def initEnvParms(args: WallArguments): (CondensedWallStatus, TDParms, TDNeuralNet, TDNeuralNet) = {
-
-    val inputCount = initStatus.toDenseVector.length
-
-    val critic = TDNeuralNet(args.tdParms)(inputCount +: args.hiddens :+ 1)
-    val actor = TDNeuralNet(args.tdParms)(inputCount +: args.hiddens :+ OutputCount)
-
-    (initStatus, args.tdParms, critic, actor)
-  }
-
-  /** Creates a initial environment parameters */
-  private def initACAgent(args: WallArguments): ACAgent =
-    new ACAgent(args.tdParms,
-      TDNeuralNet(args.tdParms)(InputSpaceDimension +: args.hiddens :+ 1),
-      TDNeuralNet(args.tdParms)(InputSpaceDimension +: args.hiddens :+ OutputCount))
-
-  /** Creates a initial environment parameters */
-  private def initQAgent(args: WallArguments): QAgent =
-    new QAgent(args.tdParms,
-      TDNeuralNet(args.tdParms)(InputSpaceDimension +: args.hiddens :+ OutputCount))
-
-  /** */
-  def initAgent(args: WallArguments): Agent =
-    args.agent match {
-      case "QAgent" => initQAgent(args)
-      case _ => initACAgent(args)
+  /**
+   * Transforms the status into a Vector
+   * The resulting vector consists of (rows x columns) signals for the ball position,
+   * 4 signals for the ball direction,
+   * (columns - padsize + 1) signals for pad location
+   * and a signal for final status
+   */
+  def toDenseVector(status: WallStatus): DenseVector[Double] = {
+    if (status.finalStatus) {
+      FinalVector
+    } else {
+      normalizeStatus(DenseVector[Double](
+        status.ball._1,
+        status.ball._2,
+        status.direction.id,
+        status.pad,
+        -1))
     }
-
-  def normalizeStatus(x: DenseVector[Double]): DenseVector[Double] = Scale :* (x - Mean)
+  }
 }

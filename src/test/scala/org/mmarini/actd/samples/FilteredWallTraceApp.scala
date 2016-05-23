@@ -30,7 +30,6 @@
 package org.mmarini.actd.samples
 
 import org.mmarini.actd.EnvironmentActor
-import org.mmarini.actd.ACAgent
 
 import com.typesafe.scalalogging.LazyLogging
 
@@ -40,13 +39,15 @@ import com.typesafe.scalalogging.LazyLogging
  */
 object FilteredWallTraceApp extends App with WallEnvironment with AgentSave with LazyLogging {
 
-  val States = Set[FlatWallStatus]()
+  val States = Set[WallStatusVector]()
 
   val processorActorsSet = Set(saveActors)
 
-  val environment =
+  val environment = {
+    val builder = new WallBuilder(WallArguments(args))
     system.actorOf(
-      EnvironmentActor.props(FlatWallStatus.initStatus, FlatWallStatus.initAgent(WallArguments(args))))
+      EnvironmentActor.props(builder.initStatus, builder.initAgent))
+  }
 
   val controllerActor = system.actorOf(TakeUntilActor.props(environment, {
     (f, d, a) => f.s1.finalStatus
@@ -56,24 +57,3 @@ object FilteredWallTraceApp extends App with WallEnvironment with AgentSave with
 
   waitForCompletion
 }
-
-//  /*
-//     * Filter on the following status
-//     *
-//     *   8  O
-//     *   9   o
-//     *  10    o---
-//     *      234567
-//     */
-//  private def filter2(x: DenseVector[Double]) =
-//    x(RowIdx) == 8 && x(ColIdx) == 2 && x(RowSpeedIdx) == 1 && x(ColSpeedIdx) == 1 && x(PadIdx) == 5
-//
-//  /** Generates the report */
-//  //  WallStatus.environment.iterator.
-//  //    toSamplesWithAC.
-//  //    trace("Sample", SampleTraceCount).
-//  //    filter(filter).
-//  //    trace("Filtered").
-//  //    take(EpisodeCount).
-//  //    write(file)
-//}

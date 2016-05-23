@@ -49,14 +49,17 @@ import org.mmarini.actd.QAgent
 import org.mmarini.actd.Agent
 import breeze.macros.expand.args
 
-/** The status of wall game */
-case class FlatWallStatus(status: WallStatus) extends Status {
-
-  import FlatWallStatus._
+/** A factory of [[WallStatus]] */
+object FlatWallStatus extends LazyLogging {
+  private val BallDim = Width * Height
+  private val SpeedDim = 4
+  private val PadDim = LastPad + 1
+  private val StatusDim = BallDim * SpeedDim * PadDim + 1
+  private val FinalVector = DenseVector.zeros[Double](StatusDim)
 
   /** Transforms the status to a Vector */
-  val toDenseVector: DenseVector[Double] = {
-    if (finalStatus) {
+  def toDenseVector(status: WallStatus): DenseVector[Double] = {
+    if (status.finalStatus) {
       FinalVector
     } else {
 
@@ -72,44 +75,4 @@ case class FlatWallStatus(status: WallStatus) extends Status {
       v
     }
   }
-
-  /** Produce the feedback of an applied action */
-  def apply(action: Action): Feedback = status(action) match {
-    case (_, action, reward, s1) => Feedback(this, action, reward, FlatWallStatus(s1))
-  }
-
-  /** Returns true if is a final status */
-  override def finalStatus: Boolean = status.finalStatus
-}
-
-/** A factory of [[WallStatus]] */
-object FlatWallStatus extends LazyLogging {
-  private val BallDim = Width * Height
-  private val SpeedDim = 4
-  private val PadDim = LastPad + 1
-  private val StatusDim = BallDim * SpeedDim * PadDim + 1
-  private val FinalVector = DenseVector.zeros[Double](StatusDim)
-
-  val OutputCount = PadAction.maxId
-
-  /** Creates a initial environment parameters */
-  val initStatus = FlatWallStatus(WallStatus.initial)
-
-  /** Creates a initial environment parameters */
-  private def initACAgent(args: WallArguments): ACAgent =
-    new ACAgent(args.tdParms,
-      TDNeuralNet(args.tdParms)(StatusDim +: args.hiddens :+ 1),
-      TDNeuralNet(args.tdParms)(StatusDim +: args.hiddens :+ OutputCount))
-
-  /** Creates a initial environment parameters */
-  private def initQAgent(args: WallArguments): QAgent =
-    new QAgent(args.tdParms,
-      TDNeuralNet(args.tdParms)(StatusDim +: args.hiddens :+ OutputCount))
-
-  /** Creates a initial environment parameters */
-  def initAgent(args: WallArguments): Agent =
-    args.agent match {
-      case "QAgent" => initQAgent(args)
-      case _ => initACAgent(args)
-    }
 }

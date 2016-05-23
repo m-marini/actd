@@ -34,34 +34,32 @@ import java.awt.Dimension
 import java.awt.Graphics2D
 import java.awt.geom.Ellipse2D
 import java.awt.geom.Rectangle2D
+import java.awt.image.BufferedImage
+
+import scala.concurrent.duration.Duration.Zero
 import scala.concurrent.duration.DurationInt
+import scala.concurrent.duration.FiniteDuration
 import scala.swing.BoxPanel
+import scala.swing.Button
 import scala.swing.Component
 import scala.swing.MainFrame
 import scala.swing.Orientation
 import scala.swing.SimpleSwingApplication
-import org.apache.commons.math3.random.MersenneTwister
-import org.mmarini.actd.Feedback
-import org.mmarini.actd.ACAgent
-import org.mmarini.actd.TDParms
-import com.typesafe.scalalogging.LazyLogging
-import breeze.stats.distributions.RandBasis
-import rx.lang.scala.Observable
-import java.awt.image.BufferedImage
-import scala.swing.Button
-import rx.lang.scala.Subject
 import scala.swing.event.ButtonClicked
-import scala.swing.AbstractButton
-import akka.actor.ActorSystem
+
 import org.mmarini.actd.EnvironmentActor
-import akka.actor.Actor
-import akka.actor.Props
 import org.mmarini.actd.EnvironmentActor.Interact
 import org.mmarini.actd.EnvironmentActor.Step
-import scala.concurrent.duration.FiniteDuration
-import scala.concurrent.duration.Duration.Zero
-import org.mmarini.actd.TDAgentActor.QueryAgent
 import org.mmarini.actd.TDAgentActor.CurrentAgent
+import org.mmarini.actd.TDAgentActor.QueryAgent
+import org.mmarini.actd.samples.WallApp.UIActor
+
+import com.typesafe.scalalogging.LazyLogging
+
+import akka.actor.Actor
+import akka.actor.ActorSystem
+import akka.actor.Props
+import akka.actor.actorRef2Scala
 
 /** The UI wall game application */
 object WallApp extends SimpleSwingApplication with LazyLogging {
@@ -99,7 +97,7 @@ object WallApp extends SimpleSwingApplication with LazyLogging {
   /** Game panel */
   val gamePane = new Component() {
 
-    var sOpt: Option[FlatWallStatus] = None;
+    var sOpt: Option[WallStatusVector] = None;
 
     private var bfOpt: Option[BufferedImage] = None
 
@@ -158,15 +156,17 @@ object WallApp extends SimpleSwingApplication with LazyLogging {
     size = new Dimension(WindowWidth, WindowHeight)
   }
 
-  /** Creates the initial environment */
-  val initStatus = FlatWallStatus.initStatus
+  private val builder = new WallBuilder(WallArguments())
 
-  val system = ActorSystem("WallApp")
+  /** Creates the initial environment */
+  private val initStatus = builder.initStatus
+
+  private val system = ActorSystem("WallApp")
 
   class UIActor extends Actor {
 
     val environment =
-      context.actorOf(EnvironmentActor.props(initStatus, FlatWallStatus.initAgent(WallArguments())))
+      context.actorOf(EnvironmentActor.props(initStatus, builder.initAgent))
 
     environment ! Interact
 
@@ -181,7 +181,7 @@ object WallApp extends SimpleSwingApplication with LazyLogging {
         context become steppingSave(filename)
 
       case Step(f, d, _) =>
-        gamePane.sOpt = Some(f.s1.asInstanceOf[FlatWallStatus])
+        gamePane.sOpt = Some(f.s1.asInstanceOf[WallStatusVector])
         gamePane.repaint
         environment ! Interact
     }
@@ -194,7 +194,7 @@ object WallApp extends SimpleSwingApplication with LazyLogging {
         context become steppingSave(filename)
 
       case Step(f, d, _) =>
-        gamePane.sOpt = Some(f.s1.asInstanceOf[FlatWallStatus])
+        gamePane.sOpt = Some(f.s1.asInstanceOf[WallStatusVector])
         gamePane.repaint
         environment ! Interact
 
@@ -216,7 +216,7 @@ object WallApp extends SimpleSwingApplication with LazyLogging {
         context become steppingDelayedSave(delay, filename)
 
       case Step(f, d, _) =>
-        gamePane.sOpt = Some(f.s1.asInstanceOf[FlatWallStatus])
+        gamePane.sOpt = Some(f.s1.asInstanceOf[WallStatusVector])
         gamePane.repaint
 
         import system.dispatcher
@@ -235,7 +235,7 @@ object WallApp extends SimpleSwingApplication with LazyLogging {
         context become steppingDelayedSave(delay, filename)
 
       case Step(f, d, _) =>
-        gamePane.sOpt = Some(f.s1.asInstanceOf[FlatWallStatus])
+        gamePane.sOpt = Some(f.s1.asInstanceOf[WallStatusVector])
         gamePane.repaint
 
         import system.dispatcher

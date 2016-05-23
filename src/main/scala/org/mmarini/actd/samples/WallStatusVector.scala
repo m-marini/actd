@@ -29,51 +29,26 @@
 
 package org.mmarini.actd.samples
 
-import scala.concurrent.duration.Duration.Zero
-
-import org.mmarini.actd.EnvironmentActor
-import org.mmarini.actd.ACAgent
-
-import com.typesafe.scalalogging.LazyLogging
 import breeze.linalg.DenseVector
+import org.mmarini.actd.Status
+import org.mmarini.actd.Feedback
+import org.mmarini.actd.Action
+import org.mmarini.actd.TDNeuralNet
+import org.mmarini.actd.QAgent
 import org.mmarini.actd.ACAgent
 
-/**
- * Tests the maze environment
- * and generates a report of episode returns as octave data file
- */
-object WallDeepTraceApp extends App with WallEnvironment with ReturnsDump with AgentSave with LazyLogging {
-  //  val DelayTime = 200 millis
-  val DelayTime = Zero
-  override val trainTime = Zero
-  override val windowSize = 10
-  private val wArgs = WallArguments(args)
+/** */
+case class WallStatusVector(status: WallStatus, vectorizer: WallStatus => DenseVector[Double]) extends Status {
 
-  val environment = {
-    val agent = CondensedWallStatus.initAgent(wArgs)
-    val parms = agent.parms
-    logger.info(f"Beta=${parms.beta}%g")
-    logger.info(f"Gamma=${parms.gamma}%g")
-    logger.info(f"Epsilon=${parms.epsilon}%g")
-    logger.info(f"Lambda=${parms.lambda}%g")
-    logger.info(f"Eta=${parms.eta}%g")
-    logger.info(f"L1=${parms.l1}%g")
-    logger.info(f"L2=${parms.l2}%g")
-    logger.info(s"Hiddens=${wArgs.hiddens.mkString(",")}")
-    logger.info(s"Agent=${agent.getClass.getName}")
-    system.actorOf(
-      EnvironmentActor.props(CondensedWallStatus.initStatus, agent))
-    //      EnvironmentActor.props(initStatus, TDAgent(agentFilename)))
-  }
+  /** */
+  override def finalStatus: Boolean = status.finalStatus
 
-  val controllerActor = system.actorOf(TakeActor.props(
-    environment,
-    wArgs.stepCount,
-    DelayTime))
+  /** */
+  override lazy val toDenseVector: DenseVector[Double] = vectorizer(status)
 
-  val processorActorsSet = Set(returnsActors, saveActors)
-
-  startSim
-
-  waitForCompletion
+  /** */
+  override def apply(action: Action): Feedback =
+    status(action) match {
+      case (_, a, r, s1) => Feedback(this, a, r, WallStatusVector(s1, vectorizer))
+    }
 }

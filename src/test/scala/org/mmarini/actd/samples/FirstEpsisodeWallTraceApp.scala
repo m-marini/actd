@@ -40,9 +40,11 @@ import com.typesafe.scalalogging.LazyLogging
  */
 object FirstEpisodeWallTraceApp extends App with WallEnvironment with AgentSave with FeedbackDump with LazyLogging {
 
-  val environment =
+  val environment = {
+    val builder = new WallBuilder(WallArguments(args))
     system.actorOf(
-      EnvironmentActor.props(FlatWallStatus.initStatus, FlatWallStatus.initAgent(WallArguments(args))))
+      EnvironmentActor.props(builder.initStatus, builder.initAgent))
+  }
 
   val controllerActor = system.actorOf(TakeUntilActor.props(environment, {
     (f, d, a) => f.s1.finalStatus

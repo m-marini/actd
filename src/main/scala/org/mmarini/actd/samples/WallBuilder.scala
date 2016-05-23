@@ -29,46 +29,36 @@
 
 package org.mmarini.actd.samples
 
-import scala.concurrent.duration.Duration.Zero
+import org.mmarini.actd.ACAgent
+import org.mmarini.actd.Agent
+import org.mmarini.actd.QAgent
+import org.mmarini.actd.Status
+import org.mmarini.actd.TDNeuralNet
 
-import org.mmarini.actd.EnvironmentActor
+/** */
+class WallBuilder(args: WallArguments) {
 
-import com.typesafe.scalalogging.LazyLogging
-
-/**
- * Tests the maze environment
- * and generates a report of episode returns as octave data file
- */
-object WallTraceApp extends App with WallEnvironment with ReturnsDump with AgentSave with LazyLogging {
-
-  //  val DelayTime = 200 millis
-  val DelayTime = Zero
-
-  private val wArgs = WallArguments(args)
-  private val builder = new WallBuilder(wArgs)
-
-  val environment = {
-    val agent = builder.initAgent
-
-    val parms = agent.parms
-    logger.info(f"Beta=${parms.beta}%g")
-    logger.info(f"Gamma=${parms.gamma}%g")
-    logger.info(f"Epsilon=${parms.epsilon}%g")
-    logger.info(f"Lambda=${parms.lambda}%g")
-    logger.info(f"Eta=${parms.eta}%g")
-    logger.info(f"L1=${parms.l1}%g")
-    logger.info(f"L2=${parms.l2}%g")
-    logger.info(f"hiddens=${wArgs.hiddens.mkString(",")}%s")
-    logger.info(s"agent=${agent.getClass.getName}")
-
-    system.actorOf(EnvironmentActor.props(builder.initStatus, agent))
+  /** Creates the initial status */
+  lazy val initStatus: Status = args.kvArgs.get("model") match {
+    case Some("condensed") => WallStatusVector(WallStatus.initial, CondensedWallStatus.toDenseVector)
+    case _ => WallStatusVector(WallStatus.initial, FlatWallStatus.toDenseVector)
   }
 
-  val controllerActor = system.actorOf(TakeActor.props(environment, wArgs.stepCount, DelayTime))
+  /** Creates an actor critic agent */
+  private def acAgent: ACAgent =
+    new ACAgent(args.tdParms,
+      TDNeuralNet(args.tdParms)(initStatus.toDenseVector.length +: args.hiddens :+ 1),
+      TDNeuralNet(args.tdParms)(initStatus.toDenseVector.length +: args.hiddens :+ WallStatus.PadAction.maxId))
 
-  val processorActorsSet = Set(returnsActors, saveActors)
+  /** Creates a Q agent */
+  private def qAgent: QAgent =
+    new QAgent(args.tdParms,
+      TDNeuralNet(args.tdParms)(initStatus.toDenseVector.length +: args.hiddens :+ WallStatus.PadAction.maxId))
 
-  startSim
-
-  waitForCompletion
+  /** Creates an agent */
+  lazy val initAgent: Agent =
+    args.agent match {
+      case "QAgent" => qAgent
+      case _ => acAgent
+    }
 }
