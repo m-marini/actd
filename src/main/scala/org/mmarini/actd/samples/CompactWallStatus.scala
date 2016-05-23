@@ -41,7 +41,7 @@ import breeze.linalg.DenseVector
 import breeze.linalg.InjectNumericOps
 
 /** Factory of [[WallStatusDeep]] */
-object CondensedWallStatus extends LazyLogging {
+object CompactWallStatus extends LazyLogging {
 
   import WallStatus._
 

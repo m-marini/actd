@@ -39,6 +39,7 @@ import akka.actor.Actor.Receive
 import akka.actor.ActorRef
 import akka.actor.ActorSystem
 import breeze.linalg.DenseVector
+import scala.concurrent.duration.FiniteDuration
 
 /**
  * Tests the maze environment
@@ -48,9 +49,10 @@ trait ReturnsDump extends LazyLogging {
 
   def system: ActorSystem
 
-  val returnsFilename = "data/returns.csv"
-  val dumpInterval = 10 minutes
-  val windowSize = 1
+  def returnsFilename: String = "data/returns.csv"
+  def dumpInterval: FiniteDuration = 10 minutes
+
+  def windowSize: Int = 1
 
   lazy val returnsActors: Seq[ActorRef] = {
     val consumeActor = system.actorOf(ConsumerActor.props(consume))

@@ -39,7 +39,11 @@ import com.typesafe.scalalogging.LazyLogging
  * Tests the maze environment
  * and generates a report of episode returns as octave data file
  */
-object WallTraceApp extends App with WallEnvironment with ReturnsDump with AgentSave with LazyLogging {
+object WallTraceApp extends App
+    with WallEnvironment
+    with ReturnsDump
+    //    with AgentSave
+    with LazyLogging {
 
   //  val DelayTime = 200 millis
   val DelayTime = Zero
@@ -47,8 +51,11 @@ object WallTraceApp extends App with WallEnvironment with ReturnsDump with Agent
   private val wArgs = WallArguments(args)
   private val builder = new WallBuilder(wArgs)
 
+  override def windowSize: Int = wArgs.binsSize
+
   val environment = {
     val agent = builder.initAgent
+    val status = builder.initStatus
 
     val parms = agent.parms
     logger.info(f"Beta=${parms.beta}%g")
@@ -60,13 +67,17 @@ object WallTraceApp extends App with WallEnvironment with ReturnsDump with Agent
     logger.info(f"L2=${parms.l2}%g")
     logger.info(f"hiddens=${wArgs.hiddens.mkString(",")}%s")
     logger.info(s"agent=${agent.getClass.getName}")
+    logger.info(s"model=${wArgs.modelName}")
+    logger.info(f"binsSize=${wArgs.binsSize}%d")
+    logger.info(f"stepCount=${wArgs.stepCount}%d")
 
-    system.actorOf(EnvironmentActor.props(builder.initStatus, agent))
+    system.actorOf(EnvironmentActor.props(status, agent))
   }
 
   val controllerActor = system.actorOf(TakeActor.props(environment, wArgs.stepCount, DelayTime))
 
-  val processorActorsSet = Set(returnsActors, saveActors)
+//  val processorActorsSet = Set(returnsActors, saveActors)
+  val processorActorsSet = Set(returnsActors)
 
   startSim
 

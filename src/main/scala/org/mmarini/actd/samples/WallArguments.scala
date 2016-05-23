@@ -35,9 +35,23 @@ import org.mmarini.actd.TDParms
 import com.typesafe.scalalogging.LazyLogging
 
 import breeze.stats.distributions.RandBasis
+import breeze.linalg.DenseVector
 
 /**
  * Set of object build by command line argumenst with default values
+ * --beta=3
+ * --gamma=0.962
+ * --epsilon=5e-3
+ * --lambda=0.3
+ * --eta=0.1
+ * --l1=0
+ * --l2=1e-6
+ * --seed=1234
+ * --hiddens=<comma separated # of neurons>
+ * --stepCount=300000
+ * --agent=<ACAgent, QAgent>
+ * --model=<compact,flat>
+ * --bins=1
  */
 class WallArguments(args: Array[String]) extends LazyLogging {
 
@@ -59,8 +73,8 @@ class WallArguments(args: Array[String]) extends LazyLogging {
   private val Lambda = "0.3"
   private val Eta = "0.1"
   private val AgentSeed = "1234"
-  private val L1 = "1e-6"
-  private val L2 = "0e-6"
+  private val L1 = "0e-6"
+  private val L2 = "1e-6"
   private val Hiddens = ""
 
   lazy val tdParms: TDParms = {
@@ -81,9 +95,18 @@ class WallArguments(args: Array[String]) extends LazyLogging {
     if (s.isEmpty) Seq() else s.split(",").map(_.toInt)
   }
 
-  lazy val agent: String = kvArgs.getOrElse("agent", "TDAgent")
+  lazy val agent: String = kvArgs.getOrElse("agent", "ACAgent")
 
   lazy val stepCount: Int = kvArgs.getOrElse("stepCount", "300000").toInt
+
+  lazy val binsSize: Int = kvArgs.getOrElse("binsSize", "1").toInt
+
+  lazy val modelName: String = kvArgs.getOrElse("model", "flat")
+
+  lazy val model: WallStatus => DenseVector[Double] = modelName match {
+    case "compact" => CompactWallStatus.toDenseVector
+    case "flat" => FlatWallStatus.toDenseVector
+  }
 }
 
 object WallArguments {

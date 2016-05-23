@@ -39,10 +39,7 @@ import org.mmarini.actd.TDNeuralNet
 class WallBuilder(args: WallArguments) {
 
   /** Creates the initial status */
-  lazy val initStatus: Status = args.kvArgs.get("model") match {
-    case Some("condensed") => WallStatusVector(WallStatus.initial, CondensedWallStatus.toDenseVector)
-    case _ => WallStatusVector(WallStatus.initial, FlatWallStatus.toDenseVector)
-  }
+  lazy val initStatus: Status = WallStatusVector(WallStatus.initial, args.model)
 
   /** Creates an actor critic agent */
   private def acAgent: ACAgent =
@@ -59,6 +56,6 @@ class WallBuilder(args: WallArguments) {
   lazy val initAgent: Agent =
     args.agent match {
       case "QAgent" => qAgent
-      case _ => acAgent
+      case "ACAgent" => acAgent
     }
 }
