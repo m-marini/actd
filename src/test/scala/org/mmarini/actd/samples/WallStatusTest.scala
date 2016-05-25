@@ -51,12 +51,12 @@ class WallStatusTest extends PropSpec with PropertyChecks with Matchers with Giv
    */
   property("txxxx") {
     forAll((
-      for { pad <- Gen.choose(0, LastPad - 1) } yield WallStatus(1, pad + 2, SE, pad), "pad")) {
+      for { pad <- Gen.choose(0, LastPad - 1) } yield WallStatus(1, pad + 2, SE, pad, Countdown), "pad")) {
       (s0) =>
         {
           val (_, _, r, s1) = s0.apply(Right.id)
           s1 should matchPattern {
-            case WallStatus(2, _, NE, _) =>
+            case WallStatus(2, _, NE, _, _) =>
           }
           s1.col should be(s0.col + 1)
           s1.pad should be(s0.pad + 1)
@@ -77,14 +77,14 @@ class WallStatusTest extends PropSpec with PropertyChecks with Matchers with Giv
     forAll((for {
       pad <- Gen.choose(0, LastPad)
       dir <- Gen.oneOf(Direction.values.toSeq)
-    } yield WallStatus(Height, 0, dir, pad), "s0"),
+    } yield WallStatus(Height, 0, dir, pad, Countdown), "s0"),
       (Gen.oneOf(PadAction.values.toSeq), "act")) {
         (s0, act) =>
           {
             val (_, _, r, s1) = s0.apply(act.id)
             r should be(0.0)
             s1 should matchPattern {
-              case WallStatus(SecondLastRow, 1, SE, _) =>
+              case WallStatus(SecondLastRow, 1, SE, _, _) =>
             }
           }
       }
@@ -102,13 +102,13 @@ class WallStatusTest extends PropSpec with PropertyChecks with Matchers with Giv
     forAll((for {
       pad <- Gen.choose(0, LastPad)
       dir <- Gen.oneOf(Direction.values.toSeq)
-    } yield WallStatus(Height, LastCol, dir, pad), "s0"),
+    } yield WallStatus(Height, LastCol, dir, pad, Countdown), "s0"),
       (Gen.oneOf(PadAction.values.toSeq), "act")) {
         (s0, act) =>
           {
             val (_, _, r, s1) = s0.apply(act.id)
             s1 should matchPattern {
-              case WallStatus(SecondLastRow, SecondLastCol, SW, _) =>
+              case WallStatus(SecondLastRow, SecondLastCol, SW, _, _) =>
             }
             r should be(0.0)
           }
@@ -127,13 +127,13 @@ class WallStatusTest extends PropSpec with PropertyChecks with Matchers with Giv
     forAll((for {
       c <- Gen.choose(1, LastCol - 1)
       pad <- Gen.choose(0, LastPad)
-    } yield WallStatus(Height, c, NW, pad), "s0"),
+    } yield WallStatus(Height, c, NW, pad, Countdown), "s0"),
       (Gen.oneOf(PadAction.values.toSeq), "act")) {
         (s0, act) =>
           {
             val (_, _, r, s1) = s0.apply(act.id)
             s1 should matchPattern {
-              case WallStatus(SecondLastRow, c, SW, _) if (c == s0.col - 1) =>
+              case WallStatus(SecondLastRow, c, SW, _, _) if (c == s0.col - 1) =>
             }
             r should be(0.0)
           }
@@ -152,13 +152,13 @@ class WallStatusTest extends PropSpec with PropertyChecks with Matchers with Giv
     forAll((for {
       c <- Gen.choose(1, LastCol - 1)
       pad <- Gen.choose(0, LastPad)
-    } yield WallStatus(Height, c, NE, pad), "s0"),
+    } yield WallStatus(Height, c, NE, pad, Countdown), "s0"),
       (Gen.oneOf(PadAction.values.toSeq), "act")) {
         (s0, act) =>
           {
             val (_, _, r, s1) = s0.apply(act.id)
             s1 should matchPattern {
-              case WallStatus(SecondLastRow, c, SE, _) if (c == s0.col + 1) =>
+              case WallStatus(SecondLastRow, c, SE, _, _) if (c == s0.col + 1) =>
             }
             r should be(0.0)
           }
@@ -181,13 +181,13 @@ class WallStatusTest extends PropSpec with PropertyChecks with Matchers with Giv
     forAll((for {
       r <- Gen.choose(2, SecondLastRow)
       pad <- Gen.choose(0, LastPad)
-    } yield WallStatus(r, 0, SW, pad), "s0"),
+    } yield WallStatus(r, 0, SW, pad, Countdown), "s0"),
       (Gen.oneOf(PadAction.values.toSeq), "act")) {
         (s0, act) =>
           {
             val (_, _, r, s1) = s0.apply(act.id)
             s1 should matchPattern {
-              case WallStatus(_, 1, SE, _) =>
+              case WallStatus(_, 1, SE, _, _) =>
             }
             s1.row should be(s0.row - 1)
             r should be(0.0)
@@ -211,13 +211,13 @@ class WallStatusTest extends PropSpec with PropertyChecks with Matchers with Giv
     forAll((for {
       r <- Gen.choose(2, SecondLastRow)
       pad <- Gen.choose(0, LastPad)
-    } yield WallStatus(r, 0, NW, pad), "s0"),
+    } yield WallStatus(r, 0, NW, pad, Countdown), "s0"),
       (Gen.oneOf(PadAction.values.toSeq), "act")) {
         (s0, act) =>
           {
             val (_, _, r, s1) = s0.apply(act.id)
             s1 should matchPattern {
-              case WallStatus(row, 1, NE, _) if (row == s0.row + 1) =>
+              case WallStatus(row, 1, NE, _, _) if (row == s0.row + 1) =>
             }
             r should be(0.0)
           }
@@ -243,14 +243,14 @@ class WallStatusTest extends PropSpec with PropertyChecks with Matchers with Giv
       pad <- Gen.choose(0, LastPad)
       //      r <- Gen.const(3)
       //      pad <- Gen.const(9)
-    } yield WallStatus(r, LastCol, SE, pad), "s0"),
+    } yield WallStatus(r, LastCol, SE, pad, Countdown), "s0"),
       (Gen.oneOf(PadAction.values.toSeq), "act")) {
         //      (Gen.const(Left), "act")) {
         (s0, act) =>
           {
             val (_, _, r, s1) = s0.apply(act.id)
             s1 should matchPattern {
-              case WallStatus(_, SecondLastCol, SW, _) =>
+              case WallStatus(_, SecondLastCol, SW, _, _) =>
             }
             s1.row should be(s0.row - 1)
             r should be(0.0)
@@ -277,14 +277,14 @@ class WallStatusTest extends PropSpec with PropertyChecks with Matchers with Giv
       pad <- Gen.choose(0, LastPad)
       //      r <- Gen.const(5)
       //      pad <- Gen.const(11)
-    } yield WallStatus(r, LastCol, NE, pad), "s0"),
+    } yield WallStatus(r, LastCol, NE, pad, Countdown), "s0"),
       (Gen.oneOf(PadAction.values.toSeq), "act")) {
         //      (Gen.const(Rest), "act")) {
         (s0, act) =>
           {
             val (_, _, r, s1) = s0.apply(act.id)
             s1 should matchPattern {
-              case WallStatus(_, SecondLastCol, NW, _) =>
+              case WallStatus(_, SecondLastCol, NW, _, _) =>
             }
             s1.row should be(s0.row + 1)
             r should be(0.0)
@@ -303,13 +303,13 @@ class WallStatusTest extends PropSpec with PropertyChecks with Matchers with Giv
     forAll((for {
       pad <- Gen.choose(1, SecondLastPad)
       c <- Gen.choose(pad, pad + 2)
-    } yield WallStatus(1, c, SW, pad), "s0"),
+    } yield WallStatus(1, c, SW, pad, Countdown), "s0"),
       (Gen.const(Rest), "act")) {
         (s0, act) =>
           {
             val (_, _, r, s1) = s0.apply(act.id)
             s1 should matchPattern {
-              case WallStatus(2, c, NW, p) if (c == s0.col - 1 && p == s0.pad) =>
+              case WallStatus(2, c, NW, p, _) if (c == s0.col - 1 && p == s0.pad) =>
             }
             r should be(PositiveReward)
           }
@@ -327,13 +327,13 @@ class WallStatusTest extends PropSpec with PropertyChecks with Matchers with Giv
     forAll((for {
       pad <- Gen.choose(1, SecondLastPad)
       c <- Gen.choose(pad, pad + 2)
-    } yield WallStatus(1, c, SE, pad), "s0"),
+    } yield WallStatus(1, c, SE, pad, Countdown), "s0"),
       (Gen.const(Rest), "act")) {
         (s0, act) =>
           {
             val (_, _, r, s1) = s0.apply(act.id)
             s1 should matchPattern {
-              case WallStatus(2, c, NE, p) if (c == s0.col + 1 && p == s0.pad) =>
+              case WallStatus(2, c, NE, p, _) if (c == s0.col + 1 && p == s0.pad) =>
             }
             r should be(PositiveReward)
           }
@@ -351,13 +351,13 @@ class WallStatusTest extends PropSpec with PropertyChecks with Matchers with Giv
     forAll((for {
       pad <- Gen.choose(0, LastPad - 2)
       c <- Gen.choose(pad + 1, pad + 3)
-    } yield WallStatus(1, c, SW, pad), "s0"),
+    } yield WallStatus(1, c, SW, pad, Countdown), "s0"),
       (Gen.const(Right), "act")) {
         (s0, act) =>
           {
             val (_, _, r, s1) = s0.apply(act.id)
             s1 should matchPattern {
-              case WallStatus(2, c, NW, p) if (c == s0.col - 1 && p == s0.pad + 1) =>
+              case WallStatus(2, c, NW, p, _) if (c == s0.col - 1 && p == s0.pad + 1) =>
             }
             r should be(PositiveReward)
           }
@@ -375,13 +375,13 @@ class WallStatusTest extends PropSpec with PropertyChecks with Matchers with Giv
     forAll((for {
       pad <- Gen.choose(2, LastPad)
       c <- Gen.choose(pad - 1, pad + 1)
-    } yield WallStatus(1, c, SE, pad), "s0"),
+    } yield WallStatus(1, c, SE, pad, Countdown), "s0"),
       (Gen.const(Left), "act")) {
         (s0, act) =>
           {
             val (_, _, r, s1) = s0.apply(act.id)
             s1 should matchPattern {
-              case WallStatus(2, c, NE, p) if (c == s0.col + 1 && p == s0.pad - 1) =>
+              case WallStatus(2, c, NE, p, _) if (c == s0.col + 1 && p == s0.pad - 1) =>
             }
             r should be(PositiveReward)
           }
@@ -399,13 +399,13 @@ class WallStatusTest extends PropSpec with PropertyChecks with Matchers with Giv
     forAll((for {
       dir <- Gen.oneOf(SE, SW)
       pad <- Gen.choose(0, 1)
-    } yield WallStatus(1, 0, dir, pad), "s0"),
+    } yield WallStatus(1, 0, dir, pad, Countdown), "s0"),
       (Gen.const(Rest), "act")) {
         (s0, act) =>
           {
             val (_, _, r, s1) = s0.apply(act.id)
             s1 should matchPattern {
-              case WallStatus(2, 1, NE, p) if (p == s0.pad) =>
+              case WallStatus(2, 1, NE, p, _) if (p == s0.pad) =>
             }
             r should be(PositiveReward)
           }
@@ -422,13 +422,13 @@ class WallStatusTest extends PropSpec with PropertyChecks with Matchers with Giv
   property("tx13") {
     forAll((for {
       dir <- Gen.oneOf(SE, SW)
-    } yield WallStatus(1, 0, dir, 0), "s0"),
+    } yield WallStatus(1, 0, dir, 0, Countdown), "s0"),
       (Gen.const(Right), "act")) {
         (s0, act) =>
           {
             val (_, _, r, s1) = s0.apply(act.id)
             s1 should matchPattern {
-              case WallStatus(2, 1, NE, 1) =>
+              case WallStatus(2, 1, NE, 1, _) =>
             }
             r should be(PositiveReward)
           }
@@ -446,13 +446,13 @@ class WallStatusTest extends PropSpec with PropertyChecks with Matchers with Giv
     forAll((for {
       pad <- Gen.choose(1, 2)
       dir <- Gen.oneOf(SE, SW)
-    } yield WallStatus(1, 0, dir, pad), "s0"),
+    } yield WallStatus(1, 0, dir, pad, Countdown), "s0"),
       (Gen.const(Left), "act")) {
         (s0, act) =>
           {
             val (_, _, r, s1) = s0.apply(act.id)
             s1 should matchPattern {
-              case WallStatus(2, 1, NE, p) if (p == s0.pad - 1) =>
+              case WallStatus(2, 1, NE, p, _) if (p == s0.pad - 1) =>
             }
             r should be(PositiveReward)
           }
@@ -470,13 +470,13 @@ class WallStatusTest extends PropSpec with PropertyChecks with Matchers with Giv
     forAll((for {
       dir <- Gen.oneOf(SE, SW)
       pad <- Gen.choose(SecondLastPad, LastPad)
-    } yield WallStatus(1, LastCol, dir, pad), "s0"),
+    } yield WallStatus(1, LastCol, dir, pad, Countdown), "s0"),
       (Gen.const(Rest), "act")) {
         (s0, act) =>
           {
             val (_, _, r, s1) = s0.apply(act.id)
             s1 should matchPattern {
-              case WallStatus(2, SecondLastCol, NW, p) if (p == s0.pad) =>
+              case WallStatus(2, SecondLastCol, NW, p, _) if (p == s0.pad) =>
             }
             r should be(PositiveReward)
           }
@@ -493,13 +493,13 @@ class WallStatusTest extends PropSpec with PropertyChecks with Matchers with Giv
   property("tx16") {
     forAll((for {
       dir <- Gen.oneOf(SE, SW)
-    } yield WallStatus(1, LastCol, dir, LastPad), "s0"),
+    } yield WallStatus(1, LastCol, dir, LastPad, Countdown), "s0"),
       (Gen.const(Left), "act")) {
         (s0, act) =>
           {
             val (_, _, r, s1) = s0.apply(act.id)
             s1 should matchPattern {
-              case WallStatus(2, SecondLastCol, NW, SecondLastPad) =>
+              case WallStatus(2, SecondLastCol, NW, SecondLastPad, _) =>
             }
             r should be(PositiveReward)
           }
@@ -517,13 +517,13 @@ class WallStatusTest extends PropSpec with PropertyChecks with Matchers with Giv
     forAll((for {
       pad <- Gen.choose(LastPad - 2, SecondLastPad)
       dir <- Gen.oneOf(SE, SW)
-    } yield WallStatus(1, LastCol, dir, pad), "s0"),
+    } yield WallStatus(1, LastCol, dir, pad, Countdown), "s0"),
       (Gen.const(Right), "act")) {
         (s0, act) =>
           {
             val (_, _, r, s1) = s0.apply(act.id)
             s1 should matchPattern {
-              case WallStatus(2, SecondLastCol, NW, p) if (p == s0.pad + 1) =>
+              case WallStatus(2, SecondLastCol, NW, p, _) if (p == s0.pad + 1) =>
             }
             r should be(PositiveReward)
           }
@@ -541,12 +541,12 @@ class WallStatusTest extends PropSpec with PropertyChecks with Matchers with Giv
     forAll((for {
       pad <- Gen.choose(2, LastPad)
       //      pad <- Gen.const(11)
-    } yield WallStatus(1, pad - 1, SE, pad), "s0")) {
+    } yield WallStatus(1, pad - 1, SE, pad, Countdown), "s0")) {
       (s0) =>
         {
           val (_, _, r, s1) = s0.apply(Rest.id)
           s1 should matchPattern {
-            case WallStatus(2, _, NW, _) =>
+            case WallStatus(2, _, NW, _, _) =>
           }
           s1.pad should be(s0.pad)
           s1.col should be(s0.col - 1)
@@ -565,13 +565,13 @@ class WallStatusTest extends PropSpec with PropertyChecks with Matchers with Giv
   property("tx19") {
     forAll((for {
       pad <- Gen.choose(3, LastPad)
-    } yield WallStatus(1, pad - 2, SE, pad), "s0"),
+    } yield WallStatus(1, pad - 2, SE, pad, Countdown), "s0"),
       (Gen.const(Left), "act")) {
         (s0, act) =>
           {
             val (_, _, r, s1) = s0.apply(act.id)
             s1 should matchPattern {
-              case WallStatus(2, c, NW, p) if (p == s0.pad - 1 && c == s0.col - 1) =>
+              case WallStatus(2, c, NW, p, _) if (p == s0.pad - 1 && c == s0.col - 1) =>
             }
             r should be(PositiveReward)
           }
@@ -588,13 +588,13 @@ class WallStatusTest extends PropSpec with PropertyChecks with Matchers with Giv
   property("tx20") {
     forAll((for {
       pad <- Gen.choose(1, SecondLastPad)
-    } yield WallStatus(1, pad, SE, pad), "s0"),
+    } yield WallStatus(1, pad, SE, pad, Countdown), "s0"),
       (Gen.const(Right), "act")) {
         (s0, act) =>
           {
             val (_, _, r, s1) = s0.apply(act.id)
             s1 should matchPattern {
-              case WallStatus(2, c, NE, p) if (p == s0.pad + 1 && c == s0.col + 1) =>
+              case WallStatus(2, c, NE, p, _) if (p == s0.pad + 1 && c == s0.col + 1) =>
             }
             r should be(PositiveReward)
           }
@@ -611,12 +611,12 @@ class WallStatusTest extends PropSpec with PropertyChecks with Matchers with Giv
   property("tx21") {
     forAll((for {
       pad <- Gen.choose(0, LastPad - 2)
-    } yield WallStatus(1, pad + PadSize, SW, pad), "s0")) {
+    } yield WallStatus(1, pad + PadSize, SW, pad, Countdown), "s0")) {
       (s0) =>
         {
           val (_, _, r, s1) = s0.apply(Rest.id)
           s1 should matchPattern {
-            case WallStatus(2, _, NE, _) =>
+            case WallStatus(2, _, NE, _, _) =>
           }
           s1 should have('col(s0.col + 1))
           s1 should have('pad(s0.pad))
@@ -635,13 +635,13 @@ class WallStatusTest extends PropSpec with PropertyChecks with Matchers with Giv
   property("tx22") {
     forAll((for {
       pad <- Gen.choose(0, LastPad - 3)
-    } yield WallStatus(1, pad + PadSize + 1, SW, pad), "s0"),
+    } yield WallStatus(1, pad + PadSize + 1, SW, pad, Countdown), "s0"),
       (Gen.const(Right), "act")) {
         (s0, act) =>
           {
             val (_, _, r, s1) = s0.apply(act.id)
             s1 should matchPattern {
-              case WallStatus(2, c, NE, p) if (p == s0.pad + 1 && c == s0.col + 1) =>
+              case WallStatus(2, c, NE, p, _) if (p == s0.pad + 1 && c == s0.col + 1) =>
             }
             r should be(PositiveReward)
           }
@@ -658,13 +658,13 @@ class WallStatusTest extends PropSpec with PropertyChecks with Matchers with Giv
   property("tx23") {
     forAll((for {
       pad <- Gen.choose(1, SecondLastPad)
-    } yield WallStatus(1, pad + PadSize - 1, SW, pad), "s0"),
+    } yield WallStatus(1, pad + PadSize - 1, SW, pad, Countdown), "s0"),
       (Gen.const(Left), "act")) {
         (s0, act) =>
           {
             val (_, _, r, s1) = s0.apply(act.id)
             s1 should matchPattern {
-              case WallStatus(2, c, NW, p) if (p == s0.pad - 1 && c == s0.col - 1) =>
+              case WallStatus(2, c, NW, p, _) if (p == s0.pad - 1 && c == s0.col - 1) =>
             }
             r should be(PositiveReward)
           }

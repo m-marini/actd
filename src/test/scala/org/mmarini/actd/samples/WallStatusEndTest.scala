@@ -53,7 +53,7 @@ class WallStatusEndTest extends PropSpec with PropertyChecks with Matchers with 
     forAll((for {
       pad <- Gen.choose(2, LastPad)
       dir <- Gen.oneOf(SE, SW)
-    } yield WallStatus(1, 0, dir, pad), "s0"),
+    } yield WallStatus(1, 0, dir, pad, 1), "s0"),
       (Gen.const(Rest), "act")) {
         (s0, act) =>
           {
@@ -75,7 +75,7 @@ class WallStatusEndTest extends PropSpec with PropertyChecks with Matchers with 
     forAll((for {
       pad <- Gen.choose(3, LastPad)
       dir <- Gen.oneOf(SE, SW)
-    } yield WallStatus(1, 0, dir, pad), "s0"),
+    } yield WallStatus(1, 0, dir, pad, 1), "s0"),
       (Gen.const(Left), "act")) {
         (s0, act) =>
           {
@@ -97,7 +97,7 @@ class WallStatusEndTest extends PropSpec with PropertyChecks with Matchers with 
     forAll((for {
       pad <- Gen.choose(1, SecondLastPad)
       dir <- Gen.oneOf(SE, SW)
-    } yield WallStatus(1, 0, dir, pad), "s0"),
+    } yield WallStatus(1, 0, dir, pad, 1), "s0"),
       (Gen.const(Right), "act")) {
         (s0, act) =>
           {
@@ -119,7 +119,7 @@ class WallStatusEndTest extends PropSpec with PropertyChecks with Matchers with 
     forAll((for {
       pad <- Gen.choose(1, LastPad - 2)
       dir <- Gen.oneOf(SE, SW)
-    } yield WallStatus(1, LastCol, dir, pad), "s0"),
+    } yield WallStatus(1, LastCol, dir, pad, 1), "s0"),
       (Gen.const(Rest), "act")) {
         (s0, act) =>
           {
@@ -141,7 +141,7 @@ class WallStatusEndTest extends PropSpec with PropertyChecks with Matchers with 
     forAll((for {
       pad <- Gen.choose(1, SecondLastPad)
       dir <- Gen.oneOf(SE, SW)
-    } yield WallStatus(1, LastCol, dir, pad), "s0"),
+    } yield WallStatus(1, LastCol, dir, pad, 1), "s0"),
       (Gen.const(Left), "act")) {
         (s0, act) =>
           {
@@ -163,7 +163,7 @@ class WallStatusEndTest extends PropSpec with PropertyChecks with Matchers with 
     forAll((for {
       pad <- Gen.choose(0, LastPad - 3)
       dir <- Gen.oneOf(SE, SW)
-    } yield WallStatus(1, LastCol, dir, pad), "s0"),
+    } yield WallStatus(1, LastCol, dir, pad, 1), "s0"),
       (Gen.const(Right), "act")) {
         (s0, act) =>
           {

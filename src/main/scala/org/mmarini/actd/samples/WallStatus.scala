@@ -40,7 +40,7 @@ import com.typesafe.scalalogging.LazyLogging
 import breeze.stats.distributions.RandBasis
 
 /** The status of wall game */
-case class WallStatus(row: Int, col: Int, direction: Direction.Value, pad: Int) {
+case class WallStatus(row: Int, col: Int, direction: Direction.Value, pad: Int, countdown: Int) {
 
   import WallStatus._
   import Direction._
@@ -56,8 +56,8 @@ case class WallStatus(row: Int, col: Int, direction: Direction.Value, pad: Int) 
 
   /** Moves the pad by action */
   private def movePad(action: PadAction.Value): WallStatus = action match {
-    case Left => if (pad > 0) WallStatus(row, col, direction, pad - 1) else this
-    case Right => if (pad < LastPad) WallStatus(row, col, direction, pad + 1) else this
+    case Left => if (pad > 0) WallStatus(row, col, direction, pad - 1, countdown) else this
+    case Right => if (pad < LastPad) WallStatus(row, col, direction, pad + 1, countdown) else this
     case _ => this
   }
 
@@ -66,27 +66,27 @@ case class WallStatus(row: Int, col: Int, direction: Direction.Value, pad: Int) 
     case (s1, r) => (this, action, r, s1)
   }
 
-  private def direction(dir: Direction.Value): WallStatus = if (dir != direction) WallStatus(row, col, dir, pad) else this
+  private def direction(dir: Direction.Value): WallStatus = if (dir != direction) WallStatus(row, col, dir, pad, countdown) else this
 
   private def moveBall(dir: Direction.Value): WallStatus = direction(dir).moveBall
 
   private def moveBall: WallStatus = this match {
-    case WallStatus(Height, 0, _, _) => direction(SE).moveBallNoBounce
-    case WallStatus(Height, LastCol, _, _) => direction(SW).moveBallNoBounce
-    case WallStatus(Height, _, NE, _) => direction(SE).moveBallNoBounce
-    case WallStatus(Height, _, NW, _) => direction(SW).moveBallNoBounce
-    case WallStatus(_, 0, NW, _) => direction(NE).moveBallNoBounce
-    case WallStatus(_, 0, SW, _) => direction(SE).moveBallNoBounce
-    case WallStatus(_, LastCol, NE, _) => direction(NW).moveBallNoBounce
-    case WallStatus(_, LastCol, SE, _) => direction(SW).moveBallNoBounce
+    case WallStatus(Height, 0, _, _, _) => direction(SE).moveBallNoBounce
+    case WallStatus(Height, LastCol, _, _, _) => direction(SW).moveBallNoBounce
+    case WallStatus(Height, _, NE, _, _) => direction(SE).moveBallNoBounce
+    case WallStatus(Height, _, NW, _, _) => direction(SW).moveBallNoBounce
+    case WallStatus(_, 0, NW, _, _) => direction(NE).moveBallNoBounce
+    case WallStatus(_, 0, SW, _, _) => direction(SE).moveBallNoBounce
+    case WallStatus(_, LastCol, NE, _, _) => direction(NW).moveBallNoBounce
+    case WallStatus(_, LastCol, SE, _v, _) => direction(SW).moveBallNoBounce
     case _ => moveBallNoBounce
   }
 
   private def moveBallNoBounce = direction match {
-    case NE => WallStatus(row + 1, col + 1, direction, pad)
-    case SE => WallStatus(row - 1, col + 1, direction, pad)
-    case NW => WallStatus(row + 1, col - 1, direction, pad)
-    case _ => WallStatus(row - 1, col - 1, direction, pad)
+    case NE => WallStatus(row + 1, col + 1, direction, pad, countdown)
+    case SE => WallStatus(row - 1, col + 1, direction, pad, countdown)
+    case NW => WallStatus(row + 1, col - 1, direction, pad, countdown)
+    case _ => WallStatus(row - 1, col - 1, direction, pad, countdown)
   }
 
   /** Produce the feedback of an applied action */
@@ -108,9 +108,10 @@ case class WallStatus(row: Int, col: Int, direction: Direction.Value, pad: Int) 
       (moveBall.movePad(PadAction(action)), 0.0)
     }
 
+  private def bounce: WallStatus = if (countdown <= 1) endStatus else WallStatus(row, col, direction, pad, countdown - 1)
+
   /** Returns true if is a final status */
   def finalStatus: Boolean = this == endStatus
-
 }
 
 /** A factory of [[WallStatus1]] */
@@ -137,6 +138,7 @@ object WallStatus extends LazyLogging {
   val SecondLastCol = Width - 2
   val LastPad = Width - PadSize
   val SecondLastPad = LastPad - 1
+  val Countdown = 10
 
   val EnvSeed = 4321L
 
@@ -145,7 +147,7 @@ object WallStatus extends LazyLogging {
 
   val envRandom = new RandBasis(new MersenneTwister(EnvSeed))
 
-  val endStatus = WallStatus(0, 0, SE, 1)
+  val endStatus = WallStatus(0, 0, SE, 1, 0)
 
   /** Creates a initial game status */
   def initial: WallStatus = {
@@ -160,7 +162,7 @@ object WallStatus extends LazyLogging {
       case c if (c >= LastPad) => LastPad
       case c => c - 1
     }
-    WallStatus(1, col, s, pad)
+    WallStatus(1, col, s, pad, Countdown)
   }
 
   type TransitionMapper = PartialFunction[WallStatus, (WallStatus, Double)]
@@ -183,24 +185,24 @@ object WallStatus extends LazyLogging {
        *     o|
        * ===# |
        */
-    case WallStatus(_, LastCol, _, pad) if (pad >= LastPad - 2) => (s.moveBall(NW).movePad(Right), PositiveReward)
+    case WallStatus(_, LastCol, _, pad, _) if (pad >= LastPad - 2) => (s.moveBall(NW).movePad(Right).bounce, PositiveReward)
     /*
        *     . |
        *      o|
        * ===#. |
        */
-    case WallStatus(_, LastCol, _, _) => (endStatus, NegativeReward)
+    case WallStatus(_, LastCol, _, _, _) => (endStatus, NegativeReward)
     /*
        * | .
        * |o
        * |===#
        */
-    case WallStatus(_, 0, _, 0) => (s.moveBall(NE).movePad(Right), PositiveReward)
+    case WallStatus(_, 0, _, 0, _) => (s.moveBall(NE).movePad(Right).bounce, PositiveReward)
     /*
        * |o
        * | ===#
        */
-    case WallStatus(_, 0, _, _) => (endStatus, NegativeReward)
+    case WallStatus(_, 0, _, _, _) => (endStatus, NegativeReward)
   }
 
   private def rightOnBottom2: TransitionMapper = (s) => s match {
@@ -211,7 +213,7 @@ object WallStatus extends LazyLogging {
        *    o
        * ===#-
        */
-    case WallStatus(_, col, SE, pad) if (col < pad || col >= pad + PadSize) => (endStatus, NegativeReward)
+    case WallStatus(_, col, SE, pad, _) if (col < pad || col >= pad + PadSize) => (endStatus, NegativeReward)
     /*
        *   o
        *  .===#
@@ -219,13 +221,13 @@ object WallStatus extends LazyLogging {
        *      o
        * ===#-
        */
-    case WallStatus(_, col, SW, pad) if (col <= pad || col >= pad + PadSize + 2) => (endStatus, NegativeReward)
+    case WallStatus(_, col, SW, pad, _) if (col <= pad || col >= pad + PadSize + 2) => (endStatus, NegativeReward)
     /*
        *      .
        *     o
        * ===#
        */
-    case WallStatus(_, col, SW, pad) if (col == pad + PadSize + 1) => (s.moveBall(NE).movePad(Right), PositiveReward)
+    case WallStatus(_, col, SW, pad, _) if (col == pad + PadSize + 1) => (s.moveBall(NE).movePad(Right).bounce, PositiveReward)
   }
 
   private def rightOnBottom3: TransitionMapper = (s) => s match {
@@ -242,13 +244,13 @@ object WallStatus extends LazyLogging {
        *  o
        * -==#
        */
-    case WallStatus(_, col, SW, _) => (s.moveBall(NW).movePad(Right), PositiveReward)
+    case WallStatus(_, col, SW, _, _) => (s.moveBall(NW).movePad(Right).bounce, PositiveReward)
     /*
        * O .
        *  o
        * ===#
        */
-    case WallStatus(_, col, SE, _) => (s.moveBall(NE).movePad(Right), PositiveReward)
+    case WallStatus(_, col, SE, _, _) => (s.moveBall(NE).movePad(Right).bounce, PositiveReward)
   }
 
   private def leftOnBottom = leftOnBottom1 orElse
@@ -269,23 +271,23 @@ object WallStatus extends LazyLogging {
        * |o
        * | #===
        */
-    case WallStatus(_, 0, _, pad) if (pad <= 2) => (s.moveBall(NE).movePad(Left), PositiveReward)
+    case WallStatus(_, 0, _, pad, _) if (pad <= 2) => (s.moveBall(NE).movePad(Left).bounce, PositiveReward)
     /*
        * |o
        * | .#===
        */
-    case WallStatus(_, 0, _, _) => (endStatus, NegativeReward)
+    case WallStatus(_, 0, _, _, _) => (endStatus, NegativeReward)
     /*
        *   . |
        *    o|
        * #==-|
        */
-    case WallStatus(_, LastCol, _, LastPad) => (s.moveBall(NW).movePad(Left), PositiveReward)
+    case WallStatus(_, LastCol, _, LastPad, _) => (s.moveBall(NW).movePad(Left).bounce, PositiveReward)
     /*
        *     o|
        * #==- |
        */
-    case WallStatus(_, LastCol, _, _) => (endStatus, NegativeReward)
+    case WallStatus(_, LastCol, _, _, _) => (endStatus, NegativeReward)
   }
 
   private def leftOnBottom2: TransitionMapper = (s) => s match {
@@ -296,7 +298,7 @@ object WallStatus extends LazyLogging {
        *    o
        * #==-
        */
-    case WallStatus(_, col, SE, pad) if (col <= pad - 3 || col >= pad + PadSize - 1) => (endStatus, NegativeReward)
+    case WallStatus(_, col, SE, pad, _) if (col <= pad - 3 || col >= pad + PadSize - 1) => (endStatus, NegativeReward)
     /*
        *  o
        * .#==-
@@ -304,13 +306,13 @@ object WallStatus extends LazyLogging {
        *     o
        * #==-
        */
-    case WallStatus(_, col, SW, pad) if (col < pad || col >= pad + PadSize) => (endStatus, NegativeReward)
+    case WallStatus(_, col, SW, pad, _) if (col < pad || col >= pad + PadSize) => (endStatus, NegativeReward)
     /*
        * .
        *  o
        *   #==-
        */
-    case WallStatus(_, col, SE, pad) if (col == pad - 2) => (s.moveBall(NW).movePad(Left), PositiveReward)
+    case WallStatus(_, col, SE, pad, _) if (col == pad - 2) => (s.moveBall(NW).movePad(Left).bounce, PositiveReward)
   }
 
   private def leftOnBottom3: TransitionMapper = (s) => s match {
@@ -327,13 +329,13 @@ object WallStatus extends LazyLogging {
        *   o
        * #==-
        */
-    case WallStatus(_, _, SE, _) => (s.moveBall(NE).movePad(Left), PositiveReward)
+    case WallStatus(_, _, SE, _, _) => (s.moveBall(NE).movePad(Left).bounce, PositiveReward)
     /*
        * . O
        *  o
        * #==-
        */
-    case WallStatus(_, _, SW, _) => (s.moveBall(NW).movePad(Left), PositiveReward)
+    case WallStatus(_, _, SW, _, _) => (s.moveBall(NW).movePad(Left).bounce, PositiveReward)
   }
 
   private def restOnBottom = restOnBottom1 orElse
@@ -350,7 +352,7 @@ object WallStatus extends LazyLogging {
        *    o|
        * === |
        */
-    case WallStatus(_, LastCol, _, pad) if (pad >= SecondLastPad) => (s.moveBall(NW), PositiveReward)
+    case WallStatus(_, LastCol, _, pad, _) if (pad >= SecondLastPad) => (s.moveBall(NW).bounce, PositiveReward)
     /*
        *   . |
        *    o|
@@ -360,12 +362,12 @@ object WallStatus extends LazyLogging {
        *    o|
        * === |
        */
-    case WallStatus(_, LastCol, _, pad) if (pad >= SecondLastPad) => (s.moveBall(NW), PositiveReward)
+    case WallStatus(_, LastCol, _, pad, _) if (pad >= SecondLastPad) => (s.moveBall(NW).bounce, PositiveReward)
     /*
        *     o|
        * ===. |
        */
-    case WallStatus(_, LastCol, _, _) => (endStatus, NegativeReward)
+    case WallStatus(_, LastCol, _, _, _) => (endStatus, NegativeReward)
     /*
        * | .
        * |o
@@ -375,7 +377,7 @@ object WallStatus extends LazyLogging {
        * |o
        * | ===
        */
-    case WallStatus(_, 0, _, pad) if (pad <= 1) => (s.moveBall(NE), PositiveReward)
+    case WallStatus(_, 0, _, pad, _) if (pad <= 1) => (s.moveBall(NE).bounce, PositiveReward)
   }
 
   private def restOnBottom2: TransitionMapper = (s) => s match {
@@ -383,7 +385,7 @@ object WallStatus extends LazyLogging {
        * |o
        * | .===
        */
-    case WallStatus(_, 0, _, _) => (endStatus, NegativeReward)
+    case WallStatus(_, 0, _, _, _) => (endStatus, NegativeReward)
     /*
        * o
        *  .===
@@ -391,7 +393,7 @@ object WallStatus extends LazyLogging {
        *    o
        * === .
        */
-    case WallStatus(_, c, SE, pad) if (c >= pad + PadSize || c <= pad - 2) => (endStatus, NegativeReward)
+    case WallStatus(_, c, SE, pad, _) if (c >= pad + PadSize || c <= pad - 2) => (endStatus, NegativeReward)
     /*
        *  o
        * . ===
@@ -399,7 +401,7 @@ object WallStatus extends LazyLogging {
        *     o
        * ===.
        */
-    case WallStatus(_, c, SW, pad) if (c >= pad + PadSize + 1 || c <= pad - 1) => (endStatus, NegativeReward)
+    case WallStatus(_, c, SW, pad, _) if (c >= pad + PadSize + 1 || c <= pad - 1) => (endStatus, NegativeReward)
   }
 
   private def restOnBottom3: TransitionMapper = (s) => s match {
@@ -408,24 +410,24 @@ object WallStatus extends LazyLogging {
        *  o
        *   ===
        */
-    case WallStatus(_, col, SE, pad) if (col == pad - 1) => (s.moveBall(NW), PositiveReward)
+    case WallStatus(_, col, SE, pad, _) if (col == pad - 1) => (s.moveBall(NW).bounce, PositiveReward)
     /*
        *  .
        * o
        * ===
        */
-    case WallStatus(_, _, SE, _) => (s.moveBall(NE), PositiveReward)
+    case WallStatus(_, _, SE, _, _) => (s.moveBall(NE).bounce, PositiveReward)
     /*
        *     .
        *    o
        * ===
        */
-    case WallStatus(_, col, SW, pad) if (col == pad + PadSize) => (s.moveBall(NE), PositiveReward)
+    case WallStatus(_, col, SW, pad, _) if (col == pad + PadSize) => (s.moveBall(NE).bounce, PositiveReward)
     /*
        *  . O
        *   o
        * ===
        */
-    case WallStatus(_, _, SW, _) => (s.moveBall(NW), PositiveReward)
+    case WallStatus(_, _, SW, _, _) => (s.moveBall(NW).bounce, PositiveReward)
   }
 }
