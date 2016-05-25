@@ -29,6 +29,9 @@
 
 package org.mmarini.actd.samples
 
+import scala.math.max
+import scala.math.min
+
 import org.mmarini.actd.samples.WallStatus.Direction
 import org.mmarini.actd.samples.WallStatus.PadAction
 import org.scalacheck.Gen
@@ -37,9 +40,7 @@ import org.scalatest.Matchers
 import org.scalatest.PropSpec
 import org.scalatest.prop.PropertyChecks
 
-import scala.math.max
-import scala.math.min
-class WallStatus1Test1 extends PropSpec with PropertyChecks with Matchers with GivenWhenThen {
+class WallStatusExtraTest extends PropSpec with PropertyChecks with Matchers with GivenWhenThen {
   import WallStatus._
   import WallStatus.Direction._
   import WallStatus.PadAction._

@@ -37,7 +37,7 @@ import org.scalatest.Matchers
 import org.scalatest.PropSpec
 import org.scalatest.prop.PropertyChecks
 
-class WallStatus1Test extends PropSpec with PropertyChecks with Matchers with GivenWhenThen {
+class WallStatusTest extends PropSpec with PropertyChecks with Matchers with GivenWhenThen {
   import WallStatus._
   import WallStatus.Direction._
   import WallStatus.PadAction._
@@ -241,11 +241,11 @@ class WallStatus1Test extends PropSpec with PropertyChecks with Matchers with Gi
     forAll((for {
       r <- Gen.choose(2, SecondLastRow)
       pad <- Gen.choose(0, LastPad)
-      //      r <- Gen.const(9)
-      //      pad <- Gen.const(3)
+      //      r <- Gen.const(3)
+      //      pad <- Gen.const(9)
     } yield WallStatus(r, LastCol, SE, pad), "s0"),
       (Gen.oneOf(PadAction.values.toSeq), "act")) {
-        //      (Gen.const(Rest), "act")) {
+        //      (Gen.const(Left), "act")) {
         (s0, act) =>
           {
             val (_, _, r, s1) = s0.apply(act.id)
@@ -667,138 +667,6 @@ class WallStatus1Test extends PropSpec with PropertyChecks with Matchers with Gi
               case WallStatus(2, c, NW, p) if (p == s0.pad - 1 && c == s0.col - 1) =>
             }
             r should be(PositiveReward)
-          }
-      }
-  }
-
-  /**
-   *  2 | O           |
-   *  1 |o            |
-   *  0 | .===-----===|
-   *     0123456789012
-   *     0000000000111
-   */
-  property("end0") {
-    forAll((for {
-      pad <- Gen.choose(2, LastPad)
-      dir <- Gen.oneOf(SE, SW)
-    } yield WallStatus(1, 0, dir, pad), "s0"),
-      (Gen.const(Rest), "act")) {
-        (s0, act) =>
-          {
-            val (_, _, r, s1) = s0.apply(act.id)
-            s1 should have('finalStatus(true))
-            r should be(NegativeReward)
-          }
-      }
-  }
-
-  /**
-   *  2 | O           |
-   *  1 |o            |
-   *  0 | .#===---#===|
-   *     0123456789012
-   *     0000000000111
-   */
-  property("end1") {
-    forAll((for {
-      pad <- Gen.choose(3, LastPad)
-      dir <- Gen.oneOf(SE, SW)
-    } yield WallStatus(1, 0, dir, pad), "s0"),
-      (Gen.const(Left), "act")) {
-        (s0, act) =>
-          {
-            val (_, _, r, s1) = s0.apply(act.id)
-            s1 should have('finalStatus(true))
-            r should be(NegativeReward)
-          }
-      }
-  }
-
-  /**
-   *  2 | O           |
-   *  1 |o            |
-   *  0 | .==#----===#|
-   *     0123456789012
-   *     0000000000111
-   */
-  property("end2") {
-    forAll((for {
-      pad <- Gen.choose(1, SecondLastPad)
-      dir <- Gen.oneOf(SE, SW)
-    } yield WallStatus(1, 0, dir, pad), "s0"),
-      (Gen.const(Right), "act")) {
-        (s0, act) =>
-          {
-            val (_, _, r, s1) = s0.apply(act.id)
-            s1 should have('finalStatus(true))
-            r should be(NegativeReward)
-          }
-      }
-  }
-
-  /**
-   *  2 |           O |
-   *  1 |            o|
-   *  0 |===-----===. |
-   *     0123456789012
-   *     0000000000111
-   */
-  property("end3") {
-    forAll((for {
-      pad <- Gen.choose(1, LastPad - 2)
-      dir <- Gen.oneOf(SE, SW)
-    } yield WallStatus(1, LastCol, dir, pad), "s0"),
-      (Gen.const(Rest), "act")) {
-        (s0, act) =>
-          {
-            val (_, _, r, s1) = s0.apply(act.id)
-            s1 should have('finalStatus(true))
-            r should be(NegativeReward)
-          }
-      }
-  }
-
-  /**
-   *  2 |           O |
-   *  1 |            o|
-   *  0 |#===----#=== |
-   *     0123456789012
-   *     0000000000111
-   */
-  property("end4") {
-    forAll((for {
-      pad <- Gen.choose(1, SecondLastPad)
-      dir <- Gen.oneOf(SE, SW)
-    } yield WallStatus(1, LastCol, dir, pad), "s0"),
-      (Gen.const(Left), "act")) {
-        (s0, act) =>
-          {
-            val (_, _, r, s1) = s0.apply(act.id)
-            s1 should have('finalStatus(true))
-            r should be(NegativeReward)
-          }
-      }
-  }
-
-  /**
-   *  2 |           O |
-   *  1 |            o|
-   *  0 |===#---===#. |
-   *     0123456789012
-   *     0000000000111
-   */
-  property("end5") {
-    forAll((for {
-      pad <- Gen.choose(0, LastPad - 3)
-      dir <- Gen.oneOf(SE, SW)
-    } yield WallStatus(1, LastCol, dir, pad), "s0"),
-      (Gen.const(Right), "act")) {
-        (s0, act) =>
-          {
-            val (_, _, r, s1) = s0.apply(act.id)
-            s1 should have('finalStatus(true))
-            r should be(NegativeReward)
           }
       }
   }

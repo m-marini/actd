@@ -32,6 +32,8 @@ package org.mmarini.actd.samples
 import org.apache.commons.math3.random.MersenneTwister
 import org.mmarini.actd.Action
 import org.mmarini.actd.samples.WallStatus.Direction
+import org.mmarini.actd.samples.WallStatus.PadAction
+import org.mmarini.actd.samples.WallStatus.TransitionMapper
 
 import com.typesafe.scalalogging.LazyLogging
 
@@ -52,310 +54,58 @@ case class WallStatus(row: Int, col: Int, direction: Direction.Value, pad: Int) 
   require(row >= 0)
   require(row >= 1 || row == 0 && direction == SE && pad == 1, s"$row, $col $direction $pad")
 
-  /** Returns a [[WallStatus1]] with changed pad location */
-  def pad(x: Int): WallStatus = WallStatus(row, col, direction, x)
-
   /** Moves the pad by action */
-  private def movePad(action: Action) = PadAction.apply(action) match {
-    case Left if pad > 0 => pad - 1
-    case Right if pad < LastPad => pad + 1
-    case _ => pad
+  private def movePad(action: PadAction.Value): WallStatus = action match {
+    case Left => if (pad > 0) WallStatus(row, col, direction, pad - 1) else this
+    case Right => if (pad < LastPad) WallStatus(row, col, direction, pad + 1) else this
+    case _ => this
   }
 
   /** Produce the feedback of an applied action */
-  def apply(action: Action): (WallStatus, Action, Double, WallStatus) = apply1(action) match {
+  def apply(action: Action): (WallStatus, Action, Double, WallStatus) = next(action) match {
     case (s1, r) => (this, action, r, s1)
   }
 
+  private def direction(dir: Direction.Value): WallStatus = if (dir != direction) WallStatus(row, col, dir, pad) else this
+
+  private def moveBall(dir: Direction.Value): WallStatus = direction(dir).moveBall
+
+  private def moveBall: WallStatus = this match {
+    case WallStatus(Height, 0, _, _) => direction(SE).moveBallNoBounce
+    case WallStatus(Height, LastCol, _, _) => direction(SW).moveBallNoBounce
+    case WallStatus(Height, _, NE, _) => direction(SE).moveBallNoBounce
+    case WallStatus(Height, _, NW, _) => direction(SW).moveBallNoBounce
+    case WallStatus(_, 0, NW, _) => direction(NE).moveBallNoBounce
+    case WallStatus(_, 0, SW, _) => direction(SE).moveBallNoBounce
+    case WallStatus(_, LastCol, NE, _) => direction(NW).moveBallNoBounce
+    case WallStatus(_, LastCol, SE, _) => direction(SW).moveBallNoBounce
+    case _ => moveBallNoBounce
+  }
+
+  private def moveBallNoBounce = direction match {
+    case NE => WallStatus(row + 1, col + 1, direction, pad)
+    case SE => WallStatus(row - 1, col + 1, direction, pad)
+    case NW => WallStatus(row + 1, col - 1, direction, pad)
+    case _ => WallStatus(row - 1, col - 1, direction, pad)
+  }
+
   /** Produce the feedback of an applied action */
-  private def apply1(action: Action): (WallStatus, Double) =
+  private def next(action: Action): (WallStatus, Double) =
     if (finalStatus) {
       (WallStatus.initial, 0.0)
-    } else if (row == Height) {
-      // Ball on top
-      ballOnTop match {
-        case (nc, nd) => (WallStatus(Height - 1, nc, nd, movePad(action)), 0.0)
-      }
     } else if (row == 1) {
-      // Ball on bottom
-      PadAction(action) match {
-        case Rest => restOnBottom
-        case Right => rightOnBottom
-        case Left => leftOnBottom
+      if (direction == NE || direction == NW) {
+        (moveBall.movePad(PadAction(action)), 0.0)
+      } else {
+        // Ball on bottom
+        PadAction(action) match {
+          case Rest => restOnBottom(this)
+          case Right => rightOnBottom(this)
+          case Left => leftOnBottom(this)
+        }
       }
     } else {
-      ballOnMiddle match {
-        case (nr, nc, nd) => (WallStatus(nr, nc, nd, movePad(action)), 0.0)
-      }
-    }
-
-  private def leftOnBottom =
-    this match {
-      case WallStatus(_, _, NW, _) => (WallStatus(2, col - 1, NW, movePad((Left.id))), 0.0)
-      case WallStatus(_, _, NE, _) => (WallStatus(2, col + 1, NE, movePad((Left.id))), 0.0)
-      /*
-       * | .
-       * |o
-       * |===
-       */
-      case WallStatus(_, 0, _, 0) => (WallStatus(2, 1, NE, 0), PositiveReward)
-      /*
-       * | .
-       * |o
-       * |#===
-       */
-      case WallStatus(_, 0, _, 1) => (WallStatus(2, 1, NE, 0), PositiveReward)
-      /*
-       * | .
-       * |o
-       * | #===
-       */
-      case WallStatus(_, 0, _, 2) => (WallStatus(2, 1, NE, 1), PositiveReward)
-      /*
-       * |o
-       * | .#===
-       */
-      case WallStatus(_, 0, _, _) => (endStatus, NegativeReward)
-      /*
-       *   . |
-       *    o|
-       * #==-|
-       */
-      case WallStatus(_, LastCol, _, LastPad) => (WallStatus(2, SecondLastCol, NW, SecondLastPad), PositiveReward)
-      /*
-       *     o|
-       * #==- |
-       */
-      case WallStatus(_, LastCol, _, _) => (endStatus, NegativeReward)
-      /*
-       * o
-       *  .#==-
-       *
-       *    o
-       * #==-
-       */
-      case WallStatus(_, col, SE, pad) if (col <= pad - 3 || col >= pad + PadSize - 1) => (endStatus, NegativeReward)
-      /*
-       *  o
-       * .#==-
-       *
-       *     o
-       * #==-
-       */
-      case WallStatus(_, col, SW, pad) if (col < pad || col >= pad + PadSize) => (endStatus, NegativeReward)
-      /*
-       * .
-       *  o
-       *   #==-
-       */
-      case WallStatus(_, col, SE, pad) if (col == pad - 2) => (WallStatus(2, col - 1, NW, movePad(Left.id)), PositiveReward)
-      /*
-       * O .
-       *  o
-       *  #==-
-       *
-       * O .
-       *  o
-       *  #==-
-       *
-       *  O .
-       *   o
-       * #==-
-       */
-      case WallStatus(_, col, SE, _) => (WallStatus(2, col + 1, NE, movePad(Left.id)), PositiveReward)
-      /*
-       * . O
-       *  o
-       * #==-
-       */
-      case WallStatus(_, col, SW, _) => (WallStatus(2, col - 1, NW, movePad(Left.id)), PositiveReward)
-    }
-
-  private def rightOnBottom =
-    this match {
-      case WallStatus(_, _, NW, _) => (WallStatus(2, col - 1, NW, movePad((Left.id))), 0.0)
-      case WallStatus(_, _, NE, _) => (WallStatus(2, col + 1, NE, movePad((Left.id))), 0.0)
-      /*
-       *   . |
-       *    o|
-       *  ===|
-       */
-      case WallStatus(_, LastCol, _, LastPad) => (WallStatus(2, SecondLastCol, NW, pad), PositiveReward)
-      /*
-       *   . |
-       *    o|
-       * ===#|
-       */
-      case WallStatus(_, LastCol, _, SecondLastPad) => (WallStatus(2, SecondLastCol, NW, LastPad), PositiveReward)
-      /*
-       *    . |
-       *     o|
-       * ===# |
-       */
-      case WallStatus(_, LastCol, _, pad) if (pad == LastPad - 2) => (WallStatus(2, SecondLastCol, NW, movePad(Right.id)), PositiveReward)
-      /*
-       *     . |
-       *      o|
-       * ===#. |
-       */
-      case WallStatus(_, LastCol, _, _) => (endStatus, NegativeReward)
-      /*
-       * | .
-       * |o
-       * |===#
-       */
-      case WallStatus(_, 0, _, 0) => (WallStatus(2, 1, NE, movePad(Right.id)), PositiveReward)
-      /*
-       * |o
-       * | ===#
-       */
-      case WallStatus(_, 0, _, _) => (endStatus, NegativeReward)
-      /*
-       * o
-       *  ===#
-       *
-       *    o
-       * ===#-
-       */
-      case WallStatus(_, col, SE, pad) if (col < pad || col >= pad + PadSize) => (endStatus, NegativeReward)
-      /*
-       *   o
-       *  .===#
-       *
-       *      o
-       * ===#-
-       */
-      case WallStatus(_, col, SW, pad) if (col <= pad || col >= pad + PadSize + 2) => (endStatus, NegativeReward)
-      /*
-       *      .
-       *     o
-       * ===#
-       */
-      case WallStatus(_, col, SW, pad) if (col == pad + PadSize + 1) => (WallStatus(2, col + 1, NE, movePad(Right.id)), PositiveReward)
-      /*
-       *   . O
-       *    o
-       * -==#
-       *
-       *  . O
-       *   o
-       * -==#
-       *
-       * . O
-       *  o
-       * -==#
-       */
-      case WallStatus(_, col, SW, _) => (WallStatus(2, col - 1, NW, movePad(Right.id)), PositiveReward)
-      /*
-       * O .
-       *  o
-       * ===#
-       */
-      case WallStatus(_, col, SE, _) => (WallStatus(2, col + 1, NE, movePad(Right.id)), PositiveReward)
-    }
-
-  private def restOnBottom =
-    this match {
-      case WallStatus(_, _, NW, _) => (WallStatus(2, col - 1, NW, movePad((Left.id))), 0.0)
-      case WallStatus(_, _, NE, _) => (WallStatus(2, col + 1, NE, movePad((Left.id))), 0.0)
-      /*
-       *   . |
-       *    o|
-       *  ===|
-       */
-      case WallStatus(_, LastCol, _, LastPad) => (WallStatus(2, SecondLastCol, NW, pad), PositiveReward)
-      /*
-       *   . |
-       *    o|
-       * === |
-       */
-      case WallStatus(_, LastCol, _, SecondLastPad) => (WallStatus(2, SecondLastCol, NW, pad), PositiveReward)
-      /*
-       *     o|
-       * ===. |
-       */
-      case WallStatus(_, LastCol, _, _) => (endStatus, NegativeReward)
-      /*
-       * | .
-       * |o
-       * |===
-       */
-      case WallStatus(_, 0, _, 0) => (WallStatus(2, 1, NE, pad), PositiveReward)
-      /*
-       * | .
-       * |o
-       * | ===
-       */
-      case WallStatus(_, 0, _, 1) => (WallStatus(2, 1, NE, pad), PositiveReward)
-      /*
-       * |o
-       * | .===
-       */
-      case WallStatus(_, 0, _, _) => (endStatus, NegativeReward)
-      /*
-       * o
-       *  .===
-       *
-       *    o
-       * === .
-       */
-      case WallStatus(_, c, SE, _) if (c >= pad + PadSize || c <= pad - 2) =>
-        (endStatus, NegativeReward)
-      /*
-       *  o
-       * . ===
-       *
-       *     o
-       * ===.
-       */
-      case WallStatus(_, c, SW, _) if (c >= pad + PadSize + 1 || c <= pad - 1) =>
-        (endStatus, NegativeReward)
-      /*
-       * .
-       *  o
-       *   ===
-       */
-      case WallStatus(_, col, SE, pad) if (col == pad - 1) => (WallStatus(2, col - 1, NW, pad), PositiveReward)
-      /*
-       *  .
-       * o
-       * ===
-       */
-      case WallStatus(_, _, SE, _) => (WallStatus(2, col + 1, NE, pad), PositiveReward)
-      /*
-       *     .
-       *    o
-       * ===
-       */
-      case WallStatus(_, _col, SW, pad) if (col == pad + PadSize) => (WallStatus(2, col + 1, NE, pad), PositiveReward)
-      /*
-       *  . O
-       *   o
-       * ===
-       */
-      case WallStatus(_, _, SW, _) => (WallStatus(2, col - 1, NW, pad), PositiveReward)
-    }
-
-  private def ballOnMiddle =
-    this match {
-      case WallStatus(r, 0, NW, _) => (r + 1, 1, NE)
-      case WallStatus(r, 0, SW, _) => (r - 1, 1, SE)
-      case WallStatus(r, LastCol, NE, _) => (r + 1, SecondLastCol, NW)
-      case WallStatus(r, LastCol, SE, _) => (r - 1, SecondLastCol, SW)
-      case WallStatus(r, c, NE, _) => (r + 1, c + 1, NE)
-      case WallStatus(r, c, SE, _) => (r - 1, c + 1, SE)
-      case WallStatus(r, c, NW, _) => (r + 1, c - 1, NW)
-      case WallStatus(r, c, SW, _) => (r - 1, c - 1, SW)
-    }
-
-  private def ballOnTop =
-    this match {
-      case WallStatus(_, 0, _, _) => (1, SE)
-      case WallStatus(_, LastCol, _, _) => (SecondLastCol, SW)
-      case WallStatus(_, c, NE, _) => (c + 1, SE)
-      case WallStatus(_, c, SE, _) => (c + 1, SE)
-      case WallStatus(_, c, NW, _) => (c - 1, SW)
-      case WallStatus(_, c, SW, _) => (c - 1, SW)
+      (moveBall.movePad(PadAction(action)), 0.0)
     }
 
   /** Returns true if is a final status */
@@ -413,4 +163,269 @@ object WallStatus extends LazyLogging {
     WallStatus(1, col, s, pad)
   }
 
+  type TransitionMapper = PartialFunction[WallStatus, (WallStatus, Double)]
+
+  private def rightOnBottom = rightOnBottom1 orElse
+    rightOnBottom2 orElse
+    rightOnBottom3
+
+  private def rightOnBottom1: TransitionMapper = (s) => s match {
+    /*
+       *   . |
+       *    o|
+       *  ===|
+       *
+       *   . |
+       *    o|
+       * ===#|
+       *
+       *    . |
+       *     o|
+       * ===# |
+       */
+    case WallStatus(_, LastCol, _, pad) if (pad >= LastPad - 2) => (s.moveBall(NW).movePad(Right), PositiveReward)
+    /*
+       *     . |
+       *      o|
+       * ===#. |
+       */
+    case WallStatus(_, LastCol, _, _) => (endStatus, NegativeReward)
+    /*
+       * | .
+       * |o
+       * |===#
+       */
+    case WallStatus(_, 0, _, 0) => (s.moveBall(NE).movePad(Right), PositiveReward)
+    /*
+       * |o
+       * | ===#
+       */
+    case WallStatus(_, 0, _, _) => (endStatus, NegativeReward)
+  }
+
+  private def rightOnBottom2: TransitionMapper = (s) => s match {
+    /*
+       * o
+       *  ===#
+       *
+       *    o
+       * ===#-
+       */
+    case WallStatus(_, col, SE, pad) if (col < pad || col >= pad + PadSize) => (endStatus, NegativeReward)
+    /*
+       *   o
+       *  .===#
+       *
+       *      o
+       * ===#-
+       */
+    case WallStatus(_, col, SW, pad) if (col <= pad || col >= pad + PadSize + 2) => (endStatus, NegativeReward)
+    /*
+       *      .
+       *     o
+       * ===#
+       */
+    case WallStatus(_, col, SW, pad) if (col == pad + PadSize + 1) => (s.moveBall(NE).movePad(Right), PositiveReward)
+  }
+
+  private def rightOnBottom3: TransitionMapper = (s) => s match {
+    /*
+       *   . O
+       *    o
+       * -==#
+       *
+       *  . O
+       *   o
+       * -==#
+       *
+       * . O
+       *  o
+       * -==#
+       */
+    case WallStatus(_, col, SW, _) => (s.moveBall(NW).movePad(Right), PositiveReward)
+    /*
+       * O .
+       *  o
+       * ===#
+       */
+    case WallStatus(_, col, SE, _) => (s.moveBall(NE).movePad(Right), PositiveReward)
+  }
+
+  private def leftOnBottom = leftOnBottom1 orElse
+    leftOnBottom2 orElse
+    leftOnBottom3
+
+  private def leftOnBottom1: TransitionMapper = (s) => s match {
+    /*
+       * | .
+       * |o
+       * |===
+       *
+       * | .
+       * |o
+       * |#===
+       *
+       * | .
+       * |o
+       * | #===
+       */
+    case WallStatus(_, 0, _, pad) if (pad <= 2) => (s.moveBall(NE).movePad(Left), PositiveReward)
+    /*
+       * |o
+       * | .#===
+       */
+    case WallStatus(_, 0, _, _) => (endStatus, NegativeReward)
+    /*
+       *   . |
+       *    o|
+       * #==-|
+       */
+    case WallStatus(_, LastCol, _, LastPad) => (s.moveBall(NW).movePad(Left), PositiveReward)
+    /*
+       *     o|
+       * #==- |
+       */
+    case WallStatus(_, LastCol, _, _) => (endStatus, NegativeReward)
+  }
+
+  private def leftOnBottom2: TransitionMapper = (s) => s match {
+    /*
+       * o
+       *  .#==-
+       *
+       *    o
+       * #==-
+       */
+    case WallStatus(_, col, SE, pad) if (col <= pad - 3 || col >= pad + PadSize - 1) => (endStatus, NegativeReward)
+    /*
+       *  o
+       * .#==-
+       *
+       *     o
+       * #==-
+       */
+    case WallStatus(_, col, SW, pad) if (col < pad || col >= pad + PadSize) => (endStatus, NegativeReward)
+    /*
+       * .
+       *  o
+       *   #==-
+       */
+    case WallStatus(_, col, SE, pad) if (col == pad - 2) => (s.moveBall(NW).movePad(Left), PositiveReward)
+  }
+
+  private def leftOnBottom3: TransitionMapper = (s) => s match {
+    /*
+       * O .
+       *  o
+       *  #==-
+       *
+       * O .
+       *  o
+       *  #==-
+       *
+       *  O .
+       *   o
+       * #==-
+       */
+    case WallStatus(_, _, SE, _) => (s.moveBall(NE).movePad(Left), PositiveReward)
+    /*
+       * . O
+       *  o
+       * #==-
+       */
+    case WallStatus(_, _, SW, _) => (s.moveBall(NW).movePad(Left), PositiveReward)
+  }
+
+  private def restOnBottom = restOnBottom1 orElse
+    restOnBottom2 orElse
+    restOnBottom3
+
+  private def restOnBottom1: TransitionMapper = (s) => s match {
+    /*
+       *   . |
+       *    o|
+       *  ===|
+       *
+       *   . |
+       *    o|
+       * === |
+       */
+    case WallStatus(_, LastCol, _, pad) if (pad >= SecondLastPad) => (s.moveBall(NW), PositiveReward)
+    /*
+       *   . |
+       *    o|
+       *  ===|
+       *
+       *   . |
+       *    o|
+       * === |
+       */
+    case WallStatus(_, LastCol, _, pad) if (pad >= SecondLastPad) => (s.moveBall(NW), PositiveReward)
+    /*
+       *     o|
+       * ===. |
+       */
+    case WallStatus(_, LastCol, _, _) => (endStatus, NegativeReward)
+    /*
+       * | .
+       * |o
+       * |===
+       *
+       * | .
+       * |o
+       * | ===
+       */
+    case WallStatus(_, 0, _, pad) if (pad <= 1) => (s.moveBall(NE), PositiveReward)
+  }
+
+  private def restOnBottom2: TransitionMapper = (s) => s match {
+    /*
+       * |o
+       * | .===
+       */
+    case WallStatus(_, 0, _, _) => (endStatus, NegativeReward)
+    /*
+       * o
+       *  .===
+       *
+       *    o
+       * === .
+       */
+    case WallStatus(_, c, SE, pad) if (c >= pad + PadSize || c <= pad - 2) => (endStatus, NegativeReward)
+    /*
+       *  o
+       * . ===
+       *
+       *     o
+       * ===.
+       */
+    case WallStatus(_, c, SW, pad) if (c >= pad + PadSize + 1 || c <= pad - 1) => (endStatus, NegativeReward)
+  }
+
+  private def restOnBottom3: TransitionMapper = (s) => s match {
+    /*
+       * .
+       *  o
+       *   ===
+       */
+    case WallStatus(_, col, SE, pad) if (col == pad - 1) => (s.moveBall(NW), PositiveReward)
+    /*
+       *  .
+       * o
+       * ===
+       */
+    case WallStatus(_, _, SE, _) => (s.moveBall(NE), PositiveReward)
+    /*
+       *     .
+       *    o
+       * ===
+       */
+    case WallStatus(_, col, SW, pad) if (col == pad + PadSize) => (s.moveBall(NE), PositiveReward)
+    /*
+       *  . O
+       *   o
+       * ===
+       */
+    case WallStatus(_, _, SW, _) => (s.moveBall(NW), PositiveReward)
+  }
 }
