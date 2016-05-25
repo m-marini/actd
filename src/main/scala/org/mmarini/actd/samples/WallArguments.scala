@@ -36,7 +36,7 @@ import com.typesafe.scalalogging.LazyLogging
 
 import breeze.stats.distributions.RandBasis
 import breeze.linalg.DenseVector
-
+import scala.math.pow
 /**
  * Set of object build by command line argumenst with default values
  * --beta=3
@@ -51,64 +51,81 @@ import breeze.linalg.DenseVector
  * --stepCount=300000
  * --agent=<ACAgent, QAgent>
  * --model=<compact,flat>
- * --bins=1
+ * --binsSize=1
+ * --halving=300000
  */
-class WallArguments(args: Array[String]) extends LazyLogging {
-
-  lazy val kvArgs: Map[String, String] = {
-    val regex = "--(.*)=(.*)".r
-    (for {
-      arg <- args
-    } yield {
-      arg match {
-        case regex(key, value) => Some(key -> value)
-        case _ => None
-      }
-    }).filterNot(_.isEmpty).map(_.get).toMap
-  }
-
-  private val Beta = "3"
-  private val Gamma = "0.962"
-  private val EpsilonGreedy = "5e-3"
-  private val Lambda = "0.3"
-  private val Eta = "0.1"
-  private val AgentSeed = "1234"
-  private val L1 = "0e-6"
-  private val L2 = "1e-6"
-  private val Hiddens = ""
+class WallArguments(kvArgs: Map[String, String]) extends LazyLogging {
 
   lazy val tdParms: TDParms = {
     val p = kvArgs
+    val halving: Int = kvArgs("halving").toInt
+    val decayEta: Double = pow(0.5, 1.0 / halving)
     TDParms(
-      beta = p.getOrElse("beta", Beta).toDouble,
-      gamma = p.getOrElse("gamma", Gamma).toDouble,
-      epsilon = p.getOrElse("epsilon", EpsilonGreedy).toDouble,
-      lambda = p.getOrElse("lambda", Lambda).toDouble,
-      eta = p.getOrElse("eta", Eta).toDouble,
-      l1 = p.getOrElse("l1", L1).toDouble,
-      l2 = p.getOrElse("l2", L2).toDouble,
-      random = new RandBasis(new MersenneTwister(p.getOrElse("seed", AgentSeed).toLong)))
+      beta = kvArgs("beta").toDouble,
+      gamma = kvArgs("gamma").toDouble,
+      epsilon = kvArgs("epsilon").toDouble,
+      lambda = kvArgs("lambda").toDouble,
+      eta = kvArgs("eta").toDouble,
+      l1 = kvArgs("l1").toDouble,
+      l2 = kvArgs("l2").toDouble,
+      decayEta = decayEta,
+      random = new RandBasis(new MersenneTwister(p("seed").toLong)))
   }
 
   lazy val hiddens: Seq[Int] = {
-    val s = kvArgs.getOrElse("hiddens", Hiddens)
+    val s = kvArgs("hiddens")
     if (s.isEmpty) Seq() else s.split(",").map(_.toInt)
   }
 
-  lazy val agent: String = kvArgs.getOrElse("agent", "ACAgent")
+  lazy val agent: String = kvArgs("agent")
 
-  lazy val stepCount: Int = kvArgs.getOrElse("stepCount", "300000").toInt
+  lazy val stepCount: Int = kvArgs("stepCount").toInt
 
-  lazy val binsSize: Int = kvArgs.getOrElse("binsSize", "1").toInt
+  lazy val binsSize: Int = kvArgs("binsSize").toInt
 
-  lazy val modelName: String = kvArgs.getOrElse("model", "flat")
+  lazy val modelName: String = kvArgs("model")
 
   lazy val model: WallStatus => DenseVector[Double] = modelName match {
     case "compact" => CompactWallStatus.toDenseVector
     case "flat" => FlatWallStatus.toDenseVector
   }
+
+  /** */
+  def dump: WallArguments = {
+    for { (key, value) <- kvArgs.toSeq.sortBy(_._1) }
+      logger.info(s"${key}=${value}");
+    this
+  }
 }
 
 object WallArguments {
-  def apply(args: Array[String] = Array()): WallArguments = new WallArguments(args)
+  private val DefaultArgs = Map(
+    "halving" -> "300000",
+    "beta" -> "3",
+    "gamma" -> "0.962",
+    "epsilon" -> "5e-3",
+    "lambda" -> "0.3",
+    "eta" -> "0.1",
+    "seed" -> "1234",
+    "l1" -> "0",
+    "l2" -> "1e-6",
+    "hiddens" -> "",
+    "agent" -> "ACAgent",
+    "stepCount" -> "300000",
+    "binsSize" -> "1",
+    "model" -> "flat")
+
+  def apply(args: Array[String] = Array(), defaultArgs: Map[String, String] = DefaultArgs): WallArguments = {
+    val regex = "--(.*)=(.*)".r
+    val kvArgs: Map[String, String] =
+      (for {
+        arg <- args
+      } yield {
+        arg match {
+          case regex(key, value) if (defaultArgs.contains(key)) => Some(key -> value)
+          case _ => None
+        }
+      }).filterNot(_.isEmpty).map(_.get).toMap
+    new WallArguments(defaultArgs ++ kvArgs)
+  }
 }

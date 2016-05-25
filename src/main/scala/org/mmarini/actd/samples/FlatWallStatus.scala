@@ -65,7 +65,7 @@ object FlatWallStatus extends LazyLogging {
 
       val v = DenseVector.zeros[Double](BallDim * SpeedDim * PadDim + 1)
 
-      val ballIdx = (status.ball._1 - 1) * Width + status.ball._2
+      val ballIdx = (status.row - 1) * Width + status.col
       val speedIdx = status.direction.id
 
       val idx = ballIdx + speedIdx * BallDim + status.pad * (BallDim * SpeedDim)

@@ -115,7 +115,8 @@ object WallApp extends SimpleSwingApplication with LazyLogging {
           sx <- sOpt;
           s = sx.status
         } {
-          val (br, bc) = s.ball
+          val br = s.row
+          val bc = s.col
 
           val ball = new Ellipse2D.Float(bc * cw / WallStatus.Width,
             (WallStatus.Height - br) * ch / (WallStatus.Height + 1),
@@ -156,17 +157,14 @@ object WallApp extends SimpleSwingApplication with LazyLogging {
     size = new Dimension(WindowWidth, WindowHeight)
   }
 
-  private val builder = new WallBuilder(WallArguments())
-
-  /** Creates the initial environment */
-  private val initStatus = builder.initStatus
-
   private val system = ActorSystem("WallApp")
 
-  class UIActor extends Actor {
+  class UIActor(args: Array[String]) extends Actor {
 
-    val environment =
-      context.actorOf(EnvironmentActor.props(initStatus, builder.initAgent))
+    val environment = {
+      val builder = new WallBuilder(WallArguments(args))
+      context.actorOf(EnvironmentActor.props(builder.initStatus, builder.initAgent))
+    }
 
     environment ! Interact
 
@@ -249,6 +247,6 @@ object WallApp extends SimpleSwingApplication with LazyLogging {
     }
   }
 
-  val uiActor = system.actorOf(Props(classOf[UIActor]))
+  val uiActor = system.actorOf(Props(classOf[UIActor], Array[String]()))
 
 }

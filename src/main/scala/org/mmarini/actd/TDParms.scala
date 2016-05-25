@@ -29,7 +29,13 @@
 
 package org.mmarini.actd
 
+import java.io.File
+
+import org.apache.commons.math3.random.MersenneTwister
+
 import breeze.linalg.DenseVector
+import breeze.linalg.csvread
+import breeze.linalg.csvwrite
 import breeze.linalg.max
 import breeze.linalg.sum
 import breeze.numerics.exp
@@ -55,9 +61,22 @@ case class TDParms(
     eta: Double,
     l1: Double,
     l2: Double,
+    decayEta: Double,
     random: RandBasis) {
 
   private val epsilonRand = new Bernoulli(epsilon, random)
+
+  /** Returns a [[TDParms]] with decayed eta value */
+  def decay: TDParms =
+    TDParms(beta = beta,
+      gamma = gamma,
+      epsilon = epsilon,
+      lambda = lambda,
+      eta = eta * decayEta,
+      l1 = l1,
+      l2 = l2,
+      decayEta = decayEta,
+      random = random)
 
   /** Returns a [[TDParms]] with changed eta value */
   def setEta(value: Double): TDParms =
@@ -68,35 +87,29 @@ case class TDParms(
       eta = value,
       l1 = l1,
       l2 = l2,
+      decayEta = decayEta,
       random = random)
 
+  def chooseEpsilon(f: => Int, choice: Int): Int =
+    if (epsilonRand.sample) random.randInt(choice).sample else f
+
   /** Returns a index with uniform distribution with epsilon probability otherwise by softmax algorithm */
-  def indexESoftmax(pref: DenseVector[Double]): Int =
-    if (epsilonRand.sample) {
-      random.randInt(pref.length).sample
-    } else {
-      indexWeights(exp(pref))
-    }
+  def chooseESoftmax(pref: DenseVector[Double]): Int = chooseEpsilon(chooseSoftmax(pref), pref.length)
 
   /** Returns a index with uniform distribution with epsilon probability otherwise by greedy algorithm */
-  def indexEGreedy(pref: DenseVector[Double]): Int =
-    if (epsilonRand.sample) {
-      random.randInt(pref.length).sample
-    } else {
-      val mx = max(pref)
-      val mxv = pref.findAll(_ == mx)
-      if (mxv.isEmpty) {
-        throw new IllegalArgumentException
-      }
-      mxv(0)
-    }
+  def chooseGreedy(pref: DenseVector[Double]): Int = {
+    val mx = max(pref)
+    pref.findAll(_ == mx)(0)
+  }
+
+  /** Returns a index with uniform distribution with epsilon probability otherwise by greedy algorithm */
+  def chooseEGreedy(pref: DenseVector[Double]): Int = chooseEpsilon(chooseGreedy(pref), pref.length)
 
   /** Returns a random index with by softmax algorithm */
-  def indexSoftmax(pref: DenseVector[Double]): Int =
-    indexWeights(exp(pref))
+  def chooseSoftmax(pref: DenseVector[Double]): Int = chooseWeights(exp(pref))
 
   /** Returns a random index by weights */
-  def indexWeights(pref: DenseVector[Double]): Int = {
+  def chooseWeights(pref: DenseVector[Double]): Int = {
     val acc = pref.toArray.foldLeft(List(0.0)) {
       case (r, x) => (x + r.head) :: r
     }
@@ -105,4 +118,41 @@ case class TDParms(
     if (i >= 0) i else pref.length - 1
   }
 
+  def toDenseVector: DenseVector[Double] = DenseVector[Double](
+    beta,
+    gamma,
+    epsilon,
+    lambda,
+    eta,
+    l1,
+    l2,
+    decayEta)
+
+  def write(file: String) {
+    csvwrite(new File(file), toDenseVector.toDenseMatrix)
+  }
+}
+
+object TDParms {
+
+  private val LambdaIndex = 3
+  private val EtaIndex = 4
+  private val L1Index = 5
+  private val L2Index = 6
+  private val DecayEtaIndex = 7
+  //  private val MaxTrainingSamplesIndex = 6
+
+  def apply(file: String, random: RandBasis = new RandBasis(new MersenneTwister())): TDParms = {
+    val p = csvread(new File(file))
+    TDParms(
+      beta = p(0, 0),
+      gamma = p(0, 1),
+      epsilon = p(0, 2),
+      lambda = p(0, LambdaIndex),
+      eta = p(0, EtaIndex),
+      l1 = p(0, L1Index),
+      l2 = p(0, L2Index),
+      decayEta = p(0, DecayEtaIndex),
+      random)
+  }
 }

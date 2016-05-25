@@ -233,8 +233,8 @@ package object samples extends LazyLogging {
     def toSamples: Iterator[DenseVector[Double]] =
       iter.map {
         case (Feedback(s0, action, reward, s1), err, _) =>
-          val WallStatus((r0, c0), dir0, pad0) = s0.asInstanceOf[WallStatusVector].status
-          val WallStatus((r1, c1), dir1, pad1) = s1.asInstanceOf[WallStatusVector].status
+          val WallStatus(r0, c0, dir0, pad0) = s0.asInstanceOf[WallStatusVector].status
+          val WallStatus(r1, c1, dir1, pad1) = s1.asInstanceOf[WallStatusVector].status
           DenseVector.vertcat(DenseVector(r0, c0, dir0.id, pad0,
             action.toDouble, reward,
             r1, c1, dir1.id, pad1, err))
@@ -284,8 +284,8 @@ package object samples extends LazyLogging {
    */
   def recordToSamplesWithStatus(record: (Feedback, Double, ACAgent)): DenseVector[Double] = record match {
     case (Feedback(s0, action, reward, s1), err, agent) =>
-      val WallStatus((r0, c0), dir0, pad0) = s0.asInstanceOf[WallStatusVector].status
-      val WallStatus((r1, c1), dir1, pad1) = s1.asInstanceOf[WallStatusVector].status
+      val WallStatus(r0, c0, dir0, pad0) = s0.asInstanceOf[WallStatusVector].status
+      val WallStatus(r1, c1, dir1, pad1) = s1.asInstanceOf[WallStatusVector].status
       val sv0 = agent.critic(s0.toDenseVector).output
       val sv1 = agent.critic(s1.toDenseVector).output
       DenseVector.vertcat(DenseVector(r0, c0, dir0.id, pad0,

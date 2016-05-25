@@ -67,6 +67,7 @@ class TDLayerTest extends PropSpec with PropertyChecks with Matchers with GivenW
     eta = eta,
     l1 = l1,
     l2 = l2,
+    decayEta = 1,
     random = Rand)
 
   property("nlr output") {

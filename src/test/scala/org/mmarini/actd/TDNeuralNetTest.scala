@@ -85,6 +85,7 @@ class TDNeuralNetTest extends PropSpec with PropertyChecks with Matchers with Gi
     eta = eta,
     l1 = l1,
     l2 = l2,
+    decayEta = 1,
     random = new RandBasis(new MersenneTwister(Seed)))
 
   property("net output") {

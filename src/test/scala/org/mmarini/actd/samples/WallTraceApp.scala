@@ -48,35 +48,17 @@ object WallTraceApp extends App
   //  val DelayTime = 200 millis
   val DelayTime = Zero
 
-  private val wArgs = WallArguments(args)
+  private val wArgs = WallArguments(args).dump
+
   private val builder = new WallBuilder(wArgs)
 
   override def windowSize: Int = wArgs.binsSize
 
-  val environment = {
-    val agent = builder.initAgent
-    val status = builder.initStatus
-
-    val parms = agent.parms
-    logger.info(f"Beta=${parms.beta}%g")
-    logger.info(f"Gamma=${parms.gamma}%g")
-    logger.info(f"Epsilon=${parms.epsilon}%g")
-    logger.info(f"Lambda=${parms.lambda}%g")
-    logger.info(f"Eta=${parms.eta}%g")
-    logger.info(f"L1=${parms.l1}%g")
-    logger.info(f"L2=${parms.l2}%g")
-    logger.info(f"hiddens=${wArgs.hiddens.mkString(",")}%s")
-    logger.info(s"agent=${agent.getClass.getName}")
-    logger.info(s"model=${wArgs.modelName}")
-    logger.info(f"binsSize=${wArgs.binsSize}%d")
-    logger.info(f"stepCount=${wArgs.stepCount}%d")
-
-    system.actorOf(EnvironmentActor.props(status, agent))
-  }
+  val environment = system.actorOf(EnvironmentActor.props(builder.initStatus, builder.initAgent))
 
   val controllerActor = system.actorOf(TakeActor.props(environment, wArgs.stepCount, DelayTime))
 
-//  val processorActorsSet = Set(returnsActors, saveActors)
+  //  val processorActorsSet = Set(returnsActors, saveActors)
   val processorActorsSet = Set(returnsActors)
 
   startSim

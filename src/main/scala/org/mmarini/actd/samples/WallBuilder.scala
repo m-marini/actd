@@ -32,6 +32,7 @@ package org.mmarini.actd.samples
 import org.mmarini.actd.ACAgent
 import org.mmarini.actd.Agent
 import org.mmarini.actd.QAgent
+import org.mmarini.actd.SmartAgent
 import org.mmarini.actd.Status
 import org.mmarini.actd.TDNeuralNet
 
@@ -57,5 +58,6 @@ class WallBuilder(args: WallArguments) {
     args.agent match {
       case "QAgent" => qAgent
       case "ACAgent" => acAgent
+      case "SmartAgent" => new SmartAgent(args.tdParms)
     }
 }

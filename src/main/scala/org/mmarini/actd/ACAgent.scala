@@ -29,14 +29,9 @@
 
 package org.mmarini.actd
 
-import java.io.File
-
-import scala.IndexedSeq
-
 import org.apache.commons.math3.random.MersenneTwister
 
 import breeze.linalg.DenseVector
-import breeze.linalg.csvread
 import breeze.linalg.sum
 import breeze.numerics.exp
 import breeze.stats.distributions.RandBasis
@@ -65,7 +60,7 @@ class ACAgent(
 
   /** Returns the action to be taken in a state */
   def action(status: Status): Action =
-    parms.indexESoftmax(actor(status.toDenseVector).output)
+    parms.chooseESoftmax(actor(status.toDenseVector).output)
 
   /** Returns a new agent that has learned by reward and the error */
   def train(feedback: Feedback): (ACAgent, Double) = {
@@ -105,10 +100,12 @@ class ACAgent(
     // Teaches the actor by evidence
     val na = as.train(errs)
 
+    val np = parms.decay
+
     val nag = if (end0) {
-      new ACAgent(parms, nc.clearTraces, na.clearTraces)
+      new ACAgent(np, nc.clearTraces, na.clearTraces)
     } else {
-      new ACAgent(parms, nc, na)
+      new ACAgent(np, nc, na)
     }
     (nag, delta)
   }
@@ -116,15 +113,7 @@ class ACAgent(
   /** Writes a file with agent data */
   def write(file: String) {
     // Saves parameters
-    val parm = IndexedSeq(DenseVector[Double](
-      parms.beta,
-      parms.gamma,
-      parms.epsilon,
-      parms.lambda,
-      parms.eta,
-      parms.l1,
-      parms.l2))
-    parm.iterator.write(s"$file-parms.csv")
+    parms.write(s"$file-parms.csv")
 
     // Saves critic
     critic.write(s"$file-critic")
@@ -136,12 +125,6 @@ class ACAgent(
 
 /** Factory for [[ACAgent]] instances */
 object ACAgent {
-
-  private val LambdaIndex = 3
-  private val EtaIndex = 4
-  private val L1Index = 5
-  private val L2Index = 6
-  private val MaxTrainingSamplesIndex = 6
 
   /**
    * Creates a TDAgent with TD parameter,
@@ -161,17 +144,7 @@ object ACAgent {
    * Creates a TDAgent reading from file set
    */
   def apply(file: String, random: RandBasis = new RandBasis(new MersenneTwister())): ACAgent = {
-    val p = csvread(new File(s"$file-parms.csv"))
-    val parms = TDParms(
-      beta = p(0, 0),
-      gamma = p(0, 1),
-      epsilon = p(0, 2),
-      lambda = p(0, LambdaIndex),
-      eta = p(0, EtaIndex),
-      l1 = p(0, L1Index),
-      l2 = p(0, L2Index),
-      random)
-
+    val parms = TDParms(s"$file-parms.csv", random)
     val critic = TDNeuralNet.read(parms)(s"$file-critic")
     val actor = TDNeuralNet.read(parms)(s"$file-actor")
     new ACAgent(parms, critic, actor)

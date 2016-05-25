@@ -78,11 +78,11 @@ object CompactWallStatus extends LazyLogging {
       FinalVector
     } else {
       normalizeStatus(DenseVector[Double](
-        status.ball._1,
-        status.ball._2,
+        status.row,
+        status.col,
         status.direction.id,
         status.pad,
-        -1))
+        0))
     }
   }
 }

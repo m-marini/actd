@@ -83,6 +83,7 @@ class TDAgentTest extends PropSpec with PropertyChecks with Matchers with GivenW
       eta = eta,
       l1 = 0,
       l2 = 0,
+      decayEta = 1,
       random = new RandBasis(new MersenneTwister(Seed))),
     2, 2)
 

@@ -38,22 +38,22 @@ import com.typesafe.scalalogging.LazyLogging
 import breeze.stats.distributions.RandBasis
 
 /** The status of wall game */
-case class WallStatus(ball: (Int, Int), direction: Direction.Value, pad: Int) {
+case class WallStatus(row: Int, col: Int, direction: Direction.Value, pad: Int) {
 
   import WallStatus._
   import Direction._
   import PadAction._
 
-  require(ball._2 >= 0)
-  require(ball._2 < Width)
+  require(col >= 0)
+  require(col < Width)
   require(pad >= 0)
   require(pad <= LastPad)
-  require(ball._1 <= Height)
-  require(ball._1 >= 0)
-  require(ball._1 >= 1 || ball._2 == 0 && direction == SE && pad == 1, s"$ball $direction $pad")
+  require(row <= Height)
+  require(row >= 0)
+  require(row >= 1 || row == 0 && direction == SE && pad == 1, s"$row, $col $direction $pad")
 
   /** Returns a [[WallStatus1]] with changed pad location */
-  def pad(x: Int): WallStatus = WallStatus(ball, direction, x)
+  def pad(x: Int): WallStatus = WallStatus(row, col, direction, x)
 
   /** Moves the pad by action */
   private def movePad(action: Action) = PadAction.apply(action) match {
@@ -63,25 +63,300 @@ case class WallStatus(ball: (Int, Int), direction: Direction.Value, pad: Int) {
   }
 
   /** Produce the feedback of an applied action */
-  def apply(action: Action): (WallStatus, Action, Double, WallStatus) = {
-    val pad1 = movePad(action)
-    val (s1, reward) = if (finalStatus) {
-      // Restarts because ball is out of field
-      (WallStatus.initial, 0.0)
-    } else {
-      val nextOpt = StatusMap.get((this, PadAction(action)))
-      nextOpt.getOrElse(
-        direction match {
-          case NO => (WallStatus((ball._1 + 1, ball._2 - 1), direction, pad1), 0.0)
-          case NE => (WallStatus((ball._1 + 1, ball._2 + 1), direction, pad1), 0.0)
-          case SO if (ball._1 == 1) => (endStatus, NegativeReward)
-          case SE if (ball._1 == 1) => (endStatus, NegativeReward)
-          case SO => (WallStatus((ball._1 - 1, ball._2 - 1), direction, pad1), 0.0)
-          case SE => (WallStatus((ball._1 - 1, ball._2 + 1), direction, pad1), 0.0)
-        })
-    }
-    (this, action, reward, s1)
+  def apply(action: Action): (WallStatus, Action, Double, WallStatus) = apply1(action) match {
+    case (s1, r) => (this, action, r, s1)
   }
+
+  /** Produce the feedback of an applied action */
+  private def apply1(action: Action): (WallStatus, Double) =
+    if (finalStatus) {
+      (WallStatus.initial, 0.0)
+    } else if (row == Height) {
+      // Ball on top
+      ballOnTop match {
+        case (nc, nd) => (WallStatus(Height - 1, nc, nd, movePad(action)), 0.0)
+      }
+    } else if (row == 1) {
+      // Ball on bottom
+      PadAction(action) match {
+        case Rest => restOnBottom
+        case Right => rightOnBottom
+        case Left => leftOnBottom
+      }
+    } else {
+      ballOnMiddle match {
+        case (nr, nc, nd) => (WallStatus(nr, nc, nd, movePad(action)), 0.0)
+      }
+    }
+
+  private def leftOnBottom =
+    this match {
+      case WallStatus(_, _, NW, _) => (WallStatus(2, col - 1, NW, movePad((Left.id))), 0.0)
+      case WallStatus(_, _, NE, _) => (WallStatus(2, col + 1, NE, movePad((Left.id))), 0.0)
+      /*
+       * | .
+       * |o
+       * |===
+       */
+      case WallStatus(_, 0, _, 0) => (WallStatus(2, 1, NE, 0), PositiveReward)
+      /*
+       * | .
+       * |o
+       * |#===
+       */
+      case WallStatus(_, 0, _, 1) => (WallStatus(2, 1, NE, 0), PositiveReward)
+      /*
+       * | .
+       * |o
+       * | #===
+       */
+      case WallStatus(_, 0, _, 2) => (WallStatus(2, 1, NE, 1), PositiveReward)
+      /*
+       * |o
+       * | .#===
+       */
+      case WallStatus(_, 0, _, _) => (endStatus, NegativeReward)
+      /*
+       *   . |
+       *    o|
+       * #==-|
+       */
+      case WallStatus(_, LastCol, _, LastPad) => (WallStatus(2, SecondLastCol, NW, SecondLastPad), PositiveReward)
+      /*
+       *     o|
+       * #==- |
+       */
+      case WallStatus(_, LastCol, _, _) => (endStatus, NegativeReward)
+      /*
+       * o
+       *  .#==-
+       *
+       *    o
+       * #==-
+       */
+      case WallStatus(_, col, SE, pad) if (col <= pad - 3 || col >= pad + PadSize - 1) => (endStatus, NegativeReward)
+      /*
+       *  o
+       * .#==-
+       *
+       *     o
+       * #==-
+       */
+      case WallStatus(_, col, SW, pad) if (col < pad || col >= pad + PadSize) => (endStatus, NegativeReward)
+      /*
+       * .
+       *  o
+       *   #==-
+       */
+      case WallStatus(_, col, SE, pad) if (col == pad - 2) => (WallStatus(2, col - 1, NW, movePad(Left.id)), PositiveReward)
+      /*
+       * O .
+       *  o
+       *  #==-
+       *
+       * O .
+       *  o
+       *  #==-
+       *
+       *  O .
+       *   o
+       * #==-
+       */
+      case WallStatus(_, col, SE, _) => (WallStatus(2, col + 1, NE, movePad(Left.id)), PositiveReward)
+      /*
+       * . O
+       *  o
+       * #==-
+       */
+      case WallStatus(_, col, SW, _) => (WallStatus(2, col - 1, NW, movePad(Left.id)), PositiveReward)
+    }
+
+  private def rightOnBottom =
+    this match {
+      case WallStatus(_, _, NW, _) => (WallStatus(2, col - 1, NW, movePad((Left.id))), 0.0)
+      case WallStatus(_, _, NE, _) => (WallStatus(2, col + 1, NE, movePad((Left.id))), 0.0)
+      /*
+       *   . |
+       *    o|
+       *  ===|
+       */
+      case WallStatus(_, LastCol, _, LastPad) => (WallStatus(2, SecondLastCol, NW, pad), PositiveReward)
+      /*
+       *   . |
+       *    o|
+       * ===#|
+       */
+      case WallStatus(_, LastCol, _, SecondLastPad) => (WallStatus(2, SecondLastCol, NW, LastPad), PositiveReward)
+      /*
+       *    . |
+       *     o|
+       * ===# |
+       */
+      case WallStatus(_, LastCol, _, pad) if (pad == LastPad - 2) => (WallStatus(2, SecondLastCol, NW, movePad(Right.id)), PositiveReward)
+      /*
+       *     . |
+       *      o|
+       * ===#. |
+       */
+      case WallStatus(_, LastCol, _, _) => (endStatus, NegativeReward)
+      /*
+       * | .
+       * |o
+       * |===#
+       */
+      case WallStatus(_, 0, _, 0) => (WallStatus(2, 1, NE, movePad(Right.id)), PositiveReward)
+      /*
+       * |o
+       * | ===#
+       */
+      case WallStatus(_, 0, _, _) => (endStatus, NegativeReward)
+      /*
+       * o
+       *  ===#
+       *
+       *    o
+       * ===#-
+       */
+      case WallStatus(_, col, SE, pad) if (col < pad || col >= pad + PadSize) => (endStatus, NegativeReward)
+      /*
+       *   o
+       *  .===#
+       *
+       *      o
+       * ===#-
+       */
+      case WallStatus(_, col, SW, pad) if (col <= pad || col >= pad + PadSize + 2) => (endStatus, NegativeReward)
+      /*
+       *      .
+       *     o
+       * ===#
+       */
+      case WallStatus(_, col, SW, pad) if (col == pad + PadSize + 1) => (WallStatus(2, col + 1, NE, movePad(Right.id)), PositiveReward)
+      /*
+       *   . O
+       *    o
+       * -==#
+       *
+       *  . O
+       *   o
+       * -==#
+       *
+       * . O
+       *  o
+       * -==#
+       */
+      case WallStatus(_, col, SW, _) => (WallStatus(2, col - 1, NW, movePad(Right.id)), PositiveReward)
+      /*
+       * O .
+       *  o
+       * ===#
+       */
+      case WallStatus(_, col, SE, _) => (WallStatus(2, col + 1, NE, movePad(Right.id)), PositiveReward)
+    }
+
+  private def restOnBottom =
+    this match {
+      case WallStatus(_, _, NW, _) => (WallStatus(2, col - 1, NW, movePad((Left.id))), 0.0)
+      case WallStatus(_, _, NE, _) => (WallStatus(2, col + 1, NE, movePad((Left.id))), 0.0)
+      /*
+       *   . |
+       *    o|
+       *  ===|
+       */
+      case WallStatus(_, LastCol, _, LastPad) => (WallStatus(2, SecondLastCol, NW, pad), PositiveReward)
+      /*
+       *   . |
+       *    o|
+       * === |
+       */
+      case WallStatus(_, LastCol, _, SecondLastPad) => (WallStatus(2, SecondLastCol, NW, pad), PositiveReward)
+      /*
+       *     o|
+       * ===. |
+       */
+      case WallStatus(_, LastCol, _, _) => (endStatus, NegativeReward)
+      /*
+       * | .
+       * |o
+       * |===
+       */
+      case WallStatus(_, 0, _, 0) => (WallStatus(2, 1, NE, pad), PositiveReward)
+      /*
+       * | .
+       * |o
+       * | ===
+       */
+      case WallStatus(_, 0, _, 1) => (WallStatus(2, 1, NE, pad), PositiveReward)
+      /*
+       * |o
+       * | .===
+       */
+      case WallStatus(_, 0, _, _) => (endStatus, NegativeReward)
+      /*
+       * o
+       *  .===
+       *
+       *    o
+       * === .
+       */
+      case WallStatus(_, c, SE, _) if (c >= pad + PadSize || c <= pad - 2) =>
+        (endStatus, NegativeReward)
+      /*
+       *  o
+       * . ===
+       *
+       *     o
+       * ===.
+       */
+      case WallStatus(_, c, SW, _) if (c >= pad + PadSize + 1 || c <= pad - 1) =>
+        (endStatus, NegativeReward)
+      /*
+       * .
+       *  o
+       *   ===
+       */
+      case WallStatus(_, col, SE, pad) if (col == pad - 1) => (WallStatus(2, col - 1, NW, pad), PositiveReward)
+      /*
+       *  .
+       * o
+       * ===
+       */
+      case WallStatus(_, _, SE, _) => (WallStatus(2, col + 1, NE, pad), PositiveReward)
+      /*
+       *     .
+       *    o
+       * ===
+       */
+      case WallStatus(_, _col, SW, pad) if (col == pad + PadSize) => (WallStatus(2, col + 1, NE, pad), PositiveReward)
+      /*
+       *  . O
+       *   o
+       * ===
+       */
+      case WallStatus(_, _, SW, _) => (WallStatus(2, col - 1, NW, pad), PositiveReward)
+    }
+
+  private def ballOnMiddle =
+    this match {
+      case WallStatus(r, 0, NW, _) => (r + 1, 1, NE)
+      case WallStatus(r, 0, SW, _) => (r - 1, 1, SE)
+      case WallStatus(r, LastCol, NE, _) => (r + 1, SecondLastCol, NW)
+      case WallStatus(r, LastCol, SE, _) => (r - 1, SecondLastCol, SW)
+      case WallStatus(r, c, NE, _) => (r + 1, c + 1, NE)
+      case WallStatus(r, c, SE, _) => (r - 1, c + 1, SE)
+      case WallStatus(r, c, NW, _) => (r + 1, c - 1, NW)
+      case WallStatus(r, c, SW, _) => (r - 1, c - 1, SW)
+    }
+
+  private def ballOnTop =
+    this match {
+      case WallStatus(_, 0, _, _) => (1, SE)
+      case WallStatus(_, LastCol, _, _) => (SecondLastCol, SW)
+      case WallStatus(_, c, NE, _) => (c + 1, SE)
+      case WallStatus(_, c, SE, _) => (c + 1, SE)
+      case WallStatus(_, c, NW, _) => (c - 1, SW)
+      case WallStatus(_, c, SW, _) => (c - 1, SW)
+    }
 
   /** Returns true if is a final status */
   def finalStatus: Boolean = this == endStatus
@@ -99,7 +374,7 @@ object WallStatus extends LazyLogging {
     val Rest, Left, Right = Value
   }
   object Direction extends Enumeration {
-    val NO, NE, SE, SO = Value
+    val NW, NE, SE, SW = Value
   }
 
   val Height = 10
@@ -120,313 +395,22 @@ object WallStatus extends LazyLogging {
 
   val envRandom = new RandBasis(new MersenneTwister(EnvSeed))
 
-  val endStatus = WallStatus((0, 0), SE, 1)
-
-  /** The state transition map */
-  val StatusMap = createMap
+  val endStatus = WallStatus(0, 0, SE, 1)
 
   /** Creates a initial game status */
   def initial: WallStatus = {
-    val b = (1, envRandom.randInt(Width).get)
-    val s = b match {
-      case (_, 0) => NE
-      case (_, LastCol) => NO
-      case _ => envRandom.choose(Seq(Direction.NE, Direction.NO)).get
+    val col = envRandom.randInt(Width).get
+    val s = col match {
+      case 0 => NE
+      case LastCol => NW
+      case _ => envRandom.choose(Seq(Direction.NE, Direction.NW)).get
     }
-    val pad = b match {
-      case (_, 0) => 0
-      case (_, c) if (c >= LastPad) => LastPad
-      case (_, c) => c - 1
+    val pad = col match {
+      case 0 => 0
+      case c if (c >= LastPad) => LastPad
+      case c => c - 1
     }
-    WallStatus(b, s, pad)
+    WallStatus(1, col, s, pad)
   }
 
-  private def validateTx(s: Seq[(TransitionSource, TransitionTarget)]) = {
-    require(s.size == s.toMap.size, s)
-    s.toMap
-  }
-
-  private def createTx0 =
-    validateTx(for {
-      pad <- (0 to LastPad)
-      dir <- Seq(NO, NE, SO)
-      act <- PadAction.values.toSeq
-    } yield {
-      val s0 = WallStatus((Height, 0), dir, pad)
-      val s1 = WallStatus((SecondLastRow, 1), SE, s0.movePad(act.id))
-      ((s0, act), (s1, 0.0))
-    })
-
-  private def createTx1 =
-    validateTx(for {
-      pad <- (0 to LastPad)
-      dir <- Seq(NO, NE, SE)
-      act <- PadAction.values.toSeq
-    } yield {
-      val s0 = WallStatus((Height, LastCol), dir, pad)
-      val s1 = WallStatus((SecondLastRow, SecondLastCol), SO, s0.movePad(act.id))
-      ((s0, act), (s1, 0.0))
-    })
-
-  private def createTx2 =
-    validateTx(for {
-      c <- 1 to SecondLastCol
-      pad <- (0 to LastPad)
-      act <- PadAction.values.toSeq
-    } yield {
-      val s0 = WallStatus((Height, c), NO, pad)
-      val s1 = WallStatus((SecondLastRow, c - 1), SO, s0.movePad(act.id))
-      ((s0, act), (s1, 0.0))
-    })
-
-  private def createTx3 =
-    validateTx(for {
-      c <- 1 to SecondLastCol
-      pad <- (0 to LastPad)
-      act <- PadAction.values.toSeq
-    } yield {
-      val s0 = WallStatus((Height, c), NE, pad)
-      val s1 = WallStatus((SecondLastRow, c + 1), SE, s0.movePad(act.id))
-      ((s0, act), (s1, 0.0))
-    })
-
-  private def createTx4 =
-    validateTx(for {
-      r <- 2 to SecondLastRow
-      pad <- (0 to LastPad)
-      act <- PadAction.values.toSeq
-    } yield {
-      val s0 = WallStatus((r, 0), NO, pad)
-      val s1 = WallStatus((r + 1, 1), NE, s0.movePad(act.id))
-      ((s0, act), (s1, 0.0))
-    })
-
-  private def createTx5 =
-    validateTx(for {
-      r <- 2 to SecondLastRow
-      pad <- (0 to LastPad)
-      act <- PadAction.values.toSeq
-    } yield {
-      val s0 = WallStatus((r, 0), SO, pad)
-      val s1 = WallStatus((r - 1, 1), SE, s0.movePad(act.id))
-      ((s0, act), (s1, 0.0))
-    })
-
-  private def createTx6 =
-    validateTx(for {
-      r <- 2 to SecondLastRow
-      pad <- (0 to LastPad)
-      act <- PadAction.values.toSeq
-    } yield {
-      val s0 = WallStatus((r, LastCol), SE, pad)
-      val s1 = WallStatus((r - 1, SecondLastCol), SO, s0.movePad(act.id))
-      ((s0, act), (s1, 0.0))
-    })
-
-  private def createTx7 =
-    validateTx(for {
-      r <- 2 to SecondLastRow
-      pad <- (0 to LastPad)
-      act <- PadAction.values.toSeq
-    } yield {
-      val s0 = WallStatus((r, LastCol), NE, pad)
-      val s1 = WallStatus((r + 1, SecondLastCol), NO, s0.movePad(act.id))
-      ((s0, act), (s1, 0.0))
-    })
-
-  private def createTx8 =
-    validateTx(for {
-      pad <- 1 to SecondLastPad
-      c <- pad to pad + 2
-    } yield {
-      val s0 = WallStatus((1, c), SO, pad)
-      val s1 = WallStatus((2, c - 1), NO, pad)
-      ((s0, Rest), (s1, PositiveReward))
-    })
-
-  private def createTx9 =
-    validateTx(for {
-      pad <- 1 to SecondLastPad
-      c <- pad to pad + 2
-    } yield {
-      val s0 = WallStatus((1, c), SE, pad)
-      val s1 = WallStatus((2, c + 1), NE, pad)
-      ((s0, Rest), (s1, PositiveReward))
-    })
-
-  private def createTx10 =
-    validateTx(for {
-      pad <- 0 to LastPad - 2
-      c <- pad + 1 to pad + 3
-    } yield {
-      val s0 = WallStatus((1, c), SO, pad)
-      val s1 = WallStatus((2, c - 1), NO, pad + 1)
-      ((s0, Right), (s1, PositiveReward))
-    })
-
-  private def createTx11 =
-    validateTx(for {
-      pad <- 2 to LastPad
-      c <- pad - 1 to pad + 1
-    } yield {
-      val s0 = WallStatus((1, c), SE, pad)
-      val s1 = WallStatus((2, c + 1), NE, pad - 1)
-      ((s0, Left), (s1, PositiveReward))
-    })
-
-  private def createTx12 =
-    validateTx(for {
-      dir <- Seq(SO, SE)
-      pad <- 0 to 1
-    } yield {
-      val s0 = WallStatus((1, 0), dir, pad)
-      val s1 = WallStatus((2, 1), NE, pad)
-      ((s0, Rest), (s1, PositiveReward))
-    })
-
-  private def createTx13 =
-    validateTx(for {
-      dir <- Seq(SO, SE)
-    } yield {
-      val s0 = WallStatus((1, 0), dir, 0)
-      val s1 = WallStatus((2, 1), NE, 1)
-      ((s0, Right), (s1, PositiveReward))
-    })
-
-  private def createTx14 =
-    validateTx(for {
-      pad <- 1 to 2
-      dir <- Seq(SO, SE)
-    } yield {
-      val s0 = WallStatus((1, 0), dir, pad)
-      val s1 = WallStatus((2, 1), NE, pad - 1)
-      ((s0, Left), (s1, PositiveReward))
-    })
-
-  private def createTx15 =
-    validateTx(for {
-      pad <- SecondLastPad to LastPad
-      dir <- Seq(SO, SE)
-    } yield {
-      val s0 = WallStatus((1, LastCol), dir, pad)
-      val s1 = WallStatus((2, SecondLastCol), NO, pad)
-      ((s0, Rest), (s1, PositiveReward))
-    })
-
-  private def createTx16 =
-    validateTx(for {
-      dir <- Seq(SO, SE)
-    } yield {
-      val s0 = WallStatus((1, LastCol), dir, LastPad)
-      val s1 = WallStatus((2, SecondLastCol), NO, SecondLastPad)
-      ((s0, Left), (s1, PositiveReward))
-    })
-
-  private def createTx17 =
-    validateTx(for {
-      pad <- LastPad - 2 to SecondLastPad
-      dir <- Seq(SO, SE)
-    } yield {
-      val s0 = WallStatus((1, LastCol), dir, pad)
-      val s1 = WallStatus((2, SecondLastCol), NO, pad + 1)
-      ((s0, Right), (s1, PositiveReward))
-    })
-
-  private def createTx18 =
-    validateTx(for {
-      pad <- 2 to LastPad
-    } yield {
-      val s0 = WallStatus((1, pad - 1), SE, pad)
-      val s1 = WallStatus((2, pad - 2), NO, pad)
-      ((s0, Rest), (s1, PositiveReward))
-    })
-
-  private def createTx19 =
-    validateTx(for {
-      pad <- 3 to LastPad
-    } yield {
-      val s0 = WallStatus((1, pad - 2), SE, pad)
-      val s1 = WallStatus((2, pad - 3), NO, pad - 1)
-      ((s0, Left), (s1, PositiveReward))
-    })
-
-  private def createTx20 =
-    validateTx(for {
-      pad <- 1 to SecondLastPad
-    } yield {
-      val s0 = WallStatus((1, pad), SE, pad)
-      val s1 = WallStatus((2, pad + 1), NE, pad + 1)
-      ((s0, Right), (s1, PositiveReward))
-    })
-
-  private def createTx21 =
-    validateTx(for {
-      pad <- 0 to LastPad - 2
-    } yield {
-      val s0 = WallStatus((1, pad + PadSize), SO, pad)
-      val s1 = WallStatus((2, pad + PadSize + 1), NE, pad)
-      ((s0, Rest), (s1, PositiveReward))
-    })
-
-  private def createTx22 =
-    validateTx(for {
-      pad <- 0 to LastPad - 3
-    } yield {
-      val s0 = WallStatus((1, pad + PadSize + 1), SO, pad)
-      val s1 = WallStatus((2, pad + PadSize + 2), NE, pad + 1)
-      ((s0, Right), (s1, PositiveReward))
-    })
-
-  private def createTx23 =
-    validateTx(for {
-      pad <- 1 to SecondLastPad
-    } yield {
-      val s0 = WallStatus((1, pad + PadSize - 1), SO, pad)
-      val s1 = WallStatus((2, pad + PadSize - 2), NO, pad - 1)
-      ((s0, Left), (s1, PositiveReward))
-    })
-
-  /** Create the map of transitions */
-  private def createMap: TransitionMap = {
-    val lm =
-      createTx0 +:
-        createTx1 +:
-        createTx2 +:
-        createTx3 +:
-        createTx4 +:
-        createTx5 +:
-        createTx6 +:
-        createTx7 +:
-        createTx8 +:
-        createTx9 +:
-        createTx10 +:
-        createTx11 +:
-        createTx12 +:
-        createTx13 +:
-        createTx14 +:
-        createTx15 +:
-        createTx16 +:
-        createTx17 +:
-        createTx18 +:
-        createTx19 +:
-        createTx20 +:
-        createTx21 +:
-        createTx22 +:
-        createTx23 +:
-        Seq()
-    //
-    val lmi = lm.zipWithIndex
-    for {
-      (li, i) <- lmi
-      (lj, j) <- lmi
-      if (j > i)
-    } {
-      val inter = li.keySet & lj.keySet
-      require(inter.isEmpty, s"createTx$i & createTx$j = $inter")
-    }
-
-    val map = lm.reduce(_ ++ _)
-    require(map.size == lm.map(_.size).sum, s"${map.size} != ${lm.map(_.size).sum}")
-    map
-  }
 }

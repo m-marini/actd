@@ -29,16 +29,10 @@
 
 package org.mmarini.actd
 
-import java.io.File
-
-import scala.IndexedSeq
-
-import org.apache.commons.math3.random.MersenneTwister
+import org.mmarini.actd.samples.WallStatus
+import org.mmarini.actd.samples.WallStatusVector
 
 import breeze.linalg.DenseVector
-import breeze.linalg.csvread
-import breeze.linalg.max
-import breeze.stats.distributions.RandBasis
 
 /**
  * A learning agent that replies to stimulus with actions and learns by receiving rewards
@@ -50,73 +44,29 @@ import breeze.stats.distributions.RandBasis
  *
  * @author us00852
  */
-class QAgent(
-    override val parms: TDParms,
-    val qFunction: TDNeuralNet) extends Agent {
+class SmartAgent(override val parms: TDParms) extends Agent {
 
   /** Returns the action to be taken in a state */
-  def action(status: Status): Action =
-    parms.chooseEGreedy(qFunction(status.toDenseVector).output)
-
-  private def qf(s: Status): DenseVector[Double] =
-    if (s.finalStatus) {
-      DenseVector.zeros[Double](qFunction(s.toDenseVector).output.length)
-    } else {
-      qFunction(s.toDenseVector).output
+  def action(status: Status): Action = {
+    val s = status.asInstanceOf[WallStatusVector].status
+    val a = (s.col - 1 - s.pad) match {
+      case x if (x > 0) => WallStatus.PadAction.Right
+      case x if (x < 0) => WallStatus.PadAction.Left
+      case _ => WallStatus.PadAction.Rest
     }
+    a.id
+  }
 
   /** Returns a new agent that has learned by reward and the error */
-  def train(feedback: Feedback): (Agent, Double) = {
-
-    // Computes the action value pre and post step
-    val s0Vect = feedback.s0.toDenseVector
-    val s1Vect = feedback.s1.toDenseVector
-
-    val qs0 = qf(feedback.s0)
-    val qs0a = max(qs0)
-
-    val qs1 = qf(feedback.s1)
-    val qs1a = max(qs1)
-
-    val action = feedback.action
-
-    val q1s0a = feedback.reward + parms.gamma * qs1a
-
-    val q1s0 = qs0.copy
-    q1s0.update(action, q1s0a)
-
-    val delta = q1s0 - qs0
-    val qf1 = if (qs0(action) == qs0a) qFunction else qFunction.clearTraces
-    val qf2 = qf1(s0Vect).train(delta)
-
-    val np = parms.decay
-    val nag = if (feedback.s0.finalStatus) {
-      new QAgent(np, qf2.clearTraces)
-    } else {
-      new QAgent(np, qf2)
-    }
-    (nag, q1s0a - qs0a)
-
-  }
+  def train(feedback: Feedback): (Agent, Double) = (this, 0.0)
 
   /** Writes a file with agent data */
   def write(file: String) {
-    // Saves parameters
-    parms.write(s"$file-parms.csv")
-
-    // Saves qFunction
-    qFunction.write(s"$file-q")
   }
 }
 
 /** Factory for [[QAgent]] instances */
-object QAgent {
-
-  private val LambdaIndex = 3
-  private val EtaIndex = 4
-  private val L1Index = 5
-  private val L2Index = 6
-  private val MaxTrainingSamplesIndex = 6
+object SmartAgent {
 
   /**
    * Creates a TDAgent with TD parameter,
@@ -127,16 +77,5 @@ object QAgent {
     parms: TDParms,
     statusSize: Int,
     actionCount: Int,
-    hiddenLayers: Int*): QAgent =
-    new QAgent(parms,
-      TDNeuralNet(parms)(statusSize +: hiddenLayers :+ actionCount))
-
-  /**
-   * Creates a TDAgent reading from file set
-   */
-  def apply(file: String, random: RandBasis = new RandBasis(new MersenneTwister())): QAgent = {
-    val parms = TDParms(s"$file-parms.csv", random)
-    val qFunc = TDNeuralNet.read(parms)(s"$file-q")
-    new QAgent(parms, qFunc)
-  }
+    hiddenLayers: Int*): SmartAgent = new SmartAgent(parms)
 }
