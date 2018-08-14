@@ -3,7 +3,6 @@
 
 ACTD is a scala library that implements the Temporal Difference reinforcement learning algorithm based on Actor/Critic method with Artificial Neural Network.
 
-
 # Getting Started
 
 
